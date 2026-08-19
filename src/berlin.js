@@ -50,6 +50,7 @@ export const BERLIN = {
     { id:'leopoldplatz', name:'Leopoldplatz', districtId:'wedding', x:510, y:150 },
     { id:'eberwalder', name:'Eberswalder Straße', districtId:'prenzlauer', x:770, y:220 },
     { id:'rosenthaler', name:'Rosenthaler Platz', districtId:'mitte', x:700, y:270 },
+    { id:'jannowitz', name:'Jannowitzbrücke', districtId:'mitte', x:820, y:392 },
     { id:'warschauer', name:'Warschauer Straße', districtId:'friedrichshain', x:940, y:410 },
     { id:'boxi', name:'Boxhagener Platz', districtId:'friedrichshain', x:1000, y:390 },
     { id:'kotti', name:'Kottbusser Tor', districtId:'kreuzberg', x:760, y:500 },
@@ -66,12 +67,18 @@ export const BERLIN = {
     ['leopoldplatz','gesundbrunnen'],['gesundbrunnen','mauerpark'],['mauerpark','eberwalder'],
     ['eberwalder','rosenthaler'],['rosenthaler','alex'],['alex','fernsehturm'],['fernsehturm','museuminsel'],
     ['museuminsel','brandenburg'],['museuminsel','checkpoint'],['potsdamer','checkpoint'],
+    ['alex','jannowitz'],['jannowitz','kotti'],['jannowitz','warschauer'],
     ['checkpoint','kotti'],['kotti','goerlitzer'],['goerlitzer','oberbaum'],['oberbaum','eastside'],
     ['eastside','warschauer'],['warschauer','boxi'],['alex','warschauer'],['rosenthaler','museuminsel'],
     ['nollendorf','potsdamer'],['nollendorf','mehringdamm'],['mehringdamm','checkpoint'],['mehringdamm','tempelhofer'],
     ['tempelhofer','rathaus-schoeneberg'],['rathaus-schoeneberg','nollendorf'],
     ['tempelhofer','hermannplatz'],['hermannplatz','rathaus-neukoelln'],['rathaus-neukoelln','kotti'],
     ['hermannplatz','sonnenallee'],['sonnenallee','warschauer'],['kotti','oberbaum']
+  ],
+  bridges: [
+    { id:'moltkebruecke', name:'Moltkebrücke', short:'Moltkebrücke', edge:['hauptbahnhof','reichstag'] },
+    { id:'jannowitzbruecke', name:'Jannowitzbrücke', short:'Jannowitzbrücke', edge:['alex','jannowitz'] },
+    { id:'oberbaumbruecke', name:'Oberbaumbrücke', short:'Oberbaumbrücke', edge:['goerlitzer','oberbaum'] }
   ]
 };
 
@@ -81,4 +88,8 @@ export function districtById(id) {
 
 export function landmarkById(id) {
   return BERLIN.landmarks.find((landmark) => landmark.id === id);
+}
+
+export function bridgeById(id) {
+  return BERLIN.bridges.find((bridge) => bridge.id === id);
 }

@@ -2,6 +2,7 @@ import { Game, DELIVERY_TYPES } from './game.js';
 import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
 
+const FIXED_STEP = 1 / 60;
 const canvas = document.querySelector('#game-canvas');
 const stats = {
   score: document.querySelector('#score'),
@@ -9,7 +10,10 @@ const stats = {
   rep: document.querySelector('#rep'),
   wave: document.querySelector('#wave'),
   seed: document.querySelector('#seed'),
-  active: document.querySelector('#active-count')
+  active: document.querySelector('#active-count'),
+  trait: document.querySelector('#trait'),
+  traitDesc: document.querySelector('#trait-desc'),
+  surge: document.querySelector('#surge')
 };
 const deliveriesEl = document.querySelector('#deliveries');
 const couriersEl = document.querySelector('#couriers');
@@ -24,27 +28,46 @@ const helpModal = document.querySelector('#help-modal');
 let game;
 let renderer;
 let lastTime = performance.now();
+let accumulator = 0;
+let lastUiRender = 0;
 let shownUpgradeAt = -1;
 
 function openDialog(dialog) {
   dialog.hidden = false;
-  if (!dialog.open) dialog.showModal();
+  if (dialog.open) return;
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
 }
 
 function closeDialog(dialog) {
-  if (dialog.open) dialog.close();
+  if (dialog.open && typeof dialog.close === 'function') dialog.close();
+  else dialog.removeAttribute('open');
   dialog.hidden = true;
 }
 
 function currentSeed() {
-  const params = new URLSearchParams(location.search);
-  return params.get('seed') || createSeed();
+  const raw = new URLSearchParams(location.search).get('seed');
+  if (!raw) return createSeed();
+  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
+  return cleaned || createSeed();
+}
+
+function loadBestScore() {
+  try { return Number(localStorage.getItem('bike.bestScore') || 0); }
+  catch { return 0; }
+}
+
+function saveBestScore(value) {
+  try { localStorage.setItem('bike.bestScore', String(value)); }
+  catch { /* persistence is optional */ }
 }
 
 function start(seed = currentSeed()) {
   game = new Game({ seed });
   renderer = new Renderer(canvas, game);
   lastTime = performance.now();
+  accumulator = 0;
+  lastUiRender = 0;
   shownUpgradeAt = -1;
   closeDialog(upgradeModal);
   closeDialog(gameoverModal);
@@ -72,6 +95,10 @@ function renderUI() {
   stats.wave.textContent = game.wave;
   stats.seed.textContent = game.seed;
   stats.active.textContent = game.activeDeliveries().length;
+  stats.trait.textContent = game.runTrait.title;
+  stats.traitDesc.textContent = game.runTrait.desc;
+  const hot = game.districts.find((district) => district.id === game.hotDistrictId);
+  stats.surge.textContent = hot ? `SURGE · ${hot.name.toUpperCase()}` : '';
   noticeEl.textContent = game.elapsed <= game.noticeUntil ? game.notice : '';
 
   const active = game.activeDeliveries().sort((a, b) => a.deadlineAt - b.deadlineAt).slice(0, 10);
@@ -79,9 +106,10 @@ function renderUI() {
     const type = DELIVERY_TYPES[delivery.type];
     const remaining = delivery.deadlineAt - game.elapsed;
     const selected = game.selectedDeliveryId === delivery.id;
+    const phase = delivery.pickedUp ? 'On bike' : delivery.status === 'assigned' ? 'Assigned' : 'Waiting';
     return `<button class="delivery-card ${selected ? 'selected' : ''}" data-delivery="${delivery.id}" style="--accent:${type.color}">
-      <span class="glyph">${type.glyph}</span>
-      <span><strong>${type.label}</strong><small>${delivery.status === 'assigned' ? 'Assigned' : 'Waiting'} · €${delivery.reward}</small></span>
+      <span class="glyph">${delivery.pickedUp ? '◎' : type.glyph}</span>
+      <span><strong>${type.label}</strong><small>${phase} · €${delivery.reward}</small></span>
       <time class="${remaining < 12 ? 'urgent' : ''}">${formatTime(remaining)}</time>
     </button>`;
   }).join('') || '<p class="empty">City is quiet. For now.</p>';
@@ -106,25 +134,46 @@ function showUpgrade() {
 
 function showGameOver() {
   const summary = game.summary();
-  const best = Math.max(Number(localStorage.getItem('bike.bestScore') || 0), summary.score);
-  localStorage.setItem('bike.bestScore', String(best));
+  const best = Math.max(loadBestScore(), summary.score);
+  saveBestScore(best);
   bestEl.textContent = best.toLocaleString();
-  summaryEl.innerHTML = `
-    <div><strong>${summary.score.toLocaleString()}</strong><span>Score</span></div>
-    <div><strong>${summary.completed}</strong><span>Delivered</span></div>
-    <div><strong>${summary.failed}</strong><span>Missed</span></div>
-    <div><strong>${summary.wave}</strong><span>Wave</span></div>
-    <div><strong>${summary.distanceKm} km</strong><span>Ridden</span></div>
-    <div><strong>${summary.seed}</strong><span>Seed</span></div>`;
+  summaryEl.replaceChildren();
+  const items = [
+    [summary.score.toLocaleString(), 'Score'],
+    [summary.completed, 'Delivered'],
+    [summary.failed, 'Missed'],
+    [summary.wave, 'Wave'],
+    [`${summary.distanceKm} km`, 'Ridden'],
+    [summary.seed, 'Seed']
+  ];
+  for (const [value, label] of items) {
+    const box = document.createElement('div');
+    const strong = document.createElement('strong');
+    const span = document.createElement('span');
+    strong.textContent = String(value);
+    span.textContent = label;
+    box.append(strong, span);
+    summaryEl.append(box);
+  }
   openDialog(gameoverModal);
 }
 
 function frame(now) {
-  const dt = Math.min(0.1, (now - lastTime) / 1000);
+  const frameDt = Math.min(0.25, (now - lastTime) / 1000);
   lastTime = now;
-  game.update(dt);
+  accumulator += frameDt;
+  let steps = 0;
+  while (accumulator >= FIXED_STEP && steps < 15) {
+    game.update(FIXED_STEP);
+    accumulator -= FIXED_STEP;
+    steps += 1;
+  }
+  if (steps === 15) accumulator = 0;
   renderer.draw();
-  renderUI();
+  if (now - lastUiRender >= 100) {
+    renderUI();
+    lastUiRender = now;
+  }
   showUpgrade();
   if (game.gameOver && !gameoverModal.open) showGameOver();
   requestAnimationFrame(frame);
@@ -137,16 +186,17 @@ canvas.addEventListener('click', (event) => {
   if (!entity) return;
   if (entity.type === 'delivery') game.selectDelivery(entity.id);
   if (entity.type === 'courier') game.selectCourier(entity.id);
+  renderUI();
 });
 
 deliveriesEl.addEventListener('click', (event) => {
   const button = event.target.closest('[data-delivery]');
-  if (button) game.selectDelivery(button.dataset.delivery);
+  if (button) { game.selectDelivery(button.dataset.delivery); renderUI(); }
 });
 
 couriersEl.addEventListener('click', (event) => {
   const button = event.target.closest('[data-courier]');
-  if (button) game.selectCourier(button.dataset.courier);
+  if (button) { game.selectCourier(button.dataset.courier); renderUI(); }
 });
 
 upgradeChoices.addEventListener('click', (event) => {
@@ -154,6 +204,7 @@ upgradeChoices.addEventListener('click', (event) => {
   if (!button) return;
   game.applyUpgrade(button.dataset.upgrade);
   closeDialog(upgradeModal);
+  renderUI();
 });
 
 document.querySelector('#pause').addEventListener('click', () => { game.paused = !game.paused; });
@@ -169,7 +220,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === '1') { game.speed = 1; game.paused = false; }
   if (event.key === '2') { game.speed = 2; game.paused = false; }
   if (event.key === '3') { game.speed = 4; game.paused = false; }
-  if (event.key === 'Escape') { game.selectedDeliveryId = null; game.selectedCourierId = null; }
+  if (event.key === 'Escape') { game.selectedDeliveryId = null; game.selectedCourierId = null; renderUI(); }
 });
 
 window.addEventListener('resize', () => renderer.resize());

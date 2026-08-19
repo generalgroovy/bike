@@ -1,5 +1,5 @@
 import { RNG, createSeed } from './rng.js';
-import { distance, shortestPath } from './graph.js';
+import { buildAdjacency, distance, shortestPath } from './graph.js';
 
 export const DELIVERY_TYPES = {
   food: { label: 'Food', glyph: '▲', color: '#ff5d8f', baseDeadline: 42, reward: 9 },
@@ -22,16 +22,62 @@ export const DISTRICT_ARCHETYPES = [
 const COURIER_COLORS = ['#00e5ff', '#ff4d8d', '#b8ff5a', '#ffd166', '#9b8cff', '#ff7a45', '#5eead4'];
 const COURIER_NAMES = ['Maya', 'Leo', 'Sam', 'Nova', 'Iris', 'Juno', 'Kai'];
 
+function weightedPick(rng, items, weightFn) {
+  if (!items.length) return undefined;
+  const weights = items.map((item) => Math.max(0, Number(weightFn(item)) || 0));
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  if (total <= 0) return rng.pick(items);
+  let roll = rng.float(0, total);
+  for (let i = 0; i < items.length; i += 1) {
+    roll -= weights[i];
+    if (roll <= 0) return items[i];
+  }
+  return items.at(-1);
+}
+
+export const RUN_TRAITS = [
+  {
+    id: 'express',
+    title: 'Express Contracts',
+    desc: 'Tighter deadlines, richer payouts.',
+    apply(game) { game.modifiers.deadline *= 0.9; game.modifiers.reward *= 1.18; }
+  },
+  {
+    id: 'cycle-grid',
+    title: 'Cycle Grid',
+    desc: 'The city starts with fast bike corridors.',
+    apply(game) {
+      const lanes = game.rng.shuffle(game.edges).slice(0, Math.max(4, Math.floor(game.edges.length * 0.1)));
+      for (const edge of lanes) { edge.speed = Math.max(edge.speed, 1.34); edge.bikeLane = true; }
+    }
+  },
+  {
+    id: 'food-capital',
+    title: 'Food Capital',
+    desc: 'Food and grocery demand dominates the run.',
+    apply(game) { game.modifiers.typeBias.food = 2.1; game.modifiers.typeBias.grocery = 1.45; }
+  },
+  {
+    id: 'paper-chase',
+    title: 'Paper Chase',
+    desc: 'Documents and fragile cargo are unusually common.',
+    apply(game) { game.modifiers.typeBias.document = 1.9; game.modifiers.typeBias.fragile = 1.45; game.modifiers.reward *= 1.06; }
+  }
+];
+
 export const UPGRADES = [
   { id: 'rider', title: 'Extra Rider', desc: '+1 courier joins immediately.', apply(game) { game.addCourier(); } },
   { id: 'speed', title: 'Street Legs', desc: 'All couriers move 14% faster.', apply(game) { game.modifiers.speed *= 1.14; } },
   { id: 'grace', title: 'Client Buffer', desc: 'New delivery deadlines are 18% longer.', apply(game) { game.modifiers.deadline *= 1.18; } },
   { id: 'pay', title: 'Premium Contracts', desc: 'Delivery rewards are worth 22% more.', apply(game) { game.modifiers.reward *= 1.22; } },
   { id: 'reputation', title: 'Local Goodwill', desc: '+16 reputation now, max 100.', apply(game) { game.reputation = Math.min(100, game.reputation + 16); } },
-  { id: 'bikeLane', title: 'Bike-Lane Grant', desc: 'Several road links become express lanes.', apply(game) {
-    const eligible = game.rng.shuffle(game.edges).slice(0, Math.max(3, Math.floor(game.edges.length * 0.09)));
-    for (const edge of eligible) { edge.speed = Math.max(edge.speed, 1.45); edge.bikeLane = true; }
-  } }
+  {
+    id: 'bikeLane', title: 'Bike-Lane Grant', desc: 'Several road links become express lanes.',
+    apply(game) {
+      const eligible = game.rng.shuffle(game.edges).slice(0, Math.max(3, Math.floor(game.edges.length * 0.09)));
+      for (const edge of eligible) { edge.speed = Math.max(edge.speed, 1.45); edge.bikeLane = true; }
+    }
+  }
 ];
 
 export class Game {
@@ -59,12 +105,17 @@ export class Game {
     this.deliverySerial = 0;
     this.courierSerial = 0;
     this.spawnAccumulator = 0;
-    this.modifiers = { speed: 1, deadline: 1, reward: 1 };
+    this.modifiers = { speed: 1, deadline: 1, reward: 1, typeBias: Object.fromEntries(Object.keys(DELIVERY_TYPES).map((key) => [key, 1])) };
     this.runStats = { peakActive: 0, distance: 0 };
     this.generateCity();
+    this.runTrait = this.rng.pick(RUN_TRAITS);
+    this.runTrait.apply(this);
+    this.hotDistrictId = null;
     this.deliveries = [];
     this.couriers = [];
     for (let i = 0; i < 3; i += 1) this.addCourier();
+    this.spawnDelivery();
+    this.spawnDelivery();
   }
 
   generateCity() {
@@ -72,8 +123,11 @@ export class Game {
     const shuffled = this.rng.shuffle(DISTRICT_ARCHETYPES).slice(0, districtCount);
     this.districts = shuffled.map((type, index) => {
       const angle = (Math.PI * 2 * index) / districtCount + this.rng.float(-0.3, 0.3);
-      const radius = this.rng.float(150, 250);
-      return { id: `district-${index}`, ...type, cx: this.width / 2 + Math.cos(angle) * radius, cy: this.height / 2 + Math.sin(angle) * radius, radius: this.rng.float(95, 145), demandBias: this.rng.float(0.8, 1.35) };
+      const orbit = this.rng.float(150, 250);
+      const districtRadius = this.rng.float(95, 145);
+      const rawX = this.width / 2 + Math.cos(angle) * orbit;
+      const rawY = this.height / 2 + Math.sin(angle) * orbit;
+      return { id: `district-${index}`, ...type, cx: Math.max(districtRadius + 35, Math.min(this.width - districtRadius - 35, rawX)), cy: Math.max(districtRadius + 35, Math.min(this.height - districtRadius - 35, rawY)), radius: districtRadius, demandBias: this.rng.float(0.8, 1.35) };
     });
 
     this.nodes = [];
@@ -111,6 +165,46 @@ export class Game {
 
     const districtRepresentatives = this.districts.map((district) => this.nodes.filter((node) => node.districtId === district.id).sort((a, b) => distance(a, { x: district.cx, y: district.cy }) - distance(b, { x: district.cx, y: district.cy }))[0]);
     for (let i = 0; i < districtRepresentatives.length; i += 1) addEdge(districtRepresentatives[i], districtRepresentatives[(i + 1) % districtRepresentatives.length], 1.08);
+
+    const components = () => {
+      const adjacency = buildAdjacency(this.nodes, this.edges);
+      const unvisited = new Set(this.nodes.map((node) => node.id));
+      const groups = [];
+      while (unvisited.size) {
+        const first = unvisited.values().next().value;
+        const stack = [first];
+        const group = [];
+        unvisited.delete(first);
+        while (stack.length) {
+          const id = stack.pop();
+          group.push(id);
+          for (const { to } of adjacency.get(id) ?? []) {
+            if (!unvisited.has(to)) continue;
+            unvisited.delete(to);
+            stack.push(to);
+          }
+        }
+        groups.push(group);
+      }
+      return groups;
+    };
+
+    let groups = components();
+    while (groups.length > 1) {
+      const primary = groups[0].map((id) => this.nodes.find((node) => node.id === id));
+      let bridge = null;
+      for (let groupIndex = 1; groupIndex < groups.length; groupIndex += 1) {
+        for (const a of primary) {
+          for (const id of groups[groupIndex]) {
+            const b = this.nodes.find((node) => node.id === id);
+            const d = distance(a, b);
+            if (!bridge || d < bridge.d) bridge = { a, b, d };
+          }
+        }
+      }
+      addEdge(bridge.a, bridge.b, 1.02);
+      groups = components();
+    }
   }
 
   addCourier() {
@@ -125,11 +219,12 @@ export class Game {
 
   spawnDelivery() {
     if (this.deliveries.filter((d) => d.status === 'waiting' || d.status === 'assigned').length > 28) return;
-    const pickup = this.rng.pick(this.nodes.filter((n) => n.kind !== 'depot'));
-    const dropoff = this.rng.pick(this.nodes.filter((n) => n.id !== pickup.id && n.kind !== 'depot'));
+    const sourceDistrict = weightedPick(this.rng, this.districts, (district) => district.demandBias * (district.id === this.hotDistrictId ? 1.8 : 1));
+    const pickup = this.rng.pick(this.nodes.filter((node) => node.kind !== 'depot' && node.districtId === sourceDistrict.id));
+    const dropoff = this.rng.pick(this.nodes.filter((node) => node.id !== pickup.id && node.kind !== 'depot'));
     if (!dropoff) return;
     const district = this.districts.find((d) => d.id === pickup.districtId);
-    const typeKey = this.rng.chance(0.72) ? this.rng.pick(district.demand) : this.rng.pick(Object.keys(DELIVERY_TYPES));
+    const typeKey = weightedPick(this.rng, Object.keys(DELIVERY_TYPES), (key) => (district.demand.includes(key) ? 2.25 : 0.62) * (this.modifiers.typeBias[key] ?? 1));
     const type = DELIVERY_TYPES[typeKey];
     const directDistance = Math.max(80, distance(pickup, dropoff));
     const deadline = type.baseDeadline * this.modifiers.deadline * (0.82 + directDistance / 600) / (1 + (this.wave - 1) * 0.025);
@@ -179,7 +274,13 @@ export class Game {
     }
     this.updateCouriers(step);
     this.updateDeadlines();
-    this.wave = 1 + Math.floor(this.completed / 7);
+    const nextWave = 1 + Math.floor(this.completed / 7);
+    if (nextWave > this.wave) {
+      this.wave = nextWave;
+      this.hotDistrictId = this.rng.pick(this.districts).id;
+      const hot = this.districts.find((district) => district.id === this.hotDistrictId);
+      this.flash(`${hot.name} demand surge · wave ${this.wave}`);
+    } else this.wave = nextWave;
     if (this.completed >= this.nextUpgradeAt && !this.upgradePending) {
       this.upgradePending = true;
       this.nextUpgradeAt += 8 + Math.floor(this.wave / 2);
@@ -234,12 +335,7 @@ export class Game {
   }
 
   releaseCourier(courier) {
-    courier.phase = 'idle';
-    courier.deliveryId = null;
-    courier.path = [];
-    courier.pathIndex = 0;
-    courier.progress = 0;
-    courier.targetNodeId = null;
+    courier.phase = 'idle'; courier.deliveryId = null; courier.path = []; courier.pathIndex = 0; courier.progress = 0; courier.targetNodeId = null;
   }
 
   completeDelivery(delivery) {
@@ -278,7 +374,12 @@ export class Game {
   }
 
   flash(text) { this.notice = text; this.noticeUntil = this.elapsed + 4; }
-  urgency(delivery) { const total = delivery.deadlineAt - delivery.createdAt; const remaining = delivery.deadlineAt - this.elapsed; return Math.max(0, Math.min(1, remaining / total)); }
+
+  urgency(delivery) {
+    const total = delivery.deadlineAt - delivery.createdAt;
+    const remaining = delivery.deadlineAt - this.elapsed;
+    return Math.max(0, Math.min(1, remaining / total));
+  }
 
   selectDelivery(id) {
     const delivery = this.deliveryById(id);

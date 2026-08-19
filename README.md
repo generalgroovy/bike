@@ -32,7 +32,9 @@ Then open `http://localhost:8080`.
 
 ## Current gameplay
 
-- Deterministic seeded procedural city graph.
+- Deterministic seeded procedural city graph with connectivity repair.
+- Seeded run traits that change contracts, cargo mix, or starting infrastructure.
+- Shifting district demand surges as waves advance.
 - 4–6 colorful districts with distinct demand profiles.
 - Three starting couriers with graph pathfinding and animated routes.
 - Six delivery classes: food, parcels, documents, medical, groceries, fragile.
@@ -67,11 +69,11 @@ Requires a recent Node.js version:
 npm test
 ```
 
-The suite covers deterministic RNG, graph routing, seeded city generation, and delivery assignment state transitions.
+The suite covers deterministic RNG, graph routing, seeded city generation/traits/jobs, multi-seed city connectivity, and delivery assignment state transitions. CI runs the suite on pushes and pull requests.
 
 ## GitHub Pages
 
-A Pages workflow is included in `.github/workflows/pages.yml`. Repository Pages settings should use **GitHub Actions** as the deployment source. Pushes to `main` deploy the static site.
+A Pages workflow is included in `.github/workflows/pages.yml`. Repository Pages settings should use **GitHub Actions** as the deployment source. Pushes to `main` deploy the static site. A separate `.github/workflows/ci.yml` runs the Node test suite.
 
 ## Design principles
 

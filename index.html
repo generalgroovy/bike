@@ -18,7 +18,7 @@
 
     <section class="dispatch-rule" aria-label="Core gameplay rule">
       <strong>YOU ARE DISPATCH.</strong>
-      <span>Jobs appear → <b>CALL OUT</b> only the jobs worth putting on the radio → free riders choose for themselves based on distance, deadline, personality and experience.</span>
+      <span>Jobs appear → choose <b>which jobs to broadcast</b> and <b>which radio channel to use</b> → riders deliberate and choose for themselves.</span>
       <span class="survival-rule">Keep reputation above 0.</span>
     </section>
 
@@ -27,26 +27,28 @@
         <canvas id="game-canvas"></canvas>
         <div class="city-chip"><span>BERLIN</span><strong id="trait">---</strong><small id="trait-desc"></small></div>
         <div class="seed-chip">SHIFT <strong id="seed">---</strong></div>
+        <div id="event-chip" class="event-chip" hidden><span id="event-state">FORECAST</span><strong id="event-title">---</strong><small id="event-detail"></small><b id="event-time"></b></div>
         <div id="notice" class="notice" role="status"></div>
-        <div class="map-key"><span><i class="job-dot off"></i> job</span><span><i class="job-dot live"></i> radio call</span><span><i class="rider-triangle"></i> rider · number = experience</span></div>
+        <div class="map-key"><span><i class="job-dot off"></i> waiting</span><span><i class="job-dot live"></i> radio</span><span><i class="thinking-ring"></i> rider deliberating</span><span><i class="rider-triangle"></i> rider · number = experience</span></div>
         <div class="controls"><button id="pause" title="Pause (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
       </section>
 
       <aside class="sidebar">
         <section class="panel radio-panel">
-          <div class="panel-head"><div><span class="eyebrow">YOUR MAIN DECISION</span><h2>Radio board</h2></div><span class="radio-meter"><b id="called-count">0</b>/<b id="radio-slots">3</b> LIVE</span></div>
-          <p class="panel-help">Click a waiting job to call it out. Click again to cancel. Riders—not you—decide which live call to take.</p>
+          <div class="panel-head"><div><span class="eyebrow">YOUR MAIN DECISION</span><h2>Radio board</h2></div><span class="radio-meter"><b id="called-count">0</b>/<b id="radio-slots">4</b> BANDWIDTH</span></div>
+          <p class="panel-help">You never assign a rider. Choose what they can hear. <b>OPEN</b> costs 1. <b>PRIORITY</b> costs 2 and makes the job more attractive. <b>LOCAL</b> costs 1 and favours riders already near the pickup.</p>
+          <div class="channel-key"><span class="channel-open">OPEN · 1</span><span class="channel-priority">PRIORITY · 2</span><span class="channel-local">LOCAL · 1</span></div>
           <div class="subhead"><span>OPEN JOBS</span><span id="active-count" class="count">0</span></div>
           <div id="deliveries" class="stack"></div>
         </section>
         <section class="panel">
-          <div class="panel-head"><div><span class="eyebrow">AUTONOMOUS TEAM</span><h2>Riders</h2></div><span class="hint">click to inspect</span></div>
-          <p class="panel-help">Experience reduces bad choices. Personality changes what each rider values when several calls are live.</p>
+          <div class="panel-head"><div><span class="eyebrow">AUTONOMOUS TEAM</span><h2>Riders</h2></div><span class="hint">watch deliberation</span></div>
+          <p class="panel-help">A white ring fills while a rider decides. Attention lines show what they are weighing. Personality shapes preference; experience makes decisions faster and more consistent.</p>
           <div id="couriers" class="stack"></div>
         </section>
         <section class="panel goals-panel">
           <div class="panel-head"><div><span class="eyebrow">THIS SHIFT</span><h2>Berlin goals</h2></div></div>
-          <p class="panel-help">Districts do not control where job types spawn. They give Berlin its geography and contain landmark/city objectives.</p>
+          <p class="panel-help">Districts are geographic context, not cargo tables. Goals can involve landmarks, neighborhoods, or actual Spree crossings such as Oberbaumbrücke.</p>
           <div id="goals" class="goals"></div>
         </section>
         <section class="legend"><span><i style="--c:#ff5d8f">▲</i>Food</span><span><i style="--c:#ffb703">●</i>Parcel</span><span><i style="--c:#5eead4">■</i>Docs</span><span><i style="--c:#ff4667">✚</i>Medical</span><span><i style="--c:#a3e635">⬢</i>Grocery</span><span><i style="--c:#c084fc">◆</i>Fragile</span></section>
@@ -55,17 +57,17 @@
   </main>
 
   <dialog id="help-modal" class="modal help" aria-labelledby="help-title" hidden>
-    <div class="modal-kicker">60-SECOND DISPATCH BRIEF</div>
-    <h2 id="help-title">You manage the radio, not the riders.</h2>
+    <div class="modal-kicker">DISPATCH BRIEF</div>
+    <h2 id="help-title">Control information, not riders.</h2>
     <div class="brief-grid">
-      <article><b>1</b><strong>Jobs spawn</strong><p>Colored job icons appear around Berlin. Every deadline is already ticking.</p></article>
-      <article><b>2</b><strong>Choose what to call</strong><p>Click jobs to put them on the radio. Your limited radio slots are the core resource.</p></article>
-      <article><b>3</b><strong>Riders choose</strong><p>Idle riders independently evaluate live calls using location, urgency, pay, personality and experience.</p></article>
-      <article><b>4</b><strong>Read the team</strong><p>A Sprinter likes close urgent work. An Earner likes payout. Veterans make cleaner decisions than rookies.</p></article>
-      <article><b>5</b><strong>Shape the shift</strong><p>Complete Berlin goals and deliveries to earn permanent run upgrades: more radio capacity, riders, bike lanes and better teamwork.</p></article>
-      <article><b>6</b><strong>Do not collapse</strong><p>Missed deadlines cost reputation. At 0%, the shift ends. Retry the same seed or roll a new Berlin shift.</p></article>
+      <article><b>1</b><strong>Read Berlin</strong><p>Jobs spawn independently of districts. Geography, bridges, landmarks and rider positions are what matter.</p></article>
+      <article><b>2</b><strong>Choose a channel</strong><p>OPEN is neutral. PRIORITY spends extra bandwidth to raise attention. LOCAL favours riders already close to the pickup.</p></article>
+      <article><b>3</b><strong>Watch deliberation</strong><p>Riders do not react instantly. A white ring and attention line show what each free rider is considering.</p></article>
+      <article><b>4</b><strong>Learn personalities</strong><p>Sprinters chase proximity, Earners chase pay, Guardians rescue urgent work, Locals stay nearby, Tourers enjoy landmark routes.</p></article>
+      <article><b>5</b><strong>Prepare for disruption</strong><p>Roadworks, demonstrations and bridge slowdowns are forecast before they activate. Change your calls before the route becomes bad.</p></article>
+      <article><b>6</b><strong>Review the collapse</strong><p>At shift end, Dispatch Review separates jobs you never called, jobs nobody wanted, and jobs riders accepted too late.</p></article>
     </div>
-    <div class="brief-example"><strong>Example decision</strong><span>Maya is free near Alexanderplatz. Three jobs exist, but only one is close and urgent. Call that one. Do not flood the radio with distant low-value work just because it exists.</span></div>
+    <div class="brief-example"><strong>Example</strong><span>Maya is a Sprinter near Alexanderplatz while Leo is an Earner near Kreuzberg. A nearby urgent job and a distant €30 job appear. Put the urgent job on LOCAL and the lucrative job on OPEN instead of assigning either rider.</span></div>
     <p class="keys"><kbd>Space</kbd> pause · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> speed · <kbd>Esc</kbd> clear inspection</p>
     <button id="close-help">START THE SHIFT</button>
   </dialog>
@@ -74,8 +76,10 @@
     <div class="modal-kicker">SHIFT UPGRADE</div><h2 id="upgrade-title">Change how dispatch works.</h2><p>Choose one permanent advantage for this run.</p><div id="upgrade-choices" class="upgrade-grid"></div>
   </dialog>
 
-  <dialog id="gameover-modal" class="modal" aria-labelledby="gameover-title" hidden>
-    <div class="modal-kicker danger">RADIO COLLAPSED</div><h2 id="gameover-title">Berlin outran the shift.</h2><div id="run-summary" class="run-summary"></div><p class="best">Best score on this browser: <strong id="best-score">0</strong></p>
+  <dialog id="gameover-modal" class="modal gameover" aria-labelledby="gameover-title" hidden>
+    <div class="modal-kicker danger">RADIO COLLAPSED</div><h2 id="gameover-title">Berlin outran the shift.</h2><div id="run-summary" class="run-summary"></div>
+    <section class="dispatch-review"><div class="review-head"><span class="eyebrow">POST-SHIFT ANALYSIS</span><h3>Dispatch Review</h3></div><div id="review-metrics" class="review-metrics"></div><div class="review-grid"><div><h4>What to change</h4><div id="review-advice"></div></div><div><h4>Last critical moments</h4><ol id="review-timeline"></ol></div></div></section>
+    <p class="best">Best score on this browser: <strong id="best-score">0</strong></p>
     <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SAME SHIFT</button><button id="random-seed">NEW BERLIN SHIFT</button></div>
   </dialog>
 

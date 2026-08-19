@@ -1,202 +1,30 @@
 import { DELIVERY_TYPES } from './game.js';
 
 export class Renderer {
-  constructor(canvas, game) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.game = game;
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.resize();
-  }
-
-  resize() {
-    const rect = this.canvas.getBoundingClientRect();
-    const cssWidth = Math.max(320, rect.width);
-    const cssHeight = Math.max(360, rect.height);
-    this.canvas.width = Math.round(cssWidth * this.dpr);
-    this.canvas.height = Math.round(cssHeight * this.dpr);
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.viewWidth = cssWidth;
-    this.viewHeight = cssHeight;
-    const pad = 42;
-    this.scale = Math.min((cssWidth - pad * 2) / this.game.width, (cssHeight - pad * 2) / this.game.height);
-    this.offsetX = (cssWidth - this.game.width * this.scale) / 2;
-    this.offsetY = (cssHeight - this.game.height * this.scale) / 2;
-  }
-
-  worldToScreen(x, y) {
-    return { x: this.offsetX + x * this.scale, y: this.offsetY + y * this.scale };
-  }
-
-  screenToWorld(x, y) {
-    return { x: (x - this.offsetX) / this.scale, y: (y - this.offsetY) / this.scale };
-  }
-
-  draw() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.viewWidth, this.viewHeight);
-    this.drawBackdrop();
-    ctx.save();
-    ctx.translate(this.offsetX, this.offsetY);
-    ctx.scale(this.scale, this.scale);
-    this.drawDistricts();
-    this.drawEdges();
-    this.drawNodes();
-    this.drawRoutes();
-    this.drawDeliveries();
-    this.drawCouriers();
-    ctx.restore();
-  }
-
-  drawBackdrop() {
-    const ctx = this.ctx;
-    const gradient = ctx.createLinearGradient(0, 0, this.viewWidth, this.viewHeight);
-    gradient.addColorStop(0, '#08111f');
-    gradient.addColorStop(1, '#101a2d');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = '#ffffff';
-    for (let x = 20; x < this.viewWidth; x += 36) {
-      for (let y = 20; y < this.viewHeight; y += 36) ctx.fillRect(x, y, 1.2, 1.2);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  drawDistricts() {
-    const ctx = this.ctx;
-    for (const district of this.game.districts) {
-      ctx.beginPath();
-      ctx.arc(district.cx, district.cy, district.radius, 0, Math.PI * 2);
-      const hot = district.id === this.game.hotDistrictId;
-      ctx.fillStyle = `${district.color}${hot ? '32' : '20'}`;
-      ctx.fill();
-      ctx.strokeStyle = `${district.color}66`;
-      ctx.lineWidth = hot ? 6 : 3;
-      ctx.setLineDash(hot ? [14, 7] : [9, 12]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = district.color;
-      ctx.font = '700 18px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(district.name.toUpperCase(), district.cx, district.cy - district.radius - 10);
-    }
-  }
-
-  drawEdges() {
-    const ctx = this.ctx;
-    const byId = new Map(this.game.nodes.map((node) => [node.id, node]));
-    ctx.lineCap = 'round';
-    for (const edge of this.game.edges) {
-      const a = byId.get(edge.a);
-      const b = byId.get(edge.b);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.strokeStyle = edge.bikeLane ? '#4ef2c2' : '#33425c';
-      ctx.lineWidth = edge.bikeLane ? 5 : 3;
-      ctx.globalAlpha = edge.bikeLane ? 0.9 : 0.68;
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  drawNodes() {
-    const ctx = this.ctx;
-    for (const node of this.game.nodes) {
-      const district = this.game.districts.find((item) => item.id === node.districtId);
-      const r = node.kind === 'depot' ? 11 : 4.2;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = node.kind === 'depot' ? '#ffffff' : district.color;
-      ctx.fill();
-      if (node.kind === 'depot') {
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        ctx.fillStyle = '#0b1324';
-        ctx.font = '800 10px system-ui';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('HUB', node.x, node.y + 0.5);
-      }
-    }
-  }
-
-  drawRoutes() {
-    const ctx = this.ctx;
-    const byId = new Map(this.game.nodes.map((node) => [node.id, node]));
-    for (const courier of this.game.couriers) {
-      if (courier.path.length < 2) continue;
-      ctx.beginPath();
-      ctx.moveTo(courier.x, courier.y);
-      for (let i = courier.pathIndex; i < courier.path.length; i += 1) {
-        const node = byId.get(courier.path[i]);
-        ctx.lineTo(node.x, node.y);
-      }
-      ctx.strokeStyle = courier.color;
-      ctx.lineWidth = 5;
-      ctx.globalAlpha = 0.55;
-      ctx.setLineDash([8, 8]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  drawDeliveries() {
-    const ctx = this.ctx;
-    const time = performance.now() / 1000;
-    for (const delivery of this.game.activeDeliveries()) {
-      const pickup = this.game.nodeById(delivery.pickupId);
-      const dropoff = this.game.nodeById(delivery.dropoffId);
-      const node = delivery.pickedUp ? dropoff : pickup;
-      const type = DELIVERY_TYPES[delivery.type];
-      const urgency = this.game.urgency(delivery);
-      const selected = this.game.selectedDeliveryId === delivery.id;
-      const pulse = urgency < 0.3 ? 1 + Math.sin(time * 7) * 0.13 : 1;
-      const radius = (selected ? 18 : 14) * pulse;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#08111f';
-      ctx.fill();
-      ctx.strokeStyle = type.color;
-      ctx.lineWidth = selected ? 6 : 4;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * urgency);
-      ctx.strokeStyle = urgency < 0.3 ? '#ff3b56' : '#eaf4ff';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.fillStyle = type.color;
-      ctx.font = '800 16px system-ui';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(delivery.pickedUp ? '◎' : type.glyph, node.x, node.y + 0.5);
-    }
-  }
-
-  drawCouriers() {
-    const ctx = this.ctx;
-    for (const courier of this.game.couriers) {
-      const selected = this.game.selectedCourierId === courier.id;
-      ctx.save();
-      ctx.translate(courier.x, courier.y);
-      ctx.beginPath();
-      ctx.arc(0, 0, selected ? 14 : 11, 0, Math.PI * 2);
-      ctx.fillStyle = '#07101f';
-      ctx.fill();
-      ctx.strokeStyle = courier.color;
-      ctx.lineWidth = selected ? 6 : 4;
-      ctx.stroke();
-      ctx.fillStyle = courier.color;
-      ctx.beginPath();
-      ctx.moveTo(0, -7);
-      ctx.lineTo(7, 6);
-      ctx.lineTo(-7, 6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+  constructor(canvas, game) { this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.game=game; this.dpr=Math.min(2,window.devicePixelRatio||1); this.resize(); }
+  resize(){ const rect=this.canvas.getBoundingClientRect(),cssWidth=Math.max(320,rect.width),cssHeight=Math.max(420,rect.height); this.canvas.width=Math.round(cssWidth*this.dpr); this.canvas.height=Math.round(cssHeight*this.dpr);
+    this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0); this.viewWidth=cssWidth; this.viewHeight=cssHeight; const pad=26;
+    this.scale=Math.min((cssWidth-pad*2)/this.game.width,(cssHeight-pad*2)/this.game.height); this.offsetX=(cssWidth-this.game.width*this.scale)/2; this.offsetY=(cssHeight-this.game.height*this.scale)/2; }
+  worldToScreen(x,y){return{x:this.offsetX+x*this.scale,y:this.offsetY+y*this.scale};} screenToWorld(x,y){return{x:(x-this.offsetX)/this.scale,y:(y-this.offsetY)/this.scale};}
+  draw(){ const ctx=this.ctx; ctx.clearRect(0,0,this.viewWidth,this.viewHeight); this.drawBackdrop(); ctx.save(); ctx.translate(this.offsetX,this.offsetY); ctx.scale(this.scale,this.scale);
+    this.drawDistricts(); this.drawParks(); this.drawRiver(); this.drawEdges(); this.drawLandmarks(); this.drawAttention(); this.drawRoutes(); this.drawDeliveries(); this.drawCouriers(); ctx.restore(); }
+  drawBackdrop(){ const ctx=this.ctx,g=ctx.createLinearGradient(0,0,this.viewWidth,this.viewHeight); g.addColorStop(0,'#07111f');g.addColorStop(1,'#10172b');ctx.fillStyle=g;ctx.fillRect(0,0,this.viewWidth,this.viewHeight);
+    ctx.globalAlpha=.12;ctx.fillStyle='#fff';for(let x=18;x<this.viewWidth;x+=34)for(let y=18;y<this.viewHeight;y+=34)ctx.fillRect(x,y,1,1);ctx.globalAlpha=1; }
+  polygon(points){const ctx=this.ctx;ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();}
+  drawDistricts(){ const ctx=this.ctx; for(const d of this.game.districts){this.polygon(d.polygon);ctx.fillStyle=`${d.color}16`;ctx.fill();ctx.strokeStyle=`${d.color}52`;ctx.lineWidth=2;ctx.setLineDash([9,10]);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=`${d.color}cc`;ctx.font='800 15px system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.name.toUpperCase(),d.center[0],d.center[1]);}}
+  drawParks(){const ctx=this.ctx;for(const p of this.game.parks){this.polygon(p.polygon);ctx.fillStyle=`${p.color}20`;ctx.fill();ctx.strokeStyle=`${p.color}5f`;ctx.lineWidth=2;ctx.stroke();const cx=p.polygon.reduce((s,q)=>s+q[0],0)/p.polygon.length,cy=p.polygon.reduce((s,q)=>s+q[1],0)/p.polygon.length;ctx.fillStyle=`${p.color}aa`;ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillText(p.name.toUpperCase(),cx,cy);}}
+  drawRiver(){const ctx=this.ctx;ctx.beginPath();this.game.river.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle='#2aa8e7';ctx.lineWidth=18;ctx.globalAlpha=.18;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.lineWidth=4;ctx.globalAlpha=.65;ctx.stroke();ctx.globalAlpha=1;}
+  drawEdges(){const ctx=this.ctx,byId=new Map(this.game.nodes.map((n)=>[n.id,n]));ctx.lineCap='round';for(const e of this.game.edges){const a=byId.get(e.a),b=byId.get(e.b);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=e.bikeLane?'#48f1bd':'#3e4c66';ctx.lineWidth=e.bikeLane?5:3;ctx.globalAlpha=e.bikeLane?.85:.66;ctx.stroke();}ctx.globalAlpha=1;}
+  drawLandmarks(){const ctx=this.ctx;for(const l of this.game.landmarks){ctx.beginPath();ctx.arc(l.x,l.y,8,0,Math.PI*2);ctx.fillStyle='#0a1425';ctx.fill();ctx.strokeStyle='#e7f4ff';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle='#f7fbff';ctx.font='800 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(l.glyph,l.x,l.y+.5);
+      ctx.font='700 11px system-ui';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#d7e7f5';ctx.globalAlpha=.78;ctx.fillText(l.short,l.x+11,l.y-8);ctx.globalAlpha=1;}}
+  drawAttention(){const ctx=this.ctx;for(const c of this.game.couriers){if(c.phase!=='idle')continue;const predicted=this.game.predictCall(c);if(!predicted)continue;const pickup=this.game.nodeById(predicted.delivery.pickupId);ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(pickup.x,pickup.y);ctx.strokeStyle=c.color;ctx.lineWidth=2;ctx.globalAlpha=.24;ctx.setLineDash([3,8]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}}
+  drawRoutes(){const ctx=this.ctx,byId=new Map(this.game.nodes.map((n)=>[n.id,n]));for(const c of this.game.couriers){if(c.path.length<2)continue;ctx.beginPath();ctx.moveTo(c.x,c.y);for(let i=c.pathIndex;i<c.path.length;i++){const n=byId.get(c.path[i]);if(n)ctx.lineTo(n.x,n.y);}ctx.strokeStyle=c.color;ctx.lineWidth=5;ctx.globalAlpha=.52;ctx.setLineDash([8,8]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}}
+  drawDeliveries(){const ctx=this.ctx,time=performance.now()/1000;for(const d of this.game.activeDeliveries()){const pickup=this.game.nodeById(d.pickupId),dropoff=this.game.nodeById(d.dropoffId),node=d.pickedUp?dropoff:pickup,type=DELIVERY_TYPES[d.type],urgency=this.game.urgency(d),selected=this.game.selectedDeliveryId===d.id,called=d.called,claimed=d.status==='claimed';
+      const pulse=urgency<.32?1+Math.sin(time*7)*.12:1,r=(selected?18:14)*pulse;ctx.beginPath();ctx.arc(node.x,node.y,r,0,Math.PI*2);ctx.fillStyle=claimed?'#101b2d':'#08111f';ctx.globalAlpha=d.status==='waiting'&&!called?.72:1;ctx.fill();ctx.strokeStyle=type.color;ctx.lineWidth=selected?6:called?5:3;ctx.stroke();ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(node.x,node.y,r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*urgency);ctx.strokeStyle=urgency<.3?'#ff425e':'#eaf4ff';ctx.lineWidth=2.6;ctx.stroke();
+      if(called&&d.status==='waiting'){for(let i=0;i<2;i++){ctx.beginPath();const rr=r+10+i*7+Math.sin(time*5+i)*1.8;ctx.arc(node.x,node.y,rr,-.72,.72);ctx.strokeStyle=type.color;ctx.lineWidth=2;ctx.globalAlpha=.5-i*.13;ctx.stroke();ctx.beginPath();ctx.arc(node.x,node.y,rr,Math.PI-.72,Math.PI+.72);ctx.stroke();}ctx.globalAlpha=1;}
+      ctx.fillStyle=type.color;ctx.font='900 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.pickedUp?'◎':type.glyph,node.x,node.y+.5);ctx.font='800 10px ui-monospace, monospace';ctx.fillStyle='#fff';ctx.globalAlpha=.86;ctx.fillText(d.id.toUpperCase(),node.x,node.y+r+15);ctx.globalAlpha=1;}}
+  drawCouriers(){const ctx=this.ctx;for(const c of this.game.couriers){const selected=this.game.selectedCourierId===c.id;ctx.save();ctx.translate(c.x,c.y);if(c.phase==='idle'&&this.game.calledCount()>0){ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.strokeStyle=c.color;ctx.lineWidth=2;ctx.globalAlpha=.25+Math.sin(performance.now()/300)*.08;ctx.stroke();ctx.globalAlpha=1;}
+      ctx.beginPath();ctx.arc(0,0,selected?15:12,0,Math.PI*2);ctx.fillStyle='#07101f';ctx.fill();ctx.strokeStyle=c.color;ctx.lineWidth=selected?6:4;ctx.stroke();ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(7,6);ctx.lineTo(-7,6);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.font='900 8px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(c.experience.level,0,1);ctx.restore();}}
 }

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="description" content="A colorful procedural bike courier dispatch roguelike.">
+  <title>BIKE // Dispatch Roguelike</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">B</span><span><strong>BIKE</strong><small>dispatch roguelike</small></span></div>
+      <div class="metrics">
+        <div><span>SCORE</span><strong id="score">0</strong></div>
+        <div><span>CASH</span><strong id="cash">€0</strong></div>
+        <div><span>REP</span><strong id="rep" data-level="good">100%</strong></div>
+        <div><span>WAVE</span><strong id="wave">1</strong></div>
+      </div>
+      <div class="top-actions"><button id="help" class="ghost">?</button><button id="new-run">NEW RUN</button></div>
+    </header>
+
+    <section class="workspace">
+      <section class="map-wrap" aria-label="City map">
+        <canvas id="game-canvas"></canvas>
+        <div class="seed-chip">SEED <strong id="seed">---</strong></div>
+        <div id="notice" class="notice" role="status"></div>
+        <div class="controls">
+          <button id="pause" title="Pause (Space)">Ⅱ</button>
+          <button data-speed="1">1×</button>
+          <button data-speed="2">2×</button>
+          <button data-speed="4">4×</button>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-head"><h2>Deliveries</h2><span id="active-count" class="count">0</span></div>
+          <div id="deliveries" class="stack"></div>
+        </section>
+        <section class="panel couriers-panel">
+          <div class="panel-head"><h2>Couriers</h2><span class="hint">select to dispatch</span></div>
+          <div id="couriers" class="stack"></div>
+        </section>
+        <section class="legend">
+          <span><i style="--c:#ff5d8f">▲</i>Food</span><span><i style="--c:#ffb703">●</i>Parcel</span><span><i style="--c:#5eead4">■</i>Docs</span><span><i style="--c:#f43f5e">✚</i>Medical</span><span><i style="--c:#a3e635">⬢</i>Grocery</span><span><i style="--c:#c084fc">◆</i>Fragile</span>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="upgrade-modal" class="modal" aria-labelledby="upgrade-title">
+    <div class="modal-kicker">ROGUELIKE UPGRADE</div>
+    <h2 id="upgrade-title">Choose how this run evolves</h2>
+    <p>One choice. Permanent for this city.</p>
+    <div id="upgrade-choices" class="upgrade-grid"></div>
+  </dialog>
+
+  <dialog id="gameover-modal" class="modal" aria-labelledby="gameover-title">
+    <div class="modal-kicker danger">DISPATCH COLLAPSED</div>
+    <h2 id="gameover-title">The city outran you.</h2>
+    <div id="run-summary" class="run-summary"></div>
+    <p class="best">Best score on this browser: <strong id="best-score">0</strong></p>
+    <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SEED</button><button id="random-seed">NEW CITY</button></div>
+  </dialog>
+
+  <dialog id="help-modal" class="modal help" aria-labelledby="help-title">
+    <div class="modal-kicker">HOW TO DISPATCH</div>
+    <h2 id="help-title">Keep the city moving</h2>
+    <ol>
+      <li>Select a colored delivery on the map or in the sidebar.</li>
+      <li>Select an available courier. They route to pickup, then destination.</li>
+      <li>Beat the timer. Missed jobs damage reputation; zero reputation ends the run.</li>
+      <li>Every few deliveries, choose one permanent roguelike upgrade.</li>
+    </ol>
+    <p><kbd>Space</kbd> pause · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> speeds · <kbd>Esc</kbd> clear selection</p>
+    <button id="close-help">RIDE</button>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

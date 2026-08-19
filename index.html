@@ -3,80 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#08111f">
-  <meta name="description" content="A colorful procedural bike courier dispatch roguelike.">
-  <title>BIKE // Dispatch Roguelike</title>
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="BIKE: a colorful Berlin courier dispatch roguelike about choosing what goes on the radio.">
+  <title>BIKE // Berlin Dispatch</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">B</span><span><strong>BIKE</strong><small>dispatch roguelike</small></span></div>
-      <div class="metrics">
-        <div><span>SCORE</span><strong id="score">0</strong></div>
-        <div><span>CASH</span><strong id="cash">€0</strong></div>
-        <div><span>REP</span><strong id="rep" data-level="good">100%</strong></div>
-        <div><span>WAVE</span><strong id="wave">1</strong></div>
-      </div>
-      <div class="top-actions"><button id="help" class="ghost">?</button><button id="new-run">NEW RUN</button></div>
+      <div class="brand"><span class="brand-mark">B</span><span><strong>BIKE</strong><small>BERLIN DISPATCH</small></span></div>
+      <div class="metrics"><div><span>SCORE</span><strong id="score">0</strong></div><div><span>CASH</span><strong id="cash">€0</strong></div><div><span>REP</span><strong id="rep" data-level="good">100%</strong></div><div><span>WAVE</span><strong id="wave">1</strong></div></div>
+      <div class="top-actions"><button id="help" class="ghost">HOW TO PLAY</button><button id="new-run">NEW SHIFT</button></div>
     </header>
 
+    <section class="dispatch-rule" aria-label="Core gameplay rule">
+      <strong>YOU ARE DISPATCH.</strong>
+      <span>Jobs appear → <b>CALL OUT</b> only the jobs worth putting on the radio → free riders choose for themselves based on distance, deadline, personality and experience.</span>
+      <span class="survival-rule">Keep reputation above 0.</span>
+    </section>
+
     <section class="workspace">
-      <section class="map-wrap" aria-label="City map">
+      <section class="map-wrap" aria-label="Stylized central Berlin courier map">
         <canvas id="game-canvas"></canvas>
-        <div class="seed-chip">SEED <strong id="seed">---</strong></div>
-        <div class="trait-chip"><span>RUN TRAIT</span><strong id="trait">---</strong><small id="trait-desc"></small><em id="surge"></em></div>
+        <div class="city-chip"><span>BERLIN</span><strong id="trait">---</strong><small id="trait-desc"></small></div>
+        <div class="seed-chip">SHIFT <strong id="seed">---</strong></div>
         <div id="notice" class="notice" role="status"></div>
-        <div class="controls">
-          <button id="pause" title="Pause (Space)">Ⅱ</button>
-          <button data-speed="1">1×</button>
-          <button data-speed="2">2×</button>
-          <button data-speed="4">4×</button>
-        </div>
+        <div class="map-key"><span><i class="job-dot off"></i> job</span><span><i class="job-dot live"></i> radio call</span><span><i class="rider-triangle"></i> rider · number = experience</span></div>
+        <div class="controls"><button id="pause" title="Pause (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
       </section>
 
       <aside class="sidebar">
-        <section class="panel">
-          <div class="panel-head"><h2>Deliveries</h2><span id="active-count" class="count">0</span></div>
+        <section class="panel radio-panel">
+          <div class="panel-head"><div><span class="eyebrow">YOUR MAIN DECISION</span><h2>Radio board</h2></div><span class="radio-meter"><b id="called-count">0</b>/<b id="radio-slots">3</b> LIVE</span></div>
+          <p class="panel-help">Click a waiting job to call it out. Click again to cancel. Riders—not you—decide which live call to take.</p>
+          <div class="subhead"><span>OPEN JOBS</span><span id="active-count" class="count">0</span></div>
           <div id="deliveries" class="stack"></div>
         </section>
-        <section class="panel couriers-panel">
-          <div class="panel-head"><h2>Couriers</h2><span class="hint">select to dispatch</span></div>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">AUTONOMOUS TEAM</span><h2>Riders</h2></div><span class="hint">click to inspect</span></div>
+          <p class="panel-help">Experience reduces bad choices. Personality changes what each rider values when several calls are live.</p>
           <div id="couriers" class="stack"></div>
         </section>
-        <section class="legend">
-          <span><i style="--c:#ff5d8f">▲</i>Food</span><span><i style="--c:#ffb703">●</i>Parcel</span><span><i style="--c:#5eead4">■</i>Docs</span><span><i style="--c:#f43f5e">✚</i>Medical</span><span><i style="--c:#a3e635">⬢</i>Grocery</span><span><i style="--c:#c084fc">◆</i>Fragile</span>
+        <section class="panel goals-panel">
+          <div class="panel-head"><div><span class="eyebrow">THIS SHIFT</span><h2>Berlin goals</h2></div></div>
+          <p class="panel-help">Districts do not control where job types spawn. They give Berlin its geography and contain landmark/city objectives.</p>
+          <div id="goals" class="goals"></div>
         </section>
+        <section class="legend"><span><i style="--c:#ff5d8f">▲</i>Food</span><span><i style="--c:#ffb703">●</i>Parcel</span><span><i style="--c:#5eead4">■</i>Docs</span><span><i style="--c:#ff4667">✚</i>Medical</span><span><i style="--c:#a3e635">⬢</i>Grocery</span><span><i style="--c:#c084fc">◆</i>Fragile</span></section>
       </aside>
     </section>
   </main>
 
-  <dialog id="upgrade-modal" class="modal" aria-labelledby="upgrade-title">
-    <div class="modal-kicker">ROGUELIKE UPGRADE</div>
-    <h2 id="upgrade-title">Choose how this run evolves</h2>
-    <p>One choice. Permanent for this city.</p>
-    <div id="upgrade-choices" class="upgrade-grid"></div>
+  <dialog id="help-modal" class="modal help" aria-labelledby="help-title" hidden>
+    <div class="modal-kicker">60-SECOND DISPATCH BRIEF</div>
+    <h2 id="help-title">You manage the radio, not the riders.</h2>
+    <div class="brief-grid">
+      <article><b>1</b><strong>Jobs spawn</strong><p>Colored job icons appear around Berlin. Every deadline is already ticking.</p></article>
+      <article><b>2</b><strong>Choose what to call</strong><p>Click jobs to put them on the radio. Your limited radio slots are the core resource.</p></article>
+      <article><b>3</b><strong>Riders choose</strong><p>Idle riders independently evaluate live calls using location, urgency, pay, personality and experience.</p></article>
+      <article><b>4</b><strong>Read the team</strong><p>A Sprinter likes close urgent work. An Earner likes payout. Veterans make cleaner decisions than rookies.</p></article>
+      <article><b>5</b><strong>Shape the shift</strong><p>Complete Berlin goals and deliveries to earn permanent run upgrades: more radio capacity, riders, bike lanes and better teamwork.</p></article>
+      <article><b>6</b><strong>Do not collapse</strong><p>Missed deadlines cost reputation. At 0%, the shift ends. Retry the same seed or roll a new Berlin shift.</p></article>
+    </div>
+    <div class="brief-example"><strong>Example decision</strong><span>Maya is free near Alexanderplatz. Three jobs exist, but only one is close and urgent. Call that one. Do not flood the radio with distant low-value work just because it exists.</span></div>
+    <p class="keys"><kbd>Space</kbd> pause · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> speed · <kbd>Esc</kbd> clear inspection</p>
+    <button id="close-help">START THE SHIFT</button>
   </dialog>
 
-  <dialog id="gameover-modal" class="modal" aria-labelledby="gameover-title">
-    <div class="modal-kicker danger">DISPATCH COLLAPSED</div>
-    <h2 id="gameover-title">The city outran you.</h2>
-    <div id="run-summary" class="run-summary"></div>
-    <p class="best">Best score on this browser: <strong id="best-score">0</strong></p>
-    <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SEED</button><button id="random-seed">NEW CITY</button></div>
+  <dialog id="upgrade-modal" class="modal" aria-labelledby="upgrade-title" hidden>
+    <div class="modal-kicker">SHIFT UPGRADE</div><h2 id="upgrade-title">Change how dispatch works.</h2><p>Choose one permanent advantage for this run.</p><div id="upgrade-choices" class="upgrade-grid"></div>
   </dialog>
 
-  <dialog id="help-modal" class="modal help" aria-labelledby="help-title">
-    <div class="modal-kicker">HOW TO DISPATCH</div>
-    <h2 id="help-title">Keep the city moving</h2>
-    <ol>
-      <li>Select a colored delivery on the map or in the sidebar.</li>
-      <li>Select an available courier. They route to pickup, then destination.</li>
-      <li>Beat the timer. Missed jobs damage reputation; zero reputation ends the run.</li>
-      <li>Every few deliveries, choose one permanent roguelike upgrade.</li>
-    </ol>
-    <p><kbd>Space</kbd> pause · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> speeds · <kbd>Esc</kbd> clear selection</p>
-    <button id="close-help">RIDE</button>
+  <dialog id="gameover-modal" class="modal" aria-labelledby="gameover-title" hidden>
+    <div class="modal-kicker danger">RADIO COLLAPSED</div><h2 id="gameover-title">Berlin outran the shift.</h2><div id="run-summary" class="run-summary"></div><p class="best">Best score on this browser: <strong id="best-score">0</strong></p>
+    <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SAME SHIFT</button><button id="random-seed">NEW BERLIN SHIFT</button></div>
   </dialog>
 
   <script type="module" src="src/main.js"></script>

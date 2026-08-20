@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const renderMap=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');
+const outlook=readFileSync(new URL('../src/ui-outlook.js',import.meta.url),'utf8');
 
 test('Send It operational hierarchy is task rail then map plus rider dock',()=>{
   assert.match(html,/<title>Send It \/\/ Berlin Dispatch<\/title>/);
@@ -47,6 +48,15 @@ test('demand events mark their affected Berlin operating area on the map',()=>{
   assert.match(renderMap,/ev\.kind!=='demand'/);
   assert.match(renderMap,/DEMAND SURGE/);
   assert.match(renderMap,/SURGE FORECAST/);
+});
+
+test('selected contract exposes future rider availability without assignment controls',()=>{
+  assert.match(html,/id="inspect-outlook"/);
+  assert.match(html,/src\/ui-outlook\.js/);
+  assert.match(outlook,/deliveryRiderOutlook/);
+  assert.match(outlook,/NOW/);
+  assert.match(outlook,/BUSY|state\.toUpperCase/);
+  assert.doesNotMatch(outlook,/assign/i);
 });
 
 test('game-over review contains a causal critical timeline',()=>{

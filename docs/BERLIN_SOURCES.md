@@ -1,43 +1,29 @@
-# Send It — Berlin source and fidelity policy
+# Berlin map references
 
-The runtime map is a deliberately compressed game model, not navigation/GIS data.
+Send It's runtime map is a deliberately simplified gameplay diagram, not a navigation/GIS product.
 
-## Current reference hierarchy
+## Official references
 
-1. **Berlin Open Data — Detailnetz Berlin**
-   - detailed street-network reference
-   - `https://daten.berlin.de/datensaetze/detailnetz-berlin-wfs-4f2045ef`
-2. **Berlin Open Data — Adressen Berlin**
-   - official address-point reference for the planned build-time precision import
-   - `https://daten.berlin.de/datensaetze/adressen-berlin-wfs-634ab8ba`
-3. **BVG network / tariff references**
-   - used to define the intended inner-city/Ringbahn operating frame
-   - `https://www.bvg.de/en/subscriptions-and-tickets/tariff-zones-and-networks`
-   - `https://www.bvg.de/en/connections/network-maps-and-routes`
+Primary Berlin Open Data sources:
 
-## Current gameplay fidelity
+- Detailnetz Berlin — detailed transport-oriented street network
+  - dataset page: `https://daten.berlin.de/datensaetze/detailnetz-berlin-wfs-4f2045ef`
+  - WFS: `https://gdi.berlin.de/services/wfs/detailnetz`
+- Adressen Berlin — official address points
+  - dataset page: `https://daten.berlin.de/datensaetze/adressen-berlin-wfs-634ab8ba`
+  - WFS: `https://gdi.berlin.de/services/wfs/adressen_berlin`
+- license metadata: Datenlizenz Deutschland – Zero – Version 2.0 where stated by the source datasets.
 
-The committed static model uses:
+The S41/S42 Ringbahn is used as the intended first-city operating boundary/orientation concept.
 
-- 12 broad inner-Berlin operating areas,
-- 110+ real street names,
-- 27+ S41/S42 station anchors,
-- 900+ graph nodes,
-- 600+ deterministic service/address nodes,
-- water, parks, bridges and landmarks as orientation anchors.
+## Current runtime fidelity
 
-Street names and broad relative topology are real-inspired. Geometry and current generated house numbers are gameplay abstractions and must not be represented as parcel-accurate real-world routing.
+The active `src/berlin.js` graph is still a deterministic hand-curated gameplay abstraction using real street names, recognizable broad topology, water/parks, landmarks and Ringbahn anchors. Current generated house numbers are gameplay addresses and are not claimed as exact official parcels.
 
-## Runtime rule
+No external map API, tile service or runtime geodata request is required.
 
-GitHub Pages must not require:
+## Reproducible next precision tier
 
-- commercial map tiles,
-- geocoding APIs,
-- routing APIs,
-- API keys,
-- live WFS calls.
+`tools/import-berlin.mjs` and `tools/berlin-import-lib.mjs` now provide the tested build-time foundation for importing official streets/addresses into a static candidate dataset.
 
-## Next precision tier
-
-Official Berlin WFS data should be imported **offline at build/development time**, clipped/simplified to the playable Ringbahn-oriented region, normalized into the game graph, and committed as static generated data with source date/license metadata.
+See [BERLIN_IMPORT.md](BERLIN_IMPORT.md) for the workflow, current limitations and the required Ring-polygon/topology steps before imported data may replace the curated runtime graph.

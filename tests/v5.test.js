@@ -24,14 +24,18 @@ test('new shifts begin in the compact center operating area',()=>{
   }
 });
 
-test('operating territory expands at six and sixteen completed jobs',()=>{
+test('operating territory expands at six and thirty completed jobs',()=>{
   const g=new Game({seed:'EXPAND'});
+  assert.equal(g.unlockStages.find(s=>s.id==='ring').threshold,30);
   g.completed=6;
   assert.equal(g.maybeAdvanceCity(),true);
   assert.equal(g.cityLevel,2);
   assert.equal(g.currentStage().id,'inner');
   assert.ok(g.radioSlots>=5);
-  g.completed=16;
+  g.completed=29;
+  assert.equal(g.maybeAdvanceCity(),false);
+  assert.equal(g.cityLevel,2);
+  g.completed=30;
   assert.equal(g.maybeAdvanceCity(),true);
   assert.equal(g.cityLevel,3);
   assert.equal(g.currentStage().id,'ring');

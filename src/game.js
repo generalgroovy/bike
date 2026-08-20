@@ -9,6 +9,7 @@ import './game-cargo-motion.js';
 import './game-availability.js';
 import './game-progression.js';
 import './game-tools.js';
+import './game-strategic-upgrades.js';
 import './game-review.js';
 import './game-telemetry.js';
 export class Game extends CoreGame{

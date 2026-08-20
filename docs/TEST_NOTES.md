@@ -1,48 +1,51 @@
 # Send It v5 — validation notes
 
-Current merge candidate validation is automated through GitHub Actions with:
+Current merge-candidate validation is automated through GitHub Actions with:
 
 ```text
 npm test
 = node --check src/main.js
 + node --check src/render-map.js
 + node --check src/render-entities.js
++ node --check src/ui-outlook.js
++ node --check src/ui-telemetry.js
++ node --check tools/import-berlin.mjs
 + node --test
 ```
 
-Current green suite: **35 tests / 35 pass / 0 fail**.
+Current green suite: **71 tests / 71 pass / 0 fail**.
 
 Coverage includes:
 
 - deterministic RNG and same-seed reproduction,
 - 900+ node / 500+ visual-edge / 110+ street Berlin scale,
-- address uniqueness/integrity,
-- full graph connectivity,
-- canonical Kira/Mauro/Brian/Sam/Michail/Zorro order,
-- address-to-address contracts,
-- district-independent cargo generation,
+- address uniqueness/integrity and graph connectivity,
+- canonical Kira/Mauro/Brian/Sam/Michail/Zorro roster,
+- address-to-address contracts and district-independent cargo,
 - direct-assignment API absence,
-- OPEN/PRIORITY/LOCAL bandwidth accounting,
-- radio-off riders unable to accept work,
-- fatigue/break recovery,
+- OPEN/PRIORITY/LOCAL/OFF bandwidth accounting,
 - autonomous deliberation/claiming,
-- street and bridge goals,
-- route/event cost changes,
-- named-street route generation,
-- run-contract variation,
-- multi-seed stress,
-- two-minute opening survival floor,
-- natural Center → Inner City progression under adaptive dispatch,
+- radio-off breaks and recovery,
+- personality niche and anti-dominance tests,
+- staged territory unlocks and 6 → 30 expansion pacing,
+- adaptive dispatcher reaching the full Ring under meaningful pressure,
+- cargo handling speed/fatigue differences,
+- RUSH/RETURN contract behavior,
+- bonus/client-call/rebroadcast interventions,
+- route/rain/demand event generation and counterplay,
+- demand-surge district map feedback,
+- rider task progress and ETA,
+- future rider availability forecasts that cannot pre-assign work,
+- strategic cargo/radio/event/staffing upgrades,
+- causal critical timeline,
+- deterministic run telemetry,
 - six-rider high-load finite-state simulation,
 - Send It task-rail/map/rider-dock information architecture,
 - stable keyed live-DOM rules,
-- canonical Ringbahn anchors,
-- staged territory unlocks,
-- level-gated cargo,
-- RETURN follow-up generation,
-- bonus/client-call/rebroadcast interventions,
-- proactive detour advisory,
-- finite/advancing rider task progress and ETA,
-- visual-street unlock state consistent with every subdivided routing segment.
+- browser-source syntax checks,
+- visual-street unlock state consistent with routing subdivisions,
+- official Berlin WFS importer URL construction, feature discovery, geometry simplification, projection, address normalization and deterministic output sorting.
 
-A browser-level manual acceptance pass is still valuable after merge/deployment because the current execution environment cannot fetch the feature branch into a local headless browser. The automated suite therefore treats DOM structure, browser JS parsing and simulation invariants as the pre-merge gate.
+CI does **not** call Berlin WFS endpoints; importer tests use local fixture data so network availability cannot make the game build flaky.
+
+A browser-level manual acceptance pass is still valuable because the current execution environment cannot render the feature branch in a local headless browser. The automated suite therefore treats browser JS parsing, DOM architecture and simulation invariants as the pre-merge gate.

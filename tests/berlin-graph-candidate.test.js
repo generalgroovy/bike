@@ -13,7 +13,7 @@ function importedFixture(){return{metadata:{source:'fixture'},streets:[
   {street:'Gamma Straße',streetKey:'gamma straße',streetNumber:'003',houseNumber:'8',postcode:'10000',x:145,y:1,sourceId:'p4'}
 ]};}
 
-test('street skeleton uses official Detailnetz node IDs before coordinate fuzz',()=>{const graph=buildStreetSkeleton(importedFixture().streets,{snapTolerance:.1});const official=graph.nodes.filter(n=>n.sourceNodeId==='A2');assert.equal(official.length,1);assert.equal(connectedComponents(graph).length,2);const alphaGamma=graph.edges.filter(e=>['Alpha Straße','Gamma Straße'].includes(e.streetName));assert.ok(alphaGamma.some(e=>e.a===official[0].id||e.b===official[0].id));});
+test('street skeleton uses official Detailnetz node IDs before coordinate fuzz',()=>{const graph=buildStreetSkeleton(importedFixture().streets,{snapTolerance:.1});const official=graph.nodes.filter(n=>n.sourceNodeId==='A2');assert.equal(official.length,1);assert.equal(connectedComponents(graph).length,1);const alpha=graph.edges.find(e=>e.streetName==='Alpha Straße'&&(e.a===official[0].id||e.b===official[0].id)),gamma=graph.edges.find(e=>e.streetName==='Gamma Straße'&&(e.a===official[0].id||e.b===official[0].id));assert.ok(alpha);assert.ok(gamma);});
 
 test('street skeleton still snaps ordinary shared intersection vertices',()=>{const fixture=importedFixture();fixture.streets=fixture.streets.slice(0,2).map(s=>({...s,fromNode:null,toNode:null}));const graph=buildStreetSkeleton(fixture.streets,{snapTolerance:1});const center=graph.nodes.filter(n=>Math.hypot(n.x-50,n.y)<.01);assert.equal(center.length,1);assert.equal(connectedComponents(graph).length,1);});
 

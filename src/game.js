@@ -10,6 +10,7 @@ import './game-availability.js';
 import './game-scheduled.js';
 import './game-feasibility.js';
 import './game-progression.js';
+import './game-expansion-policy.js';
 import './game-tools.js';
 import './game-event-options.js';
 import './game-strategic-upgrades.js';
@@ -22,4 +23,5 @@ export class Game extends CoreGame{
 }
 export * from './game-data.js';
 export * from './game-cargo.js';
+export { EXPANSION_POLICIES } from './game-expansion-policy.js';
 export { SCHEDULED_SPECIAL } from './game-scheduled.js';

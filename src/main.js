@@ -95,7 +95,7 @@ function renderEvent(){
 
 function renderInspector(){
   const d=game.deliveryById(game.selectedDeliveryId);if(!d||!game.activeDeliveries().includes(d)){inspector.hidden=true;return;}inspector.hidden=false;
-  const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · ')||'no free rider';
+  const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=(insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · '))||'no free rider';
   setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
 }
 

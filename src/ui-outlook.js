@@ -1,5 +1,6 @@
 import { Game } from './game.js';
 import './ui-telemetry.js';
+import './ui-scheduled.js';
 
 const root=document.querySelector('#inspect-outlook');
 const formatTime=seconds=>{const value=Math.max(0,Math.ceil(seconds));return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};

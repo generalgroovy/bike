@@ -7,6 +7,7 @@ import './game-pacing.js';
 import './game-cargo.js';
 import './game-cargo-motion.js';
 import './game-availability.js';
+import './game-scheduled.js';
 import './game-progression.js';
 import './game-tools.js';
 import './game-strategic-upgrades.js';
@@ -18,3 +19,4 @@ export class Game extends CoreGame{
 }
 export * from './game-data.js';
 export * from './game-cargo.js';
+export { SCHEDULED_SPECIAL } from './game-scheduled.js';

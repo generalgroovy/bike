@@ -11,6 +11,7 @@ import './game-scheduled.js';
 import './game-feasibility.js';
 import './game-progression.js';
 import './game-tools.js';
+import './game-event-options.js';
 import './game-strategic-upgrades.js';
 import './game-review.js';
 import './game-telemetry.js';

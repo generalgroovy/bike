@@ -24,5 +24,5 @@ test('renderer rotates only the rider marker and keeps reduced-motion feedback s
   assert.match(renderSource,/Number\.isFinite\(rider\.heading\).*c\.rotate\(rider\.heading\)/s);
   assert.match(renderSource,/drawMilestoneCue/);assert.match(renderSource,/rider\.lastMilestone/);
   assert.match(renderSource,/if\(reduced\|\|!\(rider\.phase==='pickup'\|\|rider\.phase==='dropoff'\)/);
-  assert.match(renderSource,/const reduced=reducedMotion\(\)/);
+  assert.match(renderSource,/reduced=reducedMotion\(\)/);
 });

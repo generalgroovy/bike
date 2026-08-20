@@ -17,16 +17,16 @@ function score(game,rider,personality,delivery){
 
 test('each rider personality has a distinct decision niche',()=>{
   const game=new Game({seed:'PERSONALITY-NICHES'}),rider=game.couriers[0],here=game.nodeById(rider.nodeId),addresses=game.playableAddressNodes();
-  const close=addresses.slice().sort((a,b)=>game.routeTravelCost(rider.nodeId,a.id)-game.routeTravelCost(rider.nodeId,b.id))[1];
-  const far=addresses.slice().sort((a,b)=>game.routeTravelCost(rider.nodeId,b.id)-game.routeTravelCost(rider.nodeId,a.id))[0];
-  const sameDistrict=addresses.find(n=>n.districtId===here.districtId&&n.id!==rider.nodeId)??close;
+  const ordered=addresses.slice().sort((a,b)=>game.routeTravelCost(rider.nodeId,a.id)-game.routeTravelCost(rider.nodeId,b.id));
+  const close=ordered[1],far=ordered.at(-1),sameDistrict=addresses.find(n=>n.districtId===here.districtId&&n.id!==rider.nodeId)??close;
+  const otherDistrict=ordered.filter(n=>n.districtId!==here.districtId),steadyPickup=otherDistrict[Math.floor(otherDistrict.length*.45)]??ordered[Math.floor(ordered.length*.45)];
   const scenarios={
     sprinter:baseDelivery(game,{pickupId:close.id,reward:11,distance:180,deadline:14,age:72}),
     earner:baseDelivery(game,{pickupId:far.id,reward:44,distance:520,deadline:80,age:25}),
     guardian:baseDelivery(game,{pickupId:far.id,type:'medical',reward:18,distance:330,deadline:20,age:70}),
     local:baseDelivery(game,{pickupId:sameDistrict.id,reward:10,distance:160,deadline:62,age:20,channel:'local'}),
     tourer:baseDelivery(game,{pickupId:far.id,reward:18,distance:900,deadline:90,age:24}),
-    steady:baseDelivery(game,{pickupId:close.id,reward:22,distance:380,deadline:46,age:38})
+    steady:baseDelivery(game,{pickupId:steadyPickup.id,reward:21,distance:420,deadline:60,age:20})
   };
   for(const personality of PERSONALITIES){
     const d=scenarios[personality.id];

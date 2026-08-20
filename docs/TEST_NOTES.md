@@ -4,7 +4,7 @@ Current merge-candidate validation is automated through GitHub Actions with `npm
 
 The gate includes browser/controller syntax checks for the main renderer/UI modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
 
-Current green implementation suite: **121 tests / 121 pass / 0 fail**.
+Current green implementation suite: **124 tests / 124 pass / 0 fail**.
 
 Coverage includes:
 
@@ -40,6 +40,9 @@ Coverage includes:
 - Send It task-rail/map/rider-dock information architecture,
 - stable keyed live-DOM rules,
 - visual-street unlock state consistent with routing subdivisions,
+- rider travel heading propagated through the effective cargo-aware movement path,
+- pickup/dropoff milestone state and restrained map feedback,
+- reduced-motion-safe entity feedback and frozen decorative radio motion,
 - Ringbahn polygon import/stitch validation,
 - official Berlin WFS capability/feature request construction,
 - exact address schema normalization,
@@ -52,4 +55,4 @@ Coverage includes:
 
 CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic.
 
-A real browser acceptance pass is still valuable because the current execution environment cannot render the feature branch in a local headless browser. Automated checks therefore cover source parsing, UI structure/read-only boundaries, deterministic simulation and data-pipeline invariants; actual rendered spacing, hover feel and human scanning speed remain manual acceptance items.
+A real browser acceptance pass remains valuable for rendered spacing, hover feel, task-rail scanning and different desktop aspect ratios. Automated checks cover source parsing, UI structure/read-only boundaries, deterministic simulation, visual-feedback state and data-pipeline invariants.

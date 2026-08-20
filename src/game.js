@@ -4,5 +4,6 @@ import './game-events.js';
 import './game-event-demand.js';
 import './game-progression.js';
 import './game-tools.js';
+import './game-review.js';
 export { Game } from './game-core.js';
 export * from './game-data.js';

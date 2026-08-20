@@ -15,8 +15,10 @@ test('Cargo Racks reduce loaded catering penalties without removing cargo identi
   assert.ok(after.fatigue<before.fatigue&&after.fatigue>1);
 });
 
-test('Local Repeater strengthens only same-area LOCAL rider attraction',()=>{
-  const g=new Game({seed:'UP-LOCAL'}),r=g.couriers[0],here=g.nodeById(r.nodeId),pickup=g.playableAddressNodes().find(n=>n.districtId===here.districtId&&n.id!==r.nodeId);assert.ok(pickup);const drop=g.playableAddressNodes().find(n=>n.id!==pickup.id&&g.routeBetween(pickup.id,n.id).length>1);g.deliveries=[];assert.ok(drop);assert.equal(g.spawnDelivery({pickupId:pickup.id,dropoffId:drop.id,special:false}),true);const d=g.deliveries.at(-1);g.setChannel(d.id,'local');const before=g.courierChoiceScore(r,d,false);apply(g,'local-repeater');const after=g.courierChoiceScore(r,d,false);assert.ok(after>before+.25);
+test('Local Repeater strengthens same-area LOCAL rider attraction',()=>{
+  const g=new Game({seed:'UP-LOCAL'}),r=g.couriers[0],addresses=g.playableAddressNodes();let start=null,pickup=null;
+  for(const a of addresses){const b=addresses.find(n=>n.id!==a.id&&n.districtId===a.districtId&&g.routeBetween(a.id,n.id).length>1);if(b){start=a;pickup=b;break;}}
+  assert.ok(start&&pickup);r.nodeId=start.id;r.x=start.x;r.y=start.y;const d={id:'local-probe',type:'parcel',pickupId:pickup.id,dropoffId:start.id,reward:16,plannedDistance:280,createdAt:g.elapsed-20,deadlineAt:g.elapsed+60,called:true,channel:'local',status:'waiting',bonusAppeal:0};const before=g.courierChoiceScore(r,d,false);apply(g,'local-repeater');const after=g.courierChoiceScore(r,d,false);assert.ok(after>before+.25,`${before} -> ${after}`);
 });
 
 test('Event Feed forecasts the next event earlier without changing its activation time',()=>{

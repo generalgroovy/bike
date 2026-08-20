@@ -25,7 +25,7 @@
     <div data-tip="Reputation. At 0 the shift ends."><span>REP</span><strong id="rep" data-level="good">100</strong></div>
     <div><span>€</span><strong id="cash">0</strong></div>
     <div><span>SCORE</span><strong id="score">0</strong></div>
-    <div data-tip="Dispatch focus powers client calls, rebroadcasts and event advisories."><span>FOCUS</span><strong><b id="focus">2</b>/<b id="focus-max">3</b></strong></div>
+    <div data-tip="Dispatch focus powers client calls, rebroadcasts and event responses."><span>FOCUS</span><strong><b id="focus">2</b>/<b id="focus-max">3</b></strong></div>
   </div>
   <div class="top-actions"><button id="help-toggle" class="ghost">? HELP</button><button id="new-run">NEW SHIFT</button></div>
 </header>
@@ -45,7 +45,7 @@
     <div class="map-city"><strong>BERLIN</strong><small id="map-stage-label">CENTER DESK</small></div>
     <div id="event-chip" class="event-chip" hidden>
       <span id="event-state">FORECAST</span><strong id="event-title">—</strong><small id="event-detail">—</small><b id="event-time">—</b>
-      <button id="event-advisory" data-tip="Spend 1 focus to broadcast a detour advisory. Riders re-evaluate routes around the affected street.">DETOUR · 1 FOCUS</button>
+      <button id="event-advisory" data-tip="Spend 1 focus to prepare for or respond to this event. Route and demand events have different counterplay.">RESPOND · 1 FOCUS</button>
     </div>
     <aside id="job-inspector" class="job-inspector" hidden>
       <div class="inspect-head"><span><b id="inspect-glyph">●</b><strong id="inspect-id">D0</strong><em id="inspect-special"></em></span><button id="inspect-close" aria-label="Close contract">×</button></div>
@@ -81,7 +81,7 @@
   <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which contracts are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
   <div class="help-grid">
     <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p></section>
-    <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Detour advisory</b> pushes routes away from an event.</p></section>
+    <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Event response</b> pre-briefs routes or buffers demand surges.</p></section>
     <section><h3>Riders</h3><p>Task bar = completion.<br>Energy bar = fatigue reserve.<br>Grey = break / radio off.<br>Personality affects what they volunteer for.</p></section>
     <section><h3>Progression</h3><p>Start in Mitte + Kreuzberg. Complete work to unlock west/east inner city, then the full interior of the S41/S42 Ringbahn. New cargo and special contracts unlock with territory.</p></section>
   </div>
@@ -98,6 +98,7 @@
 <dialog id="gameover-modal" class="modal gameover" hidden>
   <span class="eyebrow danger">SHIFT COLLAPSED</span><h2>The desk lost the city.</h2><div id="run-summary" class="run-summary"></div>
   <section class="dispatch-review"><h3>Dispatch review</h3><div id="review-metrics" class="review-metrics"></div><div id="review-advice" class="review-advice"></div></section>
+  <section class="timeline-review"><div class="timeline-head"><h3>Critical timeline</h3><small>what changed the desk</small></div><div id="review-timeline" class="review-timeline"></div></section>
   <p class="best">Browser best: <strong id="best-score">0</strong></p>
   <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SEED</button><button id="random-seed">NEW SHIFT</button></div>
 </dialog>

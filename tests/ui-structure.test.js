@@ -31,3 +31,19 @@ test('dynamic task rider and goal lists use persistent keyed nodes',()=>{
   assert.doesNotMatch(main,/couriersEl\.innerHTML\s*=/);
   assert.doesNotMatch(main,/goalsEl\.innerHTML\s*=/);
 });
+
+test('event chip exposes event-specific counterplay instead of route-only wording',()=>{
+  assert.match(main,/ev\.kind==='demand'/);
+  assert.match(main,/CAPACITY PLAN/);
+  assert.match(main,/STAGGER CLIENTS/);
+  assert.match(main,/PRE-BRIEF/);
+  assert.match(main,/respondToCityEvent/);
+  assert.doesNotMatch(html,/id="event-advisory"[^>]*>DETOUR · 1 FOCUS/);
+});
+
+test('game-over review contains a causal critical timeline',()=>{
+  assert.match(html,/id="review-timeline"/);
+  assert.match(main,/game\.criticalTimeline\(\)/);
+  assert.match(main,/className='timeline-item'/);
+  assert.match(html,/review\.css/);
+});

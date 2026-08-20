@@ -7,7 +7,7 @@ function loadedScenario(seed,type){
   const pickup=g.playableAddressNodes()[10],dropoff=g.playableAddressNodes().find(n=>n.id!==pickup.id&&g.routeBetween(pickup.id,n.id).length>4);
   assert.ok(pickup&&dropoff);assert.equal(g.spawnDelivery({pickupId:pickup.id,dropoffId:dropoff.id,typeKey:type,special:false}),true);
   const d=g.deliveries.at(-1),r=g.couriers[0],p=g.nodeById(d.pickupId);r.nodeId=p.id;r.x=p.x;r.y=p.y;r.phase='idle';r.path=[];r.pathIndex=0;r.fatigue=.1;
-  assert.equal(g.claim(r,d),true);assert.equal(r.phase,'dropoff');return{g,r,d};
+  assert.equal(g.setChannel(d.id,'open'),true);assert.equal(g.claim(r,d),true);assert.equal(r.phase,'dropoff');return{g,r,d};
 }
 
 test('cargo handling catalogue differentiates light heavy and delicate loads',()=>{

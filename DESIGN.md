@@ -1,7 +1,9 @@
-# SEND IT design
+# Send It design
 
-The authoritative reproducible product, visual, simulation, map, control, progression, testing and implementation specification is [README.md](README.md).
+The authoritative reproducible product, gameplay, visual, simulation, map, control and validation specification is [README.md](README.md).
 
-The implementation/revision sequence and acceptance gates are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+Execution order and completed/next slices are tracked in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) and [docs/NEXT.md](docs/NEXT.md).
 
-Keep this file only as a compatibility pointer. Do not duplicate design rules here; update the two source documents above so future iterations have one product specification and one execution plan.
+Official Berlin static-import details live in [docs/BERLIN_IMPORT.md](docs/BERLIN_IMPORT.md).
+
+Do not duplicate full design rules here; keep one source of truth so future iterations do not drift.

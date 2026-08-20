@@ -10,7 +10,7 @@ function radioAutopilot(game){
 
 function adaptiveDispatcher(game){
   if(game.upgradePending){const choices=game.getUpgradeChoices(),priority=['rider','radio','briefing','coffee','speed','grace'],choice=priority.map(id=>choices.find(c=>c.id===id)).find(Boolean)??choices[0];if(choice)game.applyUpgrade(choice.id);}
-  if(game.currentEvent&&!game.currentEvent.advisory&&game.dispatchFocus>1)game.issueDetourAdvisory();
+  if(game.currentEvent&&!game.currentEvent.prepared&&game.dispatchFocus>1)game.respondToCityEvent();
   const waiting=game.activeDeliveries().filter(d=>d.status==='waiting').sort((a,b)=>game.urgency(a)-game.urgency(b));
   for(const d of waiting){const urgency=game.urgency(d);if(urgency<.22&&!d.extended&&game.dispatchFocus>1)game.extendJob(d.id);if(urgency<.28&&!d.sweetened&&game.cash>=10)game.sweetenJob(d.id);}
   for(const d of waiting.filter(d=>!d.called)){const urgency=game.urgency(d),channel=urgency<.32?'priority':'open',cost=channel==='priority'?2:1;if(game.radioUsed()+cost<=game.radioSlots)game.setChannel(d.id,channel);else if(game.radioUsed()<game.radioSlots)game.setChannel(d.id,'open');}
@@ -33,6 +33,20 @@ test('adaptive dispatch naturally reaches the first city expansion',()=>{
     assert.ok(game.completed>=6,`${seed} only completed ${game.completed} jobs in ${game.elapsed.toFixed(1)}s`);
     assert.ok(game.cityLevel>=2,`${seed} never reached Inner City`);
     assert.ok(game.elapsed<=360,`${seed} expansion took ${game.elapsed.toFixed(1)}s`);
+  }
+});
+
+test('adaptive dispatch can earn the full Ring under meaningful pressure',()=>{
+  for(const seed of['RING-A','RING-B','RING-C','RING-D']){
+    const game=new Game({seed});
+    for(let step=0;step<9000&&!game.gameOver&&game.cityLevel<3;step++){if(step%4===0)adaptiveDispatcher(game);game.update(.1);}
+    assert.equal(game.cityLevel,3,`${seed} stopped at level ${game.cityLevel} after ${game.completed} deliveries / ${game.elapsed.toFixed(1)}s`);
+    assert.ok(game.completed>=16);
+    assert.ok(game.elapsed>=180,`${seed} unlocked full Ring implausibly fast at ${game.elapsed.toFixed(1)}s`);
+    assert.ok(game.elapsed<=900,`${seed} full Ring took ${game.elapsed.toFixed(1)}s`);
+    assert.ok(game.runStats.peakActive>=5,`${seed} never experienced queue pressure`);
+    assert.ok(game.runStats.toolsUsed>=1,`${seed} never needed a dispatch intervention`);
+    assert.ok(game.reputation>0,`${seed} collapsed on expansion`);
   }
 });
 

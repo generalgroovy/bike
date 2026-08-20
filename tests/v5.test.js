@@ -97,3 +97,14 @@ test('rider task progress and ETA are finite and advance while riding',()=>{
   for(let i=0;i<20;i++)g.update(1/30);
   const p1=g.courierTaskProgress(r);assert.ok(Number.isFinite(p1));assert.ok(p1>=p0,`${p0} -> ${p1}`);assert.ok(p1>=0&&p1<=1);
 });
+
+test('visual street unlock level matches every subdivided routing segment',()=>{
+  const g=new Game({seed:'VISUAL-LOCK'});
+  for(const level of[1,2,3]){
+    g.cityLevel=level;
+    for(const visual of g.visualEdges.filter(v=>v.roadClass!=='connector')){
+      const parts=g.edges.filter(e=>e.visualId===visual.id);
+      if(g.visualEdgePlayable(visual.id))assert.ok(parts.every(e=>g.edgePlayable(e)),`${visual.streetName} partially locked at level ${level}`);
+    }
+  }
+});

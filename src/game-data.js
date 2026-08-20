@@ -18,12 +18,12 @@ export const RADIO_CHANNELS={
 };
 
 export const PERSONALITIES=[
-  {id:'sprinter',title:'Sprinter',icon:'⚡',desc:'Close + urgent',weights:{distance:1.6,urgency:1.25,reward:.4}},
-  {id:'earner',title:'Earner',icon:'€',desc:'Best payout',weights:{distance:.68,urgency:.7,reward:1.7}},
-  {id:'guardian',title:'Guardian',icon:'✚',desc:'Urgent + medical',weights:{distance:.78,urgency:1.7,reward:.45,medical:1.4}},
-  {id:'local',title:'Local',icon:'⌂',desc:'Nearby familiar work',weights:{distance:1.9,urgency:.72,reward:.35,sameDistrict:.92}},
-  {id:'tourer',title:'Tourer',icon:'◎',desc:'Longer city runs',weights:{distance:.32,urgency:.7,reward:.78,longRide:.9}},
-  {id:'steady',title:'Steady',icon:'≋',desc:'Balanced',weights:{distance:1.05,urgency:1.02,reward:.95}}
+  {id:'sprinter',title:'Sprinter',icon:'⚡',desc:'Close + urgent',weights:{distance:1.55,urgency:1.45,reward:.25}},
+  {id:'earner',title:'Earner',icon:'€',desc:'Best payout',weights:{distance:.55,urgency:.5,reward:1.25}},
+  {id:'guardian',title:'Guardian',icon:'✚',desc:'Urgent + medical',weights:{distance:.72,urgency:1.55,reward:.35,medical:1.45}},
+  {id:'local',title:'Local',icon:'⌂',desc:'Nearby familiar work',weights:{distance:1.75,urgency:.6,reward:.25,sameDistrict:1.05}},
+  {id:'tourer',title:'Tourer',icon:'◎',desc:'Longer city runs',weights:{distance:.38,urgency:.55,reward:.55,longRide:1.2}},
+  {id:'steady',title:'Steady',icon:'≋',desc:'Balanced',weights:{distance:1,urgency:.95,reward:.78}}
 ];
 
 export const EXPERIENCE=[
@@ -46,15 +46,15 @@ export const RUN_TRAITS=[
 ];
 
 export const RUN_CONTRACTS=[
-  {id:'mixed',title:'Mixed Desk',desc:'Balanced trip lengths and cargo.',minTrip:130,maxTrip:1050,reward:1,typeWeights:{}},
-  {id:'short-hop',title:'Short-Hop Day',desc:'Dense neighborhood work; faster turnover.',minTrip:85,maxTrip:560,reward:.92,spawnRate:1.12,typeWeights:{food:1.2,grocery:1.15,keys:1.1}},
-  {id:'crosstown',title:'Cross-Town',desc:'Longer runs across Berlin.',minTrip:320,maxTrip:1500,reward:1.18,deadline:1.14,spawnRate:.9,typeWeights:{parcel:1.15,document:1.15,catering:1.2}},
-  {id:'high-stakes',title:'High Stakes',desc:'More medical, keys and fragile calls.',minTrip:120,maxTrip:980,reward:1.15,typeWeights:{medical:2.1,fragile:1.6,keys:1.4,coldchain:1.5}}
+  {id:'mixed',title:'Mixed Desk',desc:'Balanced trip lengths and cargo.',minTrip:130,maxTrip:1150,reward:1,typeWeights:{}},
+  {id:'short-hop',title:'Short-Hop Day',desc:'Dense neighborhood work; faster turnover.',minTrip:85,maxTrip:620,reward:.92,spawnRate:1.12,typeWeights:{food:1.2,grocery:1.15,flowers:1.15}},
+  {id:'crosstown',title:'Cross-Town',desc:'Longer runs across Berlin.',minTrip:340,maxTrip:1450,reward:1.18,deadline:1.14,spawnRate:.9,typeWeights:{parcel:1.15,document:1.15,catering:1.2}},
+  {id:'high-stakes',title:'High Stakes',desc:'More critical and delicate calls.',minTrip:120,maxTrip:1050,reward:1.15,typeWeights:{medical:2.1,fragile:1.7,coldchain:1.8,keys:1.45}}
 ];
 
 export const SPECIAL_CONTRACTS=[
-  {id:'rush',label:'RUSH',glyph:'!',minLevel:2,weight:1,deadline:.72,reward:1.38,appeal:.18,desc:'Client pays extra for a sharply tighter window.'},
-  {id:'return',label:'RETURN',glyph:'↩',minLevel:3,weight:.62,deadline:1,reward:1.12,appeal:.08,desc:'Completion creates a paid return leg back across the city.'}
+  {id:'rush',label:'RUSH',glyph:'⚑',minLevel:2,weight:.62,reward:1.32,deadline:.7,appeal:.18,desc:'Client-paid rush window'},
+  {id:'return',label:'RETURN',glyph:'↩',minLevel:2,weight:.38,reward:1.16,deadline:1.04,appeal:.08,desc:'Successful drop creates a paid reverse leg'}
 ];
 
 export const UPGRADES=[
@@ -65,8 +65,8 @@ export const UPGRADES=[
   {id:'grace',title:'Client Buffer',desc:'New deadlines are 13% longer.',apply(g){g.modifiers.deadline*=1.13;}},
   {id:'bikeLane',title:'Bike-Lane Grant',desc:'Ten street blocks become faster.',apply(g){g.promoteBikeLanes(10,1.42);}},
   {id:'coffee',title:'Team Coffee',desc:'Riders fatigue 20% more slowly.',apply(g){g.modifiers.fatigue*=.8;}},
-  {id:'goodwill',title:'Local Goodwill',desc:'+16 reputation now.',apply(g){g.reputation=Math.min(100,g.reputation+16);}},
-  {id:'focus',title:'Dispatch Desk',desc:'+1 maximum dispatch focus.',apply(g){g.dispatchFocusMax+=1;g.dispatchFocus=Math.min(g.dispatchFocusMax,g.dispatchFocus+1);}}
+  {id:'focus',title:'Second Line',desc:'+1 maximum Dispatch Focus and refill one.',apply(g){g.dispatchFocusMax+=1;g.dispatchFocus=Math.min(g.dispatchFocusMax,g.dispatchFocus+1);}},
+  {id:'goodwill',title:'Local Goodwill',desc:'+16 reputation now.',apply(g){g.reputation=Math.min(100,g.reputation+16);}}
 ];
 
 export const ROAD_EVENT_TYPES=[

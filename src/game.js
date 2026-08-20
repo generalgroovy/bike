@@ -5,6 +5,7 @@ import './game-event-demand.js';
 import './game-pacing.js';
 import './game-cargo.js';
 import './game-cargo-motion.js';
+import './game-availability.js';
 import './game-progression.js';
 import './game-tools.js';
 import './game-review.js';

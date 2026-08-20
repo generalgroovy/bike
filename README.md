@@ -6,7 +6,7 @@
 
 Play: `https://generalgroovy.github.io/bike/`
 
-This README is the authoritative product, gameplay, UI, map, simulation and reproducibility specification. `IMPLEMENTATION_PLAN.md` records the implementation order and quality gates.
+This README is the authoritative product, gameplay, UI, map, simulation and reproducibility specification. `IMPLEMENTATION_PLAN.md` records implementation order and quality gates.
 
 ---
 
@@ -46,7 +46,7 @@ address contract appears
 → adapt the next broadcast
 ```
 
-There is intentionally no direct `assign()` API. Tests guard this invariant.
+There is intentionally no direct `assign()` API. Tests guard this invariant, including future-availability UI: a busy rider may be forecast as available soon but cannot be reserved or made to claim early.
 
 ---
 
@@ -85,7 +85,7 @@ compact command bar
 └─ shift / area / REP / cash / score / focus
 
 horizontal contract rail
-└─ newest work runs left → right
+└─ work runs left → right
 
 map
 └─ dominant spatial decision surface
@@ -115,6 +115,16 @@ A compact card contains only live decision information:
 - current radio/likely-rider state.
 
 Hover adds route streets, likely riders, special-contract explanation and cargo handling consequences.
+
+### Rider Outlook
+
+A selected contract includes a compact capacity forecast:
+
+- **NOW** — rider can hear and potentially choose the job immediately,
+- **BUSY · 0:xx** — projected time until the rider finishes current work and could reach the pickup,
+- **BREAK · 0:xx** — projected time after radio-off recovery and travel.
+
+This is informational only. It creates a choice between broadcasting now, waiting, paying a bonus or buying deadline time without introducing reservation/pre-assignment.
 
 ### Rider card
 
@@ -255,7 +265,21 @@ Reference datasets:
 
 The current shipped streets use real names and broadly recognizable topology, but the graph is a hand-curated gameplay abstraction, not navigation-grade GIS geometry. Current house numbers are deterministic street-consistent gameplay addresses, not claims of exact current parcels.
 
-The next precision tier is an offline build-time importer that samples official street/address data, simplifies it deterministically and commits the normalized static output. Runtime must remain offline.
+### Official static-import foundation
+
+The repo now includes a build-time importer foundation:
+
+```text
+tools/berlin-import-lib.mjs
+tools/import-berlin.mjs
+docs/BERLIN_IMPORT.md
+```
+
+It can discover WFS feature types, construct GeoJSON requests, clip/project/simplify street geometry, normalize address points and produce stably sorted static output with source metadata.
+
+The importer is **not yet runtime authority**. The curated graph remains active until official-data topology is joined, clipped to a documented Ring polygon and proven at least as readable/playable.
+
+CI tests importer logic only with local fixtures; CI and runtime make no map-network requests.
 
 ---
 
@@ -279,7 +303,7 @@ full S41/S42 interior operation
 highest-tier cargo
 ```
 
-The map camera automatically fits the newly unlocked operating bounds. Locked geography is heavily suppressed until relevant.
+The map camera automatically fits newly unlocked operating bounds. Locked geography is heavily suppressed until relevant.
 
 The 30-delivery Ring threshold is intentional: automated pacing tests showed that a 16-delivery threshold could expose the entire city in roughly two minutes under competent dispatch. The second expansion is now a mid-run transition rather than an onboarding event.
 
@@ -325,7 +349,24 @@ Every event therefore has forecast → spatial cue → pressure → meaningful r
 
 ---
 
-## 11. Map visual hierarchy
+## 11. Strategic roguelike upgrades
+
+Upgrades should create operating styles, not only inflate numbers.
+
+Existing system upgrades include radio bandwidth, extra rider, briefing, movement speed, client buffer, bike corridors, fatigue relief, focus capacity and reputation recovery.
+
+Strategic upgrades add:
+
+- **Cargo Racks** — heavy/delicate load penalties become 45% smaller,
+- **Local Repeater** — same-area LOCAL calls attract riders more strongly,
+- **Event Feed** — disruptions and demand surges are forecast six seconds earlier,
+- **Relief Roster** — future autonomous breaks are 20% shorter.
+
+No upgrade assigns work.
+
+---
+
+## 12. Map visual hierarchy
 
 From strongest to weakest:
 
@@ -360,7 +401,7 @@ Esc           close / clear selection
 
 ---
 
-## 12. Shift goals and upgrades
+## 13. Shift goals and upgrades
 
 Goals are generated from the currently playable city and later expand with territory.
 
@@ -372,23 +413,11 @@ Examples:
 - named bridge use,
 - cross-area Ring operation.
 
-Upgrades modify existing systems:
-
-- radio bandwidth,
-- extra rider,
-- team briefing,
-- movement speed,
-- client deadline buffer,
-- bike-lane grants,
-- slower fatigue,
-- more Dispatch Focus,
-- reputation recovery.
-
-No upgrade directly assigns work.
+No goal or upgrade directly assigns work.
 
 ---
 
-## 13. Post-shift learning
+## 14. Post-shift learning and telemetry
 
 The Dispatch Review classifies failures into:
 
@@ -399,7 +428,7 @@ The Dispatch Review classifies failures into:
 - rider breaks,
 - event preparation/tool usage.
 
-A **Critical Timeline** reconstructs the high-value causal sequence around the run:
+A **Critical Timeline** reconstructs high-value causal events:
 
 - city expansions,
 - event forecasts/starts/responses,
@@ -410,11 +439,25 @@ A **Critical Timeline** reconstructs the high-value causal sequence around the r
 - failures,
 - collapse.
 
-Routine radio chatter is deliberately omitted so the review teaches rather than logs everything.
+Routine radio chatter is deliberately omitted.
+
+A separate deterministic telemetry projection records:
+
+- delivered/minute,
+- average call delay,
+- average acceptance delay,
+- average delivery time,
+- peak queue,
+- peak radio,
+- event preparations,
+- city-expansion timing,
+- failure mix.
+
+This supports measured human balance work instead of tuning only by feel.
 
 ---
 
-## 14. Determinism and architecture
+## 15. Determinism and architecture
 
 Same seed reproduces the same opening run state and stochastic sequence as long as the same player actions are applied.
 
@@ -422,35 +465,46 @@ Core modules:
 
 ```text
 src/
-├── berlin.js              static Berlin gameplay graph
-├── graph.js               indexed pathfinding
-├── rng.js                 seeded RNG
-├── game-core.js           run state / contracts / city state
-├── game-radio.js          autonomous rider choice
-├── game-riders.js         rider lifecycle
-├── game-pacing.js         progression pacing
-├── game-cargo.js          cargo handling data
-├── game-cargo-motion.js   loaded movement/fatigue
-├── game-events.js         event lifecycle
-├── game-event-demand.js   demand burst generation
-├── event-data.js          extended city-event catalogue
-├── game-tools.js          player interventions
-├── game-review.js         causal post-shift timeline
-├── camera.js              zoom/pan/fit
-├── render-map.js          geography/event rendering
-├── render-entities.js     riders/contracts/routes
-└── main.js                browser UI/controller
+├── berlin.js                 curated Berlin gameplay graph
+├── graph.js                  indexed pathfinding
+├── rng.js                    seeded RNG
+├── game-core.js              run state / contracts / city state
+├── game-radio.js             autonomous rider choice
+├── game-riders.js            rider lifecycle
+├── game-pacing.js            progression pacing
+├── game-cargo.js             cargo handling data
+├── game-cargo-motion.js      loaded movement/fatigue
+├── game-availability.js      NOW / busy / break capacity projection
+├── game-events.js            event lifecycle
+├── game-event-demand.js      demand burst generation
+├── event-data.js             extended city-event catalogue
+├── game-tools.js             player interventions
+├── game-strategic-upgrades.js strategic upgrade effects
+├── game-review.js            causal post-shift timeline
+├── game-telemetry.js         comparable run metrics
+├── camera.js                 zoom/pan/fit
+├── render-map.js             geography/event rendering
+├── render-entities.js        riders/contracts/routes
+├── ui-outlook.js             future capacity UI
+├── ui-telemetry.js           post-shift telemetry UI
+└── main.js                   browser controller
+
+tools/
+├── berlin-import-lib.mjs     deterministic import primitives
+└── import-berlin.mjs         offline WFS import CLI
 ```
 
 Rendering and simulation are separated. Canvas may animate continuously; DOM state projects at a slower cadence with persistent nodes.
 
 ---
 
-## 15. Validation contract
+## 16. Validation contract
 
 `npm test` must remain green before a merge candidate is accepted.
 
-The suite covers, among other things:
+Current green gate: **71 tests / 71 pass / 0 fail** plus browser/importer syntax checks.
+
+Coverage includes, among other things:
 
 - deterministic RNG/run generation,
 - dense Berlin connectivity and address integrity,
@@ -465,19 +519,21 @@ The suite covers, among other things:
 - full-Ring pacing under an adaptive dispatcher,
 - route/weather/demand event counterplay,
 - cargo handling speed/fatigue effects,
+- strategic upgrade effects,
 - rider task progress/ETA,
+- future rider availability without pre-assignment,
 - six-rider high-load finite-state simulation,
 - stable keyed UI structure,
-- event-specific UI wording,
-- demand-event map highlighting,
-- causal review timeline,
-- browser entry/render syntax checks.
+- event-specific UI wording and demand-area map feedback,
+- causal review timeline and deterministic telemetry,
+- official Berlin importer primitives and deterministic sorting,
+- browser entry/render/outlook/telemetry syntax checks.
 
 A red gate is treated as either a real implementation bug or a flawed fixture; it is investigated rather than weakened automatically.
 
 ---
 
-## 16. Reproduce locally
+## 17. Reproduce locally
 
 Requirements: modern browser, Node.js 24+ for tests, Python only for the convenience static server.
 
@@ -492,18 +548,24 @@ Then open:
 http://localhost:8080
 ```
 
-No build step, map API, account or backend is required.
+Importer foundation:
+
+```bash
+npm run import:berlin -- --output=generated/berlin-official.json
+```
+
+The importer is a development action; the game itself requires no network.
 
 ---
 
-## 17. Design order for future iterations
+## 18. Design order for future iterations
 
 Continue **inside out**:
 
 ```text
 radio decision quality
-→ rider behavior
-→ contract semantics
+→ rider behavior / availability
+→ contract semantics / cargo
 → event counterplay
 → pacing / progression
 → map precision
@@ -515,8 +577,9 @@ Do not add breadth to compensate for a weak inner loop.
 
 Highest-value remaining work:
 
-1. real browser playtest at several desktop aspect ratios,
-2. official static Berlin street/address import pipeline,
+1. integrate official imported streets/addresses into a candidate Ring polygon/topology,
+2. real browser acceptance at multiple desktop aspect ratios,
 3. measured tuning from human runs rather than autoplay alone,
 4. stronger but restrained motion/audio feedback,
-5. additional event/contract variants only when each adds a distinct dispatch decision.
+5. additional contract chains only when each adds a distinct dispatch decision,
+6. no second city until Berlin is excellent.

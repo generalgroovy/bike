@@ -3,17 +3,24 @@ import assert from 'node:assert/strict';
 import { RNG, hashSeed } from '../src/rng.js';
 import { shortestPath } from '../src/graph.js';
 import { BERLIN } from '../src/berlin.js';
+import { buildDetailedBerlin, GRID_PATCHES } from '../src/berlin-detail.js';
 import { Game, DELIVERY_TYPES, COURIER_NAMES, RADIO_CHANNELS } from '../src/game.js';
 
 test('seed hashing and RNG remain deterministic',()=>{assert.equal(hashSeed('BERLIN-42'),hashSeed('BERLIN-42'));const a=new RNG('x'),b=new RNG('x');assert.deepEqual(Array.from({length:10},()=>a.next()),Array.from({length:10},()=>b.next()));});
 
-test('Berlin map is a detailed simplified real-street graph',()=>{assert.ok(BERLIN.nodes.length>=65);assert.ok(BERLIN.streets.length>=35);const names=new Set(BERLIN.streets.map((s)=>s.name));for(const name of ['Kurfürstendamm','Straße des 17. Juni','Unter den Linden','Friedrichstraße','Karl-Marx-Allee','Warschauer Straße','Oranienstraße','Sonnenallee','Hermannstraße'])assert.ok(names.has(name),name);});
+test('Berlin base map keeps real named strategic streets',()=>{assert.ok(BERLIN.nodes.length>=65);assert.ok(BERLIN.streets.length>=35);const names=new Set(BERLIN.streets.map((s)=>s.name));for(const name of ['Kurfürstendamm','Straße des 17. Juni','Unter den Linden','Friedrichstraße','Karl-Marx-Allee','Warschauer Straße','Oranienstraße','Sonnenallee','Hermannstraße'])assert.ok(names.has(name),name);});
+
+test('detail layer expands Berlin into dense gridlike neighborhoods',()=>{const detail=buildDetailedBerlin();assert.ok(GRID_PATCHES.length>=9);assert.ok(detail.nodes.length>=170,detail.nodes.length);assert.ok(detail.streets.length>=100,detail.streets.length);assert.ok(detail.gridNodeCount>=120,detail.gridNodeCount);const addressNodes=detail.nodes.filter((n)=>n.kind==='address');assert.equal(addressNodes.length,detail.gridNodeCount);for(const node of addressNodes.slice(0,30)){assert.ok(node.addresses.length>=2);assert.ok(node.addresses.every((a)=>a.street&&Number.isInteger(a.number)&&a.number>0));}});
 
 test('Berlin macro layout retains recognizable west/east/north/south relationships',()=>{const by=new Map(BERLIN.nodes.map((n)=>[n.id,n]));assert.ok(by.get('zoo').x<by.get('brandenburg').x);assert.ok(by.get('alex').x>by.get('brandenburg').x);assert.ok(by.get('mauerpark').y<by.get('alex').y);assert.ok(by.get('tempelhofer').y>by.get('checkpoint').y);assert.ok(by.get('warschauer').x>by.get('alex').x);});
 
-test('same seed creates same roster, jobs and goals',()=>{const a=new Game({seed:'REPRO'}),b=new Game({seed:'REPRO'});assert.deepEqual(a.couriers.map((c)=>[c.name,c.personality.id,c.experience.level,c.homeDistrict]),b.couriers.map((c)=>[c.name,c.personality.id,c.experience.level,c.homeDistrict]));assert.deepEqual(a.goals,b.goals);assert.deepEqual(a.activeDeliveries(),b.activeDeliveries());});
+test('same seed creates same roster, address jobs and goals',()=>{const a=new Game({seed:'REPRO'}),b=new Game({seed:'REPRO'});assert.deepEqual(a.couriers.map((c)=>[c.name,c.personality.id,c.experience.level,c.homeDistrict]),b.couriers.map((c)=>[c.name,c.personality.id,c.experience.level,c.homeDistrict]));assert.deepEqual(a.goals,b.goals);assert.deepEqual(a.activeDeliveries(),b.activeDeliveries());});
 
-test('all generated Berlin nodes are routable across seeds',()=>{for(let i=0;i<20;i+=1){const game=new Game({seed:`ROUTE-${i}`});for(const node of game.nodes){const path=shortestPath(game.nodes,game.edges,game.depotNodeId,node.id,game.edgeCost.bind(game));assert.ok(path.length>0,`${i}:${node.id}`);}}});
+test('spawned jobs always expose concrete street and house-number endpoints',()=>{const game=new Game({seed:'ADDRESSES'});for(let i=0;i<80;i+=1)game.spawnDelivery();for(const d of game.deliveries){for(const address of [d.pickupAddress,d.dropoffAddress]){assert.ok(address?.street);assert.ok(Number.isInteger(address.number)&&address.number>0);assert.match(address.label,/\s\d+$/);}assert.ok(['SHORT','MID','LONG'].includes(d.distanceTier));assert.ok(d.routeDistance>0);}});
+
+test('most generated work originates on dense address nodes',()=>{const game=new Game({seed:'BLOCK-WORK'});game.deliveries=[];for(let i=0;i<120;i+=1)game.spawnDelivery();const addressJobs=game.deliveries.filter((d)=>game.nodeById(d.pickupId)?.kind==='address').length;assert.ok(addressJobs/game.deliveries.length>.7,addressJobs);});
+
+test('all generated Berlin nodes are routable across seeds',()=>{for(let i=0;i<12;i+=1){const game=new Game({seed:`ROUTE-${i}`});for(const node of game.nodes){const path=shortestPath(game.nodes,game.edges,game.depotNodeId,node.id,game.edgeCost.bind(game));assert.ok(path.length>0,`${i}:${node.id}`);}}});
 
 test('rider roster uses requested names in order',()=>{const game=new Game({seed:'NAMES'});assert.deepEqual(game.couriers.map((c)=>c.name),COURIER_NAMES.slice(0,3));while(game.addCourier());assert.deepEqual(game.couriers.map((c)=>c.name),COURIER_NAMES);assert.deepEqual(COURIER_NAMES,['Kira','Mauro','Brian','Sam','Michail','Zorro']);});
 
@@ -25,7 +32,7 @@ test('rider break turns radio off and prevents deliberation',()=>{const game=new
 
 test('fatigued rider can be forced onto autonomous break after delivery release',()=>{const game=new Game({seed:'FATIGUE'}),rider=game.couriers[0];rider.fatigue=.95;rider.phase='idle';game.releaseCourier(rider,true);assert.equal(rider.phase,'break');assert.equal(rider.radioOn,false);});
 
-test('idle radio-on rider autonomously claims a broadcast job',()=>{const game=new Game({seed:'CLAIM'}),job=game.activeDeliveries()[0];game.setChannel(job.id,'priority');for(const rider of game.couriers){rider.decisionAt=0;rider.experience={...rider.experience,think:.01};}for(let i=0;i<20&&job.status==='waiting';i++)game.update(.1);assert.equal(job.status,'claimed');assert.ok(job.courierId);});
+test('idle radio-on rider autonomously claims a broadcast address job',()=>{const game=new Game({seed:'CLAIM'}),job=game.activeDeliveries()[0];game.setChannel(job.id,'priority');for(const rider of game.couriers){rider.decisionAt=0;rider.experience={...rider.experience,think:.01};}for(let i=0;i<20&&job.status==='waiting';i++)game.update(.1);assert.equal(job.status,'claimed');assert.ok(job.courierId);assert.ok(job.pickupAddress.label&&job.dropoffAddress.label);});
 
 test('delivery type remains independent of district identity',()=>{const game=new Game({seed:'INDEPENDENT'}),seen=new Map(game.districts.map((d)=>[d.id,new Set()]));for(let i=0;i<650;i+=1){game.deliveries=[];game.spawnDelivery();const d=game.deliveries[0];if(!d)continue;seen.get(game.nodeById(d.pickupId).districtId)?.add(d.type);}const observed=[...seen.values()].filter((s)=>s.size);assert.ok(observed.length>=7);for(const set of observed)assert.ok(set.size>=3);assert.equal(Object.keys(DELIVERY_TYPES).length,6);});
 

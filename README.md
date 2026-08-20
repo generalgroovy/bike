@@ -1,302 +1,237 @@
-# BIKE — Berlin Dispatch Roguelike
+# SEND IT — Berlin Courier Dispatch Roguelike
 
-BIKE is a browser strategy game about **indirectly coordinating autonomous bicycle couriers through a shared radio**.
+**Send It** is a browser-based real-time logistics simulation about coordinating autonomous bicycle couriers through a shared dispatch radio.
 
-> The dispatcher chooses what work is worth broadcasting. Riders choose the jobs themselves.
+> **You control information, not riders.**
 
 Play: `https://generalgroovy.github.io/bike/`
 
-This README is the **authoritative design + implementation specification**. Reproducing the game should be possible from this document plus the source code and tests.
+This README is the authoritative product, gameplay, UI, map, simulation and reproducibility specification. `IMPLEMENTATION_PLAN.md` records the iteration/validation process.
 
 ---
 
 ## 1. Product identity
 
-BIKE should feel like a compact combination of:
+Send It should feel like a compact combination of:
 
-- spatial logistics puzzle,
-- autonomous-agent management,
-- Berlin map learning,
-- real-time pressure management,
-- short roguelike runs.
+- a spatial logistics puzzle,
+- an autonomous-agent simulation,
+- a learnable Berlin street map,
+- a real-time dispatch desk,
+- a short deterministic roguelike run.
 
-It must **not** become:
+It must not become:
 
 - a direct unit-control game,
-- a generic delivery tycoon,
+- a generic clicker/tycoon,
 - a GIS viewer,
 - a spreadsheet optimizer,
-- a deep character RPG.
+- an ability-bar game detached from logistics.
 
-The central fantasy is sitting at a courier radio desk while imperfect humans move through a city you gradually learn.
+The fantasy is simple: **a courier desk, imperfect human riders, a changing Berlin workload, and too little attention to solve everything perfectly.**
 
 ---
 
-## 2. Non-negotiable core rule
+## 2. Non-negotiable gameplay invariant
 
 The player never performs:
 
 ```text
-rider → job
+rider → assign → job
 ```
 
-The player performs:
+The player shapes a choice environment:
 
 ```text
-job appears at an address
-→ decide whether it deserves radio attention
-→ choose radio channel
-→ autonomous riders evaluate all live calls
+address contract appears
+→ decide whether it deserves airtime
+→ choose OFF / OPEN / PRIORITY / LOCAL
+→ optionally change time / money / attention / routing conditions
+→ autonomous riders evaluate live calls
 → one rider commits
-→ observe outcome
-→ adapt next call
+→ observe route, energy, events and result
+→ adapt the next choice set
 ```
 
-No future feature may bypass this by adding a hidden or explicit direct-assignment button.
+No future feature should bypass this with an explicit or hidden direct-assignment command.
 
 ---
 
-## 3. Core gameplay loop
+## 3. The atomic decision loop
 
-Every few seconds a delivery contract appears:
+A normal contract contains:
 
 ```text
-D12 · MEDICAL · 0:51 · €27
+D12   ✚ MEDICAL   0:51
 P  Oranienstraße 37
 D  Kantstraße 82
-3.8 km
+3.8 km   €27
 ```
 
-The dispatcher must answer four questions:
+The dispatcher should be able to answer, in a few seconds:
 
-1. **Should this job go on the radio now?**
-2. **Which radio channel should carry it?**
-3. **Which free rider is likely to want it?**
-4. **What work should remain uncalled so the radio stays useful?**
+1. How urgent and valuable is this?
+2. Where are pickup and destination?
+3. Which riders are free, close, energetic and likely to volunteer?
+4. Should this be OFF, OPEN, PRIORITY or LOCAL?
+5. Is it cheaper to spend time, money, attention or route guidance instead?
+6. What other contract should remain unheard because of this choice?
 
-Then the player watches what actually happens.
-
-Successful deliveries earn score/cash/reputation and advance run goals. Missed deadlines reduce reputation. At `0 REP`, the shift ends and Dispatch Review explains the collapse.
-
----
-
-## 4. Berlin is the board
-
-The city is not decorative background. Street topology is one of the main game systems.
-
-### Current shipped fidelity
-
-The current static Berlin model contains:
-
-- central/western/eastern inner-city district relationships,
-- the Spree and Landwehr Canal,
-- major parks,
-- major landmarks,
-- named bridges,
-- 45+ real street names,
-- hundreds of connected road segments,
-- a dense grid of intersections,
-- addressable service points inserted along street segments.
-
-Examples represented in the model include:
-
-- Kurfürstendamm
-- Kantstraße
-- Bismarckstraße
-- Straße des 17. Juni
-- Invalidenstraße
-- Müllerstraße
-- Torstraße
-- Unter den Linden
-- Friedrichstraße
-- Schönhauser Allee
-- Prenzlauer Allee
-- Karl-Marx-Allee
-- Frankfurter Allee
-- Warschauer Straße
-- Oranienstraße
-- Skalitzer Straße
-- Mehringdamm
-- Kottbusser Damm
-- Sonnenallee
-- Karl-Marx-Straße
-- Hermannstraße
-- Tempelhofer Damm
-
-### Data references
-
-The reproducibility reference is Berlin Open Data:
-
-- `Detailnetz Berlin - [WFS]`
-  - `https://daten.berlin.de/datensaetze/detailnetz-berlin-wfs-4f2045ef`
-  - detailed Berlin traffic street network, nodes, street sections, bridges/tunnels
-- `Adressen Berlin - [WFS]`
-  - `https://daten.berlin.de/datensaetze/adressen-berlin-wfs-634ab8ba`
-  - official Berlin address points with coordinates, street, house number and postcode
-- license: Datenlizenz Deutschland – Zero – Version 2.0
-
-### Fidelity rule
-
-The runtime game must never depend on a map provider, API key, commercial tiles, or live internet request.
-
-The shipped city is therefore a **deterministic gameplay abstraction**, generated from curated real street structure.
-
-Current house numbers are deterministic, street-consistent gameplay numbers. They are **not claimed to be an authoritative copy of every current Berlin parcel**.
-
-The next precision tier is an offline build/import step that samples the official address WFS and commits a normalized static address subset. See `IMPLEMENTATION_PLAN.md`.
+Every system should deepen one of those questions.
 
 ---
 
-## 5. Dense street generation
+## 4. Main-screen information architecture
 
-`src/berlin.js` builds the static game graph in stages.
+The main screen is an **operational instrument**, not a tutorial.
 
-### 5.1 District grids
+Permanent information is limited to things that can change a decision now.
 
-Each district defines real named horizontal/vertical street families at approximate relative positions.
+### 4.1 Header
 
-Conceptually:
+Contains only:
+
+- `SEND IT` identity,
+- shift trait × contract profile,
+- current operating area and expansion progress,
+- reputation,
+- cash,
+- score,
+- dispatch focus,
+- help/new-shift controls.
+
+Long explanations belong in hover text or the help drawer.
+
+### 4.2 Horizontal task rail
+
+All active contracts run **left → right across the top** in stable creation order.
+
+Each compact card shows:
+
+- cargo glyph/color,
+- ID,
+- special-contract badge if applicable,
+- remaining deadline,
+- pickup street + number,
+- destination street + number,
+- approximate trip distance,
+- payout,
+- current/likely rider state,
+- four radio buttons: `O`, `!`, `L`, `×`.
+
+The task rail scrolls horizontally under heavy load. It must not re-sort every frame when radio state changes; card position is stable until the contract leaves the active queue.
+
+### 4.3 Map
+
+The map is the dominant surface.
+
+It shows, in descending priority:
+
+1. riders,
+2. live/urgent contracts,
+3. selected/hovered route,
+4. committed rider routes,
+5. active/forecast disruptions,
+6. unlocked streets,
+7. landmarks/water/parks,
+8. Ringbahn orientation boundary,
+9. locked/future geography only as faint context.
+
+### 4.4 Rider dock
+
+Each rider card is a live operational instrument containing:
+
+- name,
+- personality shorthand,
+- experience level,
+- current street/location,
+- listening/thinking/riding/break state,
+- current job + phase,
+- task-completion meter,
+- ETA,
+- energy meter.
+
+Greyed-out riders are on break / radio off and cannot hear or accept contracts.
+
+### 4.5 Contract inspector
+
+Clicking a task pins a compact inspector over the map containing only context-specific detail:
+
+- exact address pair,
+- time left,
+- distance,
+- payout,
+- two most likely currently free riders,
+- important route streets,
+- currently legal dispatch interventions.
+
+### 4.6 Hover / help policy
+
+Hover is used for information that matters occasionally but would clutter permanent UI:
+
+- cargo meaning,
+- rider personality description,
+- experience detail,
+- full route summary,
+- radio-channel explanation,
+- dispatch-tool cost/effect,
+- special-contract explanation.
+
+`H` or `?` opens the full reference drawer.
+
+### Anti-flicker rule
+
+Live lists use keyed persistent DOM nodes:
+
+- one node per contract ID,
+- one node per rider ID,
+- one node per goal ID.
+
+Do not rebuild whole live panels with `innerHTML` every simulation tick. Canvas rendering is independent from the slower DOM projection cadence.
+
+---
+
+## 5. Player controls
+
+### Radio
+
+| Channel | Cost | Effect |
+|---|---:|---|
+| OFF | 0 | contract cannot be considered |
+| OPEN | 1 bandwidth | neutral broadcast |
+| PRIORITY | 2 bandwidth | stronger rider attention; still not an order |
+| LOCAL | 1 bandwidth | favors riders close to the pickup |
+
+Bandwidth makes `broadcast everything` non-optimal.
+
+### Dispatch tools
+
+Dispatch tools are realistic interventions into the same simulation, not separate abilities.
+
+| Tool | Cost | Simulation effect |
+|---|---:|---|
+| **Add bonus** | €5 | adds €9 payout and raises rider attraction |
+| **Client call** | 1 focus | negotiates +20 seconds once for that waiting contract |
+| **Rebroadcast** | 1 focus | boosts a live call back into rider attention for 7 seconds |
+| **Detour advisory** | 1 focus | during forecast or active disruption, makes affected streets less desirable and forces active riders to re-evaluate routes |
+
+Dispatch focus is deliberately scarce. City expansion and a specific upgrade can increase its capacity; successful work periodically restores it.
+
+This gives several solutions to one problem:
 
 ```text
-Kantstraße ─────┬─────┬─────┬─────
-                │     │     │
-Hardenbergstr. ─┼─────┼─────┼─────
-                │     │     │
-Kurfürstendamm ─┼─────┼─────┼─────
-                │     │     │
-              Leibniz  Fasanen ...
-```
-
-This produces a much more realistic gridlike road network than the original sparse landmark graph.
-
-### 5.2 Cross-district arterials
-
-Important long corridors connect district grids and preserve Berlin's recognizable macro-layout.
-
-### 5.3 Bridges
-
-Named bridge segments receive `bridgeId` metadata, currently including:
-
-- Moltkebrücke
-- Jannowitzbrücke
-- Oberbaumbrücke
-
-This lets routes, objectives and disruptions reason about actual crossings.
-
-### 5.4 Address subdivision
-
-Every base road block is subdivided with address nodes:
-
-```text
-intersection A
-   │
-   ├── Street 17
-   │
-   ├── Street 18
-   │
-intersection B
-```
-
-Delivery endpoints are selected **only from address nodes**, never generic district nodes.
-
-The visible road remains one clean block while routing can stop at either address.
-
----
-
-## 6. Address contract model
-
-Every generated delivery stores stable explicit fields:
-
-```js
-{
-  id,
-  type,
-  pickupId,
-  dropoffId,
-  pickupAddress,
-  dropoffAddress,
-  pickupPostcode,
-  dropoffPostcode,
-  pickupDistrict,
-  dropoffDistrict,
-  plannedDistance,
-  plannedStreets,
-  deadlineAt,
-  reward,
-  status,
-  channel,
-  courierId
-}
-```
-
-A job is therefore understandable without knowing internal graph IDs.
-
-Good UI:
-
-```text
-P  Oranienstraße 37
-D  Kantstraße 82
-```
-
-Bad UI:
-
-```text
-local-kreuzberg-2 → node-46
+urgent unattractive job
+├─ spend radio bandwidth on PRIORITY
+├─ spend cash on a bonus
+├─ spend focus to call the client
+├─ rebroadcast at the right moment
+├─ wait for a better-positioned rider
+└─ leave it OFF and protect more important work
 ```
 
 ---
 
-## 7. Cargo classes
-
-Cargo category is independent of district identity.
-
-| Glyph | Type | Gameplay character |
-|---|---|---|
-| ▲ | Food | frequent, relatively short window |
-| ● | Parcel | common, forgiving |
-| ■ | Documents | medium urgency / better pay |
-| ✚ | Medical | uncommon, urgent, high penalty/reward |
-| ⬢ | Grocery | forgiving, steady |
-| ◆ | Fragile | valuable, moderately urgent |
-
-Kreuzberg is not a “food district”; Mitte is not a “documents district”. Geography matters because of travel, not stereotypes.
-
----
-
-## 8. Radio system
-
-Radio bandwidth is the player's central resource.
-
-### OPEN
-
-- cost: `1`
-- neutral broadcast
-- every listening rider considers it normally
-
-### PRIORITY
-
-- cost: `2`
-- adds a strong attraction bonus
-- still not an order
-
-### LOCAL
-
-- cost: `1`
-- favors riders already near/in the pickup area
-- distant riders receive a penalty
-
-### OFF
-
-- removes the job from the choice set
-- frees radio bandwidth
-
-The player should regularly choose to leave some jobs uncalled.
-
-If broadcasting everything is optimal, the design is broken.
-
----
-
-## 9. Rider model
+## 6. Rider simulation
 
 Canonical roster order:
 
@@ -307,144 +242,311 @@ Canonical roster order:
 5. Michail
 6. Zorro
 
-The shift starts with the first three. Extra Rider upgrades add the next name in order.
+A shift begins with the first three; upgrades can add the rest in order.
 
-### Personality
+### Personality types
 
-A personality changes job utility weights.
-
-- Sprinter — close + urgent work
+- Sprinter — close and urgent work
 - Earner — payout
-- Guardian — urgent/medical work
-- Local — close/familiar pickups
+- Guardian — urgent/critical cargo
+- Local — nearby familiar pickups
 - Tourer — longer city runs
 - Steady — balanced
 
 ### Experience
 
-Experience changes speed, decision delay, decision noise and fatigue efficiency.
+Experience affects:
 
-```text
-Rookie
-Regular
-Experienced
-Veteran
-```
+- speed,
+- deliberation time,
+- choice noise,
+- fatigue rate.
 
-Higher experience should feel more predictable, not simply numerically stronger.
+### Autonomous choice score
 
----
-
-## 10. Rider decision model
-
-A free listening rider scores live radio calls using:
+A listening rider evaluates live calls using combinations of:
 
 - route cost to pickup,
 - deadline pressure,
 - payout,
-- cargo type,
-- same-district position,
+- critical-cargo affinity,
+- same-area locality,
 - trip length,
-- personality weights,
-- radio channel,
-- fatigue,
-- experience-dependent decision noise.
+- OPEN/PRIORITY/LOCAL signal,
+- added payout bonus,
+- rebroadcast boost,
+- rider fatigue,
+- experience-dependent noise.
 
-The exact scalar score is intentionally hidden from the player.
+The player may predict tendencies but cannot command the result.
 
-Expose qualitative reasoning instead:
+### Fatigue and breaks
+
+Riding increases fatigue. High fatigue can trigger a voluntary break after a delivery.
 
 ```text
-Kira
-Sprinter · Experienced
-Considering D12 · 68%
-close pickup
+RIDING
+→ fatigue rises
+→ delivery completes
+→ possible BREAK / RADIO OFF
+→ recovery
+→ LISTENING
 ```
 
-The player should develop intuition about people rather than solve visible equations.
+The dispatcher cannot cancel somebody's break.
 
 ---
 
-## 11. Rider state machine
+## 7. Berlin as the board
 
-```text
-LISTENING
-   │
-   ├── hears calls
-   ▼
-THINKING
-   │
-   ├── deliberation completes
-   ▼
-TO PICKUP
-   ▼
-TO DROPOFF
-   ▼
-DELIVERED
-   │
-   ├── fatigue low → LISTENING
-   └── fatigue high → BREAK
-                         │
-                         ▼
-                    RADIO OFF
-                         │
-                         ▼
-                    LISTENING
-```
+### Scope
 
-### Break rule
+The first city now targets the **inner Berlin region bounded/oriented by the S41/S42 Ringbahn**.
 
-Riders take breaks autonomously.
+The gameplay model includes 12 broad operating areas:
 
-While on break:
+- Charlottenburg
+- Wilmersdorf
+- Moabit
+- Wedding / Gesundbrunnen
+- Prenzlauer Berg
+- Mitte / Tiergarten
+- Friedrichshain
+- Kreuzberg
+- Schöneberg
+- Neukölln
+- Tempelhof
+- Alt-Treptow
 
-- rider is grey on map,
-- rider card is grey,
-- marker shows `Ⅱ`,
-- status says `BREAK`,
-- radio is off,
-- countdown shows return time,
-- rider cannot deliberate or claim work.
+Current generated model acceptance floors:
 
-The dispatcher cannot cancel a break.
+- `900+` graph nodes,
+- `600+` address/service nodes,
+- `500+` visual road segments,
+- `110+` named streets,
+- `27+` Ringbahn station anchors.
 
-This preserves the same core principle: **influence people; do not command them**.
+### Ringbahn orientation anchors
+
+The static model includes the S41/S42 orientation loop using anchors such as:
+
+- Westkreuz
+- Halensee
+- Hohenzollerndamm
+- Heidelberger Platz
+- Bundesplatz
+- Innsbrucker Platz
+- Schöneberg
+- Südkreuz
+- Tempelhof
+- Hermannstraße
+- Neukölln
+- Sonnenallee
+- Treptower Park
+- Ostkreuz
+- Frankfurter Allee
+- Storkower Straße
+- Landsberger Allee
+- Greifswalder Straße
+- Prenzlauer Allee
+- Schönhauser Allee
+- Gesundbrunnen
+- Wedding
+- Westhafen
+- Beusselstraße
+- Jungfernheide
+- Westend
+- Messe Nord / ICC
+
+The ring is a gameplay/orientation boundary, not a simulated train system.
+
+### Street examples
+
+The grid/arterial model includes real Berlin names such as:
+
+- Kurfürstendamm
+- Kantstraße
+- Kaiserdamm
+- Bismarckstraße
+- Hohenzollerndamm
+- Bundesallee
+- Turmstraße
+- Alt-Moabit
+- Invalidenstraße
+- Müllerstraße
+- Osloer Straße
+- Seestraße
+- Bornholmer Straße
+- Danziger Straße
+- Schönhauser Allee
+- Prenzlauer Allee
+- Greifswalder Straße
+- Torstraße
+- Unter den Linden
+- Friedrichstraße
+- Leipziger Straße
+- Landsberger Allee
+- Karl-Marx-Allee
+- Frankfurter Allee
+- Warschauer Straße
+- Oranienstraße
+- Skalitzer Straße
+- Gneisenaustraße
+- Urbanstraße
+- Mehringdamm
+- Kottbusser Straße
+- Schlesische Straße
+- Sonnenallee
+- Karl-Marx-Straße
+- Hermannstraße
+- Columbiadamm
+- Tempelhofer Damm
+- Ringbahnstraße
+- Puschkinallee
+- Elsenstraße
+- Kiefholzstraße
+
+### Important precision statement
+
+Send It is **not navigation software**.
+
+The current map uses real street names and a manually compressed approximation of their relative city structure. Geometry and generated house numbers are gameplay abstractions and must not be described as parcel-accurate routing data.
+
+The runtime must remain static/offline/deterministic: no commercial map tiles, geocoder, routing service or API key is required by GitHub Pages.
+
+### Reproducibility references
+
+Berlin Open Data:
+
+- Detailnetz Berlin WFS: `https://daten.berlin.de/datensaetze/detailnetz-berlin-wfs-4f2045ef`
+- Adressen Berlin WFS: `https://daten.berlin.de/datensaetze/adressen-berlin-wfs-634ab8ba`
+- license: Datenlizenz Deutschland – Zero – Version 2.0
+
+BVG reference for the Ringbahn/tariff-area relationship and current network maps:
+
+- `https://www.bvg.de/en/subscriptions-and-tickets/tariff-zones-and-networks`
+- `https://www.bvg.de/en/connections/network-maps-and-routes`
+
+The next geographic precision tier is an **offline build-time import** from official Berlin data, followed by simplification and committing the generated static result.
 
 ---
 
-## 12. Routing
+## 8. Address model
 
-The dense city uses a cached graph index plus A* routing.
+Every generated contract stores:
 
-`src/graph.js` provides:
-
-```text
-createGraphIndex()
-shortestPathIndexed()
+```js
+{
+  pickupId,
+  dropoffId,
+  pickupAddress,
+  dropoffAddress,
+  pickupPostcode,
+  dropoffPostcode,
+  pickupDistrict,
+  dropoffDistrict,
+  plannedDistance,
+  plannedStreets,
+  plannedPath
+}
 ```
 
-The heuristic is based on straight-line distance and remains conservative relative to supported speed multipliers.
+Player-facing contracts always use street + house number rather than internal graph IDs.
 
-Routing cost currently includes:
-
-```text
-segment distance
-÷ street speed multiplier
-÷ bike-lane multiplier
-÷ temporary event multiplier
-```
-
-The graph index is built once per shift instead of reconstructing adjacency for every rider evaluation.
-
-This is important because the address-first graph contains hundreds of nodes.
+Current house numbers are deterministic street-consistent gameplay numbers, not authoritative Berlin parcel records.
 
 ---
 
-## 13. Dynamic disruptions
+## 9. City progression
 
-A shift periodically forecasts a road event before activation.
+Progression expands the **same simulation** instead of adding disconnected minigames.
 
-Current types:
+### Stage 1 — CENTER DESK
+
+Start:
+
+- Mitte / Tiergarten
+- Kreuzberg
+- four base cargo classes
+- compact map framing
+- three riders
+
+### Stage 2 — INNER CITY
+
+Unlock at **6 completed deliveries**:
+
+- Charlottenburg
+- Schöneberg
+- Prenzlauer Berg
+- Friedrichshain
+- map automatically fits a larger operating area
+- +1 radio bandwidth
+- +1 dispatch-focus capacity
+- bridge-oriented goal can appear
+- Fragile, Flowers, Keys, Medical cargo
+- RUSH special contracts
+
+### Stage 3 — INSIDE THE RING
+
+Unlock at **16 completed deliveries**:
+
+- Wilmersdorf
+- Moabit
+- Wedding / Gesundbrunnen
+- Neukölln
+- Tempelhof
+- Alt-Treptow
+- full Ringbahn-oriented map extent
+- named Ringbahn station labels appear with zoom
+- +1 radio bandwidth
+- +1 dispatch-focus capacity
+- cross-area goal
+- Catering and Cold-chain cargo
+- RETURN special contracts
+
+Expansion should feel like the dispatch desk becoming responsible for more of the same real city, not a conventional level transition.
+
+---
+
+## 10. Cargo and special contracts
+
+### Cargo
+
+| Glyph | Type | Unlock | Character |
+|---|---|---:|---|
+| ▲ | Food | 1 | fast-turnaround restaurant run |
+| ● | Parcel | 1 | common general delivery |
+| ■ | Docs | 1 | business/signature work |
+| ⬢ | Grocery | 1 | forgiving local work |
+| ◆ | Fragile | 2 | higher value, careful timing |
+| ✿ | Flowers | 2 | delicate/time-sensitive |
+| ⌑ | Keys | 2 | small urgent access handoff |
+| ✚ | Medical | 2 | urgent critical courier work |
+| ♨ | Catering | 3 | longer event-oriented run |
+| ❄ | Cold | 3 | strict cold-chain timing |
+
+Cargo category remains independent of district stereotypes.
+
+### Special contracts
+
+**RUSH**
+
+- stage 2+
+- much tighter deadline
+- better payout
+- slightly more attractive to riders
+
+**RETURN**
+
+- stage 3+
+- successful completion creates a paid reverse-direction follow-up contract
+- creates interesting rider-position consequences without direct rider control
+
+---
+
+## 11. Street events
+
+Temporary events include:
 
 - roadworks,
 - demonstrations,
@@ -453,508 +555,168 @@ Current types:
 Lifecycle:
 
 ```text
-forecast
-→ orange dashed affected street
-→ event activates
-→ red street
-→ routing cost increases
-→ riders reroute at intersections
-→ event clears
+FORECAST
+→ player may issue detour advisory
+→ ACTIVE
+→ affected edge speed/cost changes
+→ riders reroute at graph nodes
+→ CLEAR
 ```
 
-The forecast is crucial: disruption should create a decision, not an unavoidable punishment.
+Events should always create visible, counterable logistics problems rather than arbitrary penalties.
 
 ---
 
-## 14. Roguelike run generation
+## 12. Roguelike construction
 
-A run is controlled by its seed.
-
-Same seed must reproduce:
+A seed determines simulation-affecting randomness including:
 
 - run trait,
 - contract profile,
-- initial rider personalities/experience,
-- initial jobs,
+- rider personality/experience combinations,
+- initial fatigue,
+- delivery stream,
+- special-contract rolls,
+- events,
 - goals,
-- event RNG sequence,
-- upgrade choice sequence.
+- upgrade order,
+- enhanced bike corridors.
 
-### Run traits
+The same seed must reproduce the same opening state and random sequence when played identically.
 
-Examples:
-
-- Express Berlin
-- Green Wave
-- Rain Shift
-- Tight Radio
-- Berlin Rush
-- Fresh Team
-
-### Contract profiles
-
-Examples:
-
-- Mixed Desk
-- Short-Hop Day
-- Cross-Town
-- High Stakes
-
-Traits modify environment/team pressure. Contract profiles modify trip length, cargo weights, payout and spawn tempo.
-
-This creates combinatorial variation without adding dozens of unrelated systems.
+Run traits modify the same core dispatch questions: deadlines, payout, speed, bandwidth, fatigue or demand tempo.
 
 ---
 
-## 15. Goals
+## 13. Loss, reward and review
 
-Goals make the current run ask the player to use different parts of Berlin.
+Successful jobs produce:
 
-Current goal families:
+- cash,
+- score,
+- small reputation recovery,
+- goal progress,
+- city progression,
+- periodic upgrades.
 
-- work a specific real street,
-- cover a district,
-- cross a named bridge,
-- complete a reliability target.
+Missed work reduces reputation. Critical medical/cold-chain failures are more expensive.
 
-Goal logic responds to actual completed endpoints/routes rather than cargo-generation tables.
+At `0 REP` the shift ends.
 
----
-
-## 16. Upgrade philosophy
-
-Upgrades should change dispatch decisions, team capacity or city movement.
-
-Current examples:
-
-- Radio Bandwidth
-- Extra Rider
-- Team Briefing
-- Street Legs
-- Client Buffer
-- Bike-Lane Grant
-- Team Coffee
-- Local Goodwill
-
-Avoid upgrades that merely add tiny percentage bonuses with no visible strategic consequence.
-
----
-
-## 17. Visual design system
-
-The visual direction is **warm minimal cartography**, not neon dashboard UI.
-
-Priority order:
-
-1. riders,
-2. urgent/live jobs,
-3. accepted routes,
-4. pickup/dropoff addresses,
-5. disruptions,
-6. arterial streets,
-7. local streets,
-8. landmarks,
-9. district shading.
-
-### Job classification
-
-Each cargo has both glyph and color.
-
-Radio state is independent from cargo color:
-
-```text
-grey border    off radio
-blue           OPEN
-gold           PRIORITY
-green          LOCAL
-```
-
-Urgency uses an outer deadline ring and red warning state.
-
-### Rider classification
-
-```text
-triangle + unique color = rider identity
-number inside = experience
-white progress ring = thinking
-dashed rider-color line = committed route
-grey + Ⅱ = break / radio off
-```
-
-Never rely on color alone for essential state.
-
----
-
-## 18. Zoom and map interaction
-
-Controls:
-
-```text
-mouse wheel    zoom around cursor
-drag           pan
-+ / -          zoom
-1:1            reset map
-0              reset map
-```
-
-Zoom range is approximately `0.78× – 5.5×` relative to fit-to-screen.
-
-Progressive disclosure:
-
-- overview: arterials + core entities,
-- medium: primary streets + more labels,
-- close: secondary streets + exact selected address labels.
-
-Dense geography must not make overview play unreadable.
-
----
-
-## 19. GUI architecture and anti-flicker rule
-
-The game renders at two independent cadences.
-
-### Canvas
-
-`requestAnimationFrame`
-
-Used for:
-
-- map,
-- rider movement,
-- routes,
-- job markers,
-- deadline rings,
-- disruptions.
-
-### DOM projection
-
-~7 updates/second.
-
-Used for:
-
-- jobs,
-- riders,
-- goals,
-- metrics.
-
-**Important:** job/rider/goal elements are keyed persistent DOM nodes.
-
-Do not rebuild live panels with repeated `innerHTML = ...`.
-
-Update text/classes/styles in place so:
-
-- hover does not disappear,
-- focus does not reset,
-- scroll position is stable,
-- text does not flicker,
-- layout changes only when game state actually changes.
-
-Timers use tabular numerals and fixed-width columns to avoid horizontal jitter.
-
----
-
-## 20. Interface structure
-
-Desktop:
-
-```text
-┌────────────────────────────────────────────────────┐
-│ brand / shift modifiers / REP SCORE CASH / actions │
-├────────────────────────────────────────────────────┤
-│         one-sentence core rule                     │
-├──────────────┬───────────────────┬─────────────────┤
-│ DISPATCH     │                   │ RIDERS          │
-│ job cards    │    BERLIN MAP     │ rider cards     │
-│ radio choice │                   │ fatigue/status  │
-│ addresses    │                   │                 │
-│              │                   │ SHIFT GOALS     │
-└──────────────┴───────────────────┴─────────────────┘
-```
-
-The player must be able to answer at a glance:
-
-- What needs attention?
-- What is currently on radio?
-- Who can hear it?
-- Who is busy?
-- Who is on break?
-- Where are pickup and destination?
-- How urgent is it?
-
----
-
-## 21. Controls overview
-
-`CONTROLS`, `H`, or `?` opens a toggleable reference panel.
-
-It explains:
-
-1. job anatomy,
-2. radio channels,
-3. autonomous rider choice,
-4. rider states,
-5. Berlin map interaction,
-6. failure/run loop.
-
-First launch opens it automatically with the simulation paused.
-
----
-
-## 22. Difficulty and pacing
-
-Difficulty should emerge mainly from **coordination complexity**.
-
-Primary pressure sources:
-
-- more simultaneous contracts,
-- wider spatial distribution,
-- rider fatigue/break overlap,
-- road events,
-- limited radio bandwidth,
-- imperfect rider preferences.
-
-Avoid simply shrinking every timer each wave.
-
-Current pacing uses:
-
-- slower early spawn interval,
-- gradual wave compression,
-- limited burst chance only in later waves,
-- contract-profile spawn multiplier,
-- moderate failure penalties so a run can recover.
-
-Target run shape:
-
-```text
-0–2 min   understand current riders + nearby streets
-2–6 min   meaningful radio conflicts begin
-6–12 min  breaks/events/long jobs interact
-12+ min   network complexity becomes the main threat
-```
-
----
-
-## 23. Post-run learning
-
-Dispatch Review classifies misses into:
+Dispatch Review classifies failures into:
 
 - never called,
-- called but nobody accepted,
-- accepted but late,
-- radio changes blocked by bandwidth.
+- called but no taker,
+- accepted too late,
+- radio bandwidth blocked,
+- rider break pressure,
+- dispatch-tool usage.
 
-It also reports break pressure and top rider.
-
-The ideal retry loop is:
-
-```text
-lose
-→ understand the failure
-→ retry same seed
-→ change radio strategy
-→ compare outcome
-```
+The review should teach the player how the system failed rather than only report a score.
 
 ---
 
-## 24. Architecture
+## 14. Rendering and performance architecture
+
+Important modules:
 
 ```text
-index.html
-styles.css
 src/
-  rng.js
-  graph.js
-  berlin.js
-
-  game-data.js
-  game-core.js
-  game-radio.js
-  game-riders.js
-  game-events.js
-  game.js
-
-  camera.js
-  render-map.js
-  render-entities.js
-  render.js
-  main.js
-
-tests/
-  core.test.js
-
-IMPLEMENTATION_PLAN.md
-README.md
+├── berlin.js             static generated/stylized Berlin model
+├── graph.js              graph index + heap A*
+├── rng.js                deterministic randomness
+├── game-core.js          run/city/address generation
+├── game-data.js          cargo/radio/personality/upgrade data
+├── game-radio.js         autonomous contract evaluation
+├── game-riders.js        movement/fatigue/progress/completion
+├── game-events.js        disruptions/goals/review
+├── game-tools.js         contextual dispatch interventions
+├── game-progression.js   city-expansion hooks
+├── camera.js             stage-aware zoom/pan/fit
+├── render-map.js         progressive city/cartographic layer
+├── render-entities.js    jobs/riders/routes/hover focus
+├── render.js             canvas orchestration
+└── main.js               stable DOM projection + interaction
 ```
 
-### Responsibility boundaries
+Performance rules:
 
-`berlin.js`
-: static/deterministic city construction and addresses.
-
-`graph.js`
-: graph index + pathfinding only.
-
-`game-core.js`
-: run state, route helpers, address contracts, core resources.
-
-`game-radio.js`
-: indirect-control choice model.
-
-`game-riders.js`
-: movement, completion, fatigue, breaks, update loop.
-
-`game-events.js`
-: street events, goals, upgrades, review.
-
-`camera.js`
-: view transform only.
-
-`render-map.js`
-: geographic layers.
-
-`render-entities.js`
-: jobs/riders/routes.
-
-`main.js`
-: fixed-step host, stable DOM projection and input wiring.
+- cache node/edge/adjacency lookup,
+- use A* instead of scanning every node for every route,
+- fixed simulation timestep,
+- canvas draws every animation frame,
+- DOM updates around 8 times/second,
+- do not add route caches until profiling proves they are needed,
+- task/rider/goal DOM nodes persist across updates.
 
 ---
 
-## 25. Determinism rules
+## 15. Input
 
-Simulation RNG must come from the seeded `RNG` instance.
-
-Do not use `Math.random()` for gameplay state.
-
-Allowed non-deterministic visual-only values:
-
-- `performance.now()` for harmless canvas animation.
-
-Same seed replay must not depend on frame rate because simulation advances through a fixed timestep.
-
----
-
-## 26. Performance rules
-
-The dense graph makes several optimizations non-optional:
-
-- build node maps once,
-- build adjacency once,
-- use A* / heap instead of linear open-set Dijkstra,
-- keep graph edges separate from clean visual street blocks,
-- avoid rebuilding DOM lists,
-- decouple simulation, canvas and UI rates,
-- cap active contracts,
-- reroute only when state requires it.
-
-Target desktop behavior:
-
-- smooth canvas movement at 60 FPS,
-- hundreds of graph/address nodes,
-- 6 riders,
-- 20+ visible contracts,
-- no UI hover/focus flicker.
-
----
-
-## 27. Tests / acceptance gate
-
-Run:
-
-```bash
-npm test
+```text
+Mouse wheel   zoom around cursor
+Drag map      pan
+FIT / 0       fit current operating area
+Space         pause/resume
+1             1×
+2             2×
+3             4×
+H / ?         help drawer
+Esc           clear selection / close help
 ```
 
-The suite must cover at minimum:
+Hovering map entities or operational cards should produce immediate visual/map feedback.
+
+---
+
+## 16. Test/merge acceptance gates
+
+`npm test` must parse browser entry/render sources and pass the simulation suite.
+
+Current test categories include:
 
 - deterministic RNG,
-- dense Berlin street count,
-- address integrity,
-- address uniqueness,
+- Ringbahn-scale city density,
+- address integrity/uniqueness,
 - graph connectivity,
-- deterministic seeded runs,
-- exact six-name roster,
+- same-seed reproduction,
+- exact rider roster,
 - address-to-address contracts,
 - district-independent cargo,
 - absence of direct assignment,
-- radio bandwidth,
-- radio-off exclusion,
-- break/recovery,
+- radio accounting,
+- radio-off behavior,
+- breaks/recovery,
 - autonomous deliberation/claiming,
-- real-street goal progression,
-- actual bridge traversal goals,
-- road-event cost changes,
-- named-street routing,
-- roguelike contract variation,
-- multi-seed long-run finite-state stress.
+- street/bridge goals,
+- disruption routing,
+- named-street routes,
+- run-contract variation,
+- multi-seed stress,
+- opening-shift survival floor,
+- six-rider high-density load,
+- Ringbahn station anchors,
+- territory unlock thresholds,
+- level-gated cargo,
+- return follow-up generation,
+- cash/time/attention/routing dispatch interventions,
+- rider progress + ETA instrumentation.
 
-No feature is considered merged until both local reasoning/tests and GitHub Actions pass.
-
----
-
-## 28. Local development
-
-No runtime dependencies and no build step.
-
-```bash
-npm test
-python -m http.server 8080
-```
-
-Open:
-
-```text
-http://localhost:8080
-```
-
-GitHub Pages serves the same static files.
+Do not merge a substantial gameplay slice if these gates are red.
 
 ---
 
-## 29. Reproducibility invariants
+## 17. Design north star
 
-A clean-room implementation is BIKE-compatible only if all are true:
+> **Send It is a charming Berlin logistics simulation about shaping the decisions of autonomous people through limited information, money, time and street knowledge.**
 
-1. Player cannot directly assign riders.
-2. Every normal contract has a street + house-number pickup and dropoff.
-3. Berlin remains spatially recognizable.
-4. Cargo type is not tied to district stereotype.
-5. Radio bandwidth forces curation.
-6. Riders have autonomous personality/experience behavior.
-7. Riders can become unavailable through breaks/radio-off state.
-8. Same seed reproduces the shift setup.
-9. Failure is explainable after the run.
-10. Important states use shape/text plus color.
-11. Dense map detail progressively reveals with zoom.
-12. Live DOM panels are stable rather than continuously reconstructed.
+When evaluating a new feature, ask:
 
----
+1. Does it create a meaningful dispatch decision?
+2. Does it interact with riders, contracts, streets or scarce attention?
+3. Can the player understand its state visually?
+4. Does it preserve rider autonomy?
+5. Does it make Berlin more learnable or the run more varied?
+6. Can something else be removed or simplified to make room for it?
 
-## 30. Design test before every new feature
-
-Ask:
-
-> Does this make choosing what goes on the radio more interesting?
-
-If no, it probably does not belong in the core game yet.
-
-Second question:
-
-> Can the player understand the new state visually in under two seconds?
-
-If no, redesign the visualization before increasing system depth.
-
-The intended mastery curve is:
-
-```text
-understand a job
-→ understand one rider
-→ understand the radio
-→ understand nearby streets
-→ predict several riders
-→ anticipate breaks/events
-→ learn Berlin's network
-→ shape a run through upgrades
-→ coordinate the whole autonomous system
-```
+If not, it probably does not belong in the main loop.

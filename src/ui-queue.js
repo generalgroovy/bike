@@ -1,0 +1,10 @@
+import { Game } from './game.js';
+
+const summary=document.querySelector('.task-summary'),strip=document.querySelector('#deliveries');
+let mode='arrival',lastKey='';
+function readMode(){try{const value=localStorage.getItem('sendit.queueSort.v5');if(['arrival','urgent','payout','range'].includes(value))mode=value;}catch{}}
+function writeMode(){try{localStorage.setItem('sendit.queueSort.v5',mode);}catch{}}
+function install(){if(!summary||summary.querySelector('.queue-sort'))return;const root=document.createElement('div');root.className='queue-sort';root.setAttribute('aria-label','Sort work queue');for(const[id,label,title]of[['arrival','↦','Arrival order'],['urgent','!','Most urgent first'],['payout','€','Highest payout first'],['range','⌖','Closest pickup to a free rider']]){const button=document.createElement('button');button.type='button';button.dataset.queueSort=id;button.textContent=label;button.title=title;button.setAttribute('aria-label',title);button.addEventListener('click',()=>{mode=id;writeMode();render(true);});root.append(button);}summary.append(root);}
+function value(game,d){if(mode==='urgent')return d.deadlineAt;if(mode==='payout')return-d.reward;if(mode==='range')return game.nearestIdleDistance(d)??Infinity;return d.createdAt;}
+function render(force=false){const game=Game.lastInstance;if(!game||!strip)return;const active=game.activeDeliveries(),key=`${mode}|${active.map(d=>`${d.id}:${Math.round(value(game,d)*10)}`).join(',')}`;if(!force&&key===lastKey)return;lastKey=key;const sorted=[...active].sort((a,b)=>value(game,a)-value(game,b)||a.createdAt-b.createdAt||a.id.localeCompare(b.id));sorted.forEach((d,index)=>{const card=strip.querySelector(`[data-delivery="${d.id}"]`);if(card)card.style.order=String(index);});document.querySelectorAll('[data-queue-sort]').forEach(button=>{button.classList.toggle('active',button.dataset.queueSort===mode);button.setAttribute('aria-pressed',String(button.dataset.queueSort===mode));});}
+readMode();install();setInterval(render,240);render(true);

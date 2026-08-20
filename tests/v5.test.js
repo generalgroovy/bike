@@ -83,7 +83,7 @@ test('cash bonus, client call and rebroadcast reshape one contract without assig
 });
 
 test('detour advisory can be issued during forecast and changes routing cost',()=>{
-  const g=new Game({seed:'ADVISORY'});g.nextEventAt=10;g.elapsed=0;g.scheduleRoadEvent();const ev=g.currentEvent;
+  const g=new Game({seed:'ADVISORY'});g.nextEventAt=10;g.elapsed=0;assert.equal(g.scheduleRoadEvent('roadworks'),true);const ev=g.currentEvent;
   assert.equal(ev.state,'forecast');const edge=g.edges.find(e=>ev.edgeIds.includes(e.id)),normal=g.edgeCost(edge),focus=g.dispatchFocus;
   assert.equal(g.issueDetourAdvisory(),true);
   assert.equal(ev.advisory,true);

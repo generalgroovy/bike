@@ -1,0 +1,10 @@
+import { Game } from './game-core.js';
+
+Object.assign(Game.prototype,{
+  spendFocus(amount=1){if(this.dispatchFocus<amount)return false;this.dispatchFocus=Math.max(0,this.dispatchFocus-amount);this.runStats.toolsUsed+=1;return true;},
+  sweetenJob(id){const d=this.deliveryById(id);if(!d||d.status!=='waiting'||d.sweetened||this.cash<5)return false;this.cash-=5;d.reward+=9;d.bonusAppeal=(d.bonusAppeal??0)+.34;d.sweetened=true;this.invalidateDeliberations(d.id);for(const c of this.availableRiders())c.decisionAt=Math.min(c.decisionAt,this.elapsed+.08);this.logDispatch('sweeten',d,{cost:5,reward:d.reward});this.flash(`BONUS ADDED · ${d.id.toUpperCase()} now €${d.reward}`,4);return true;},
+  extendJob(id){const d=this.deliveryById(id);if(!d||d.status!=='waiting'||d.extended||!this.spendFocus(1))return false;d.deadlineAt+=20;d.extended=true;this.logDispatch('client-call',d,{seconds:20});this.flash(`CLIENT CALLED · ${d.id.toUpperCase()} +20s`,4);return true;},
+  rebroadcastJob(id){const d=this.deliveryById(id);if(!d||d.status!=='waiting'||!d.called||!this.spendFocus(1))return false;d.rebroadcastUntil=this.elapsed+7;this.invalidateDeliberations(d.id);for(const c of this.availableRiders())c.decisionAt=this.elapsed+.04;this.logDispatch('rebroadcast',d,{until:d.rebroadcastUntil});this.flash(`REBROADCAST · ${d.id.toUpperCase()} back on every headset`,4);return true;},
+  issueDetourAdvisory(){const ev=this.currentEvent;if(!ev||ev.state!=='active'||ev.advisory||!this.spendFocus(1))return false;ev.advisory=true;for(const c of this.couriers)if(c.phase==='pickup'||c.phase==='dropoff')this.rerouteCourier(c);this.logDispatch('detour-advisory',null,{event:ev.title,place:ev.place});this.flash(`DETOUR ADVISORY · riders avoid ${ev.place}`,5);return true;},
+  deliveryToolState(id){const d=this.deliveryById(id);if(!d)return null;return{sweeten:d.status==='waiting'&&!d.sweetened&&this.cash>=5,extend:d.status==='waiting'&&!d.extended&&this.dispatchFocus>=1,rebroadcast:d.status==='waiting'&&d.called&&this.dispatchFocus>=1};}
+});

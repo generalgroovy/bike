@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BERLIN_WFS,INNER_RING_BBOX,capabilitiesUrl,featureTypeNames,chooseFeatureType,getFeatureUrl,projectPoint,simplifyLine,normalizeStreetFeature,normalizeAddressFeature,stableSortImported } from '../tools/berlin-import-lib.mjs';
+import { BERLIN_WFS,INNER_RING_BBOX,OFFICIAL_ADDRESS_SCHEMA,DETAILNETZ_PROPERTY_CANDIDATES,capabilitiesUrl,featureTypeNames,chooseFeatureType,getFeatureUrl,projectPoint,pointInsidePolygon,clipLineToPolygon,simplifyLine,validateOfficialAddressProperties,normalizeStreetFeature,normalizeAddressFeature,stableSortImported } from '../tools/berlin-import-lib.mjs';
 
 test('official Berlin importer endpoints and WFS capability URL stay explicit',()=>{
   assert.match(BERLIN_WFS.streets,/gdi\.berlin\.de\/services\/wfs\/detailnetz/);
@@ -9,6 +9,18 @@ test('official Berlin importer endpoints and WFS capability URL stay explicit',(
   assert.equal(url.searchParams.get('service'),'WFS');
   assert.equal(url.searchParams.get('request'),'GetCapabilities');
   assert.equal(url.searchParams.get('version'),'2.0.0');
+});
+
+test('official Adressen RBS schema pins documented canonical fields',()=>{
+  assert.deepEqual(OFFICIAL_ADDRESS_SCHEMA,{id:'adr_ident',street:'strnam',streetNumber:'strnr',streetType:'str_typ',houseNumber:'hausnr',houseNumberSuffix:'hausnrz',postcode:'postleit',district:'bez_name',locality:'ot_name',planningArea:'plr_name'});
+  assert.ok(DETAILNETZ_PROPERTY_CANDIDATES.streetName.includes('str_name'));
+  assert.ok(DETAILNETZ_PROPERTY_CANDIDATES.fromNode.includes('vp_von'));
+  assert.ok(DETAILNETZ_PROPERTY_CANDIDATES.toNode.includes('vp_bis'));
+});
+
+test('official address schema validation rejects missing canonical identity fields',()=>{
+  assert.deepEqual(validateOfficialAddressProperties({strnam:'Skalitzer Straße',hausnr:'127'}),{valid:true,missing:[]});
+  assert.deepEqual(validateOfficialAddressProperties({strnam:'Skalitzer Straße'}),{valid:false,missing:['hausnr']});
 });
 
 test('feature type discovery parses namespaced capabilities and picks hinted layer',()=>{
@@ -36,6 +48,13 @@ test('coordinate projection maps bbox corners deterministically into game space'
   assert.ok(Math.abs(center[0]-800)<1e-8);assert.ok(Math.abs(center[1]-560)<1e-8);
 });
 
+test('point-in-polygon and line clipping retain only interior line pieces',()=>{
+  const polygon=[[13.30,52.49],[13.40,52.49],[13.40,52.53],[13.30,52.53]];
+  assert.equal(pointInsidePolygon([13.35,52.50],polygon),true);assert.equal(pointInsidePolygon([13.42,52.50],polygon),false);
+  const pieces=clipLineToPolygon([[13.28,52.50],[13.35,52.50],[13.42,52.50]],polygon);assert.equal(pieces.length,1);
+  assert.ok(Math.abs(pieces[0][0][0]-13.30)<1e-9);assert.ok(Math.abs(pieces[0].at(-1)[0]-13.40)<1e-9);
+});
+
 test('line simplifier preserves endpoints while removing redundant collinear points',()=>{
   const source=[[13.30,52.50],[13.31,52.50],[13.32,52.50],[13.33,52.50]];
   const simplified=simplifyLine(source,.00001);
@@ -44,23 +63,18 @@ test('line simplifier preserves endpoints while removing redundant collinear poi
   assert.equal(simplified.length,2);
 });
 
-test('street feature normalization extracts name and projected simplified geometry',()=>{
-  const feature={id:'street.7',type:'Feature',properties:{STRASSENNAME:'Oranienstraße'},geometry:{type:'LineString',coordinates:[[13.35,52.50],[13.351,52.50001],[13.36,52.505]]}};
-  const result=normalizeStreetFeature(feature,{tolerance:.0001});
-  assert.equal(result.name,'Oranienstraße');
-  assert.equal(result.sourceId,'street.7');
-  assert.equal(result.lines.length,1);
-  assert.ok(result.lines[0].length>=2);
-  assert.ok(result.lines[0].flat().every(Number.isFinite));
+test('street feature normalization clips geometry to explicit operating polygon',()=>{
+  const polygon=[[13.30,52.49],[13.40,52.49],[13.40,52.53],[13.30,52.53]],feature={id:'street.7',type:'Feature',properties:{STR_NAME:'Oranienstraße',VON_VP:'1',BIS_VP:'2'},geometry:{type:'LineString',coordinates:[[13.29,52.50],[13.35,52.50],[13.41,52.50]]}};
+  const result=normalizeStreetFeature(feature,{polygon,tolerance:.0001});
+  assert.equal(result.name,'Oranienstraße');assert.equal(result.sourceId,'street.7');assert.equal(result.fromNode,'1');assert.equal(result.toNode,'2');assert.equal(result.lines.length,1);
+  assert.ok(result.lines[0].length>=2);assert.ok(result.lines[0].flat().every(Number.isFinite));
 });
 
-test('address normalization extracts street house number postcode and projected point',()=>{
-  const feature={id:'addr.9',type:'Feature',properties:{str_name:'Skalitzer Straße',hausnummer:'127 A',plz:'10999'},geometry:{type:'Point',coordinates:[13.43,52.50]}};
-  const result=normalizeAddressFeature(feature);
-  assert.equal(result.street,'Skalitzer Straße');
-  assert.equal(result.houseNumber,'127 A');
-  assert.equal(result.postcode,'10999');
-  assert.ok(Number.isFinite(result.x)&&Number.isFinite(result.y));
+test('address normalization uses documented RBS keys including suffix and rejects outside polygon',()=>{
+  const polygon=[[13.30,52.49],[13.45,52.49],[13.45,52.53],[13.30,52.53]],feature={id:'addr.9',type:'Feature',properties:{adr_ident:'A9',strnam:'Skalitzer Straße',strnr:'12345',hausnr:'127',hausnrz:'A',postleit:'10999',bez_name:'Friedrichshain-Kreuzberg',ot_name:'Kreuzberg'},geometry:{type:'Point',coordinates:[13.43,52.50]}};
+  const result=normalizeAddressFeature(feature,{polygon});
+  assert.equal(result.street,'Skalitzer Straße');assert.equal(result.houseNumber,'127 A');assert.equal(result.postcode,'10999');assert.equal(result.district,'Friedrichshain-Kreuzberg');assert.equal(result.locality,'Kreuzberg');assert.ok(Number.isFinite(result.x)&&Number.isFinite(result.y));
+  assert.equal(normalizeAddressFeature({...feature,geometry:{type:'Point',coordinates:[13.48,52.50]}},{polygon}),null);
 });
 
 test('import output stable sort is deterministic independent of feature arrival order',()=>{

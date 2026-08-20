@@ -8,6 +8,14 @@ function radioAutopilot(game){
   for(const delivery of waiting){if(game.radioUsed()>=game.radioSlots)break;game.setChannel(delivery.id,'open');}
 }
 
+function adaptiveDispatcher(game){
+  if(game.upgradePending){const choices=game.getUpgradeChoices(),priority=['rider','radio','briefing','coffee','speed','grace'],choice=priority.map(id=>choices.find(c=>c.id===id)).find(Boolean)??choices[0];if(choice)game.applyUpgrade(choice.id);}
+  if(game.currentEvent&&!game.currentEvent.advisory&&game.dispatchFocus>1)game.issueDetourAdvisory();
+  const waiting=game.activeDeliveries().filter(d=>d.status==='waiting').sort((a,b)=>game.urgency(a)-game.urgency(b));
+  for(const d of waiting){const urgency=game.urgency(d);if(urgency<.22&&!d.extended&&game.dispatchFocus>1)game.extendJob(d.id);if(urgency<.28&&!d.sweetened&&game.cash>=10)game.sweetenJob(d.id);}
+  for(const d of waiting.filter(d=>!d.called)){const urgency=game.urgency(d),channel=urgency<.32?'priority':'open',cost=channel==='priority'?2:1;if(game.radioUsed()+cost<=game.radioSlots)game.setChannel(d.id,channel);else if(game.radioUsed()<game.radioSlots)game.setChannel(d.id,'open');}
+}
+
 test('a reasonable dispatcher can survive and learn during the opening two minutes',()=>{
   for(const seed of['PACE-A','PACE-B','PACE-C','PACE-D']){
     const game=new Game({seed});
@@ -15,6 +23,16 @@ test('a reasonable dispatcher can survive and learn during the opening two minut
     assert.ok(game.elapsed>=115,`${seed} collapsed too early at ${game.elapsed.toFixed(1)}s`);
     assert.ok(game.completed>=3,`${seed} completed only ${game.completed} jobs`);
     assert.ok(game.reputation>0,`${seed} lost all reputation during onboarding window`);
+  }
+});
+
+test('adaptive dispatch naturally reaches the first city expansion',()=>{
+  for(const seed of['EXPAND-A','EXPAND-B','EXPAND-C','EXPAND-D']){
+    const game=new Game({seed});
+    for(let step=0;step<3600&&!game.gameOver&&game.cityLevel<2;step++){if(step%4===0)adaptiveDispatcher(game);game.update(.1);}
+    assert.ok(game.completed>=6,`${seed} only completed ${game.completed} jobs in ${game.elapsed.toFixed(1)}s`);
+    assert.ok(game.cityLevel>=2,`${seed} never reached Inner City`);
+    assert.ok(game.elapsed<=360,`${seed} expansion took ${game.elapsed.toFixed(1)}s`);
   }
 });
 

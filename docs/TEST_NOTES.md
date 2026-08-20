@@ -13,7 +13,7 @@ npm test
 + node --test
 ```
 
-Current green suite: **71 tests / 71 pass / 0 fail**.
+Current green implementation suite before the final documentation-only reconciliation: **71 tests / 71 pass / 0 fail**.
 
 Coverage includes:
 
@@ -36,7 +36,7 @@ Coverage includes:
 - demand-surge district map feedback,
 - rider task progress and ETA,
 - future rider availability forecasts that cannot pre-assign work,
-- strategic cargo/radio/event/staffing upgrades,
+- strategic Cargo Racks / Local Repeater / Event Feed / Relief Roster effects,
 - causal critical timeline,
 - deterministic run telemetry,
 - six-rider high-load finite-state simulation,

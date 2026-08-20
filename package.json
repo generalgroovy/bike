@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --check tools/import-berlin.mjs && node --test",
+    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --check src/ui-outlook.js && node --check tools/import-berlin.mjs && node --test",
     "serve": "python -m http.server 8080",
     "import:berlin": "node tools/import-berlin.mjs"
   }

@@ -1,45 +1,41 @@
-# Send It v5 — Berlin dispatch overhaul
+# Send It v5 — deep Berlin dispatch overhaul
 
-## Identity / layout
+Current feature branch changes relative to the earlier Berlin radio prototype:
 
-- Renamed player-facing game to **Send It**.
-- Replaced multi-panel dashboard with compact command bar, horizontal contract rail, dominant map and rider instrument dock.
-- Moved explanatory text into hover/help/contextual inspector.
-- Added stable hover focus between cards and map entities.
-- Added selected-contract decision inspector.
-- Rider cards now show task progress, ETA and energy.
+## Interaction / GUI
 
-## Dispatch mechanics
+- Player-facing product renamed to **Send It**.
+- Live layout rebuilt around compact command bar → horizontal contract rail → dominant map → rider dock.
+- Explanatory text moved out of normal play into hover, selected-contract inspector and Help.
+- Rider cards show live task progress, ETA, energy, radio/break state and location.
+- Selected contracts show a future Rider Outlook: available now vs busy/break riders projected to become relevant soon.
+- Demand events highlight their affected Berlin area directly on the map.
+- Game-over review includes a causal critical timeline plus compact run telemetry.
+- Keyed live DOM nodes remain mandatory to prevent flicker.
 
-- Preserved indirect rider autonomy.
-- Retained OFF / OPEN / PRIORITY / LOCAL radio choices.
-- Added Dispatch Focus.
-- Added cash bonus intervention.
-- Added client deadline negotiation.
-- Added rebroadcast attention intervention.
-- Added proactive/active detour advisory.
+## Core simulation
 
-## Berlin / progression
+- No direct rider assignment.
+- Rider personalities rebalanced with deterministic anti-dominance tests.
+- Cargo classes now have loaded speed/fatigue handling differences.
+- Added route/weather events plus venue-release/transit-outage demand surges.
+- Event responses distinguish route pre-brief/detour from demand capacity planning/client staggering.
+- Added strategic Cargo Racks, Local Repeater, Event Feed and Relief Roster upgrades.
+- Future rider availability is informational only; busy riders still cannot claim early.
 
-- Expanded map to a much larger Ringbahn-oriented inner-city model.
-- Added 27+ S41/S42 station orientation anchors.
-- Expanded to 110+ real-named streets, 900+ graph nodes and 600+ address/service nodes.
-- Added staged playable-area expansion:
-  - Center Desk
-  - Inner City at 6 deliveries
-  - Inside the Ring at 16 deliveries
-- Camera now fits/zooms out with operating-area expansion.
-- Unified visual street unlocks with subdivided routing unlock state.
+## Progression
 
-## Variation
+- Center Desk unlocks Inner City at 6 completed deliveries.
+- Full Inside-the-Ring operation now unlocks at 30 rather than 16 after automated pacing showed the former threshold exposed the whole city in roughly two minutes under competent dispatch.
+- Level-gated cargo and special RUSH/RETURN work remain tied to territory expansion.
 
-- Added Flowers, Keys, Catering and Cold-chain alongside existing cargo.
-- Cargo classes unlock with operating territory.
-- Added RUSH special contracts.
-- Added RETURN contracts that generate paid reverse follow-up work.
-- Goals expand from local street/area objectives into bridge and cross-area work.
+## Berlin precision
+
+- Current curated Ringbahn-interior graph remains the runtime authority.
+- Added an offline official-data importer foundation for Detailnetz Berlin + Adressen Berlin WFS.
+- Importer includes capability discovery, GeoJSON request construction, deterministic simplification/projection, address normalization and stable output ordering.
+- Runtime still makes zero map-network requests.
 
 ## Validation
 
-- Browser entry/render files are syntax-checked by the test command.
-- Current suite expanded to 35 passing tests including UI structure, natural progression, interventions, Ringbahn coverage and high-load simulation.
+Current green automated gate before this documentation-only update: **71 tests / 71 pass / 0 fail**, plus browser source syntax checks and importer CLI syntax validation.

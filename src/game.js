@@ -10,6 +10,7 @@ import './game-availability.js';
 import './game-progression.js';
 import './game-tools.js';
 import './game-review.js';
+import './game-telemetry.js';
 export class Game extends CoreGame{
   static lastInstance=null;
   constructor(options){super(options);Game.lastInstance=this;}

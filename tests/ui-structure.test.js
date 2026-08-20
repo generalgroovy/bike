@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const renderMap=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');
 
 test('Send It operational hierarchy is task rail then map plus rider dock',()=>{
   assert.match(html,/<title>Send It \/\/ Berlin Dispatch<\/title>/);
@@ -39,6 +40,13 @@ test('event chip exposes event-specific counterplay instead of route-only wordin
   assert.match(main,/PRE-BRIEF/);
   assert.match(main,/respondToCityEvent/);
   assert.doesNotMatch(html,/id="event-advisory"[^>]*>DETOUR · 1 FOCUS/);
+});
+
+test('demand events mark their affected Berlin operating area on the map',()=>{
+  assert.match(renderMap,/function drawEventArea/);
+  assert.match(renderMap,/ev\.kind!=='demand'/);
+  assert.match(renderMap,/DEMAND SURGE/);
+  assert.match(renderMap,/SURGE FORECAST/);
 });
 
 test('game-over review contains a causal critical timeline',()=>{

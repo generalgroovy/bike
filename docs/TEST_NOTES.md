@@ -1,19 +1,10 @@
 # Send It v5 — validation notes
 
-Current merge-candidate validation is automated through GitHub Actions with:
+Current merge-candidate validation is automated through GitHub Actions with `npm test`.
 
-```text
-npm test
-= node --check src/main.js
-+ node --check src/render-map.js
-+ node --check src/render-entities.js
-+ node --check src/ui-outlook.js
-+ node --check src/ui-telemetry.js
-+ node --check tools/import-berlin.mjs
-+ node --test
-```
+The gate includes browser/controller syntax checks for the main renderer/UI modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
 
-Current green implementation suite before the final documentation-only reconciliation: **71 tests / 71 pass / 0 fail**.
+Current green implementation suite: **121 tests / 121 pass / 0 fail**.
 
 Coverage includes:
 
@@ -29,23 +20,36 @@ Coverage includes:
 - personality niche and anti-dominance tests,
 - staged territory unlocks and 6 → 30 expansion pacing,
 - adaptive dispatcher reaching the full Ring under meaningful pressure,
+- expansion operating doctrine choices and distinct existing-system effects,
+- browser-only doctrine pause plus compact AREA-chip doctrine memory,
 - cargo handling speed/fatigue differences,
-- RUSH/RETURN contract behavior,
+- RUSH/RETURN and scheduled-window contract behavior,
 - bonus/client-call/rebroadcast interventions,
-- route/rain/demand event generation and counterplay,
+- route/rain/demand event generation,
+- route preparation vs client buffering,
+- capacity planning vs surge pay,
 - demand-surge district map feedback,
 - rider task progress and ETA,
 - future rider availability forecasts that cannot pre-assign work,
+- read-only Dispatch Insight and qualitative channel comparison,
+- attention-first queue sorting with persistent keyed cards,
 - strategic Cargo Racks / Local Repeater / Event Feed / Relief Roster effects,
 - causal critical timeline,
 - deterministic run telemetry,
 - six-rider high-load finite-state simulation,
 - Send It task-rail/map/rider-dock information architecture,
 - stable keyed live-DOM rules,
-- browser-source syntax checks,
 - visual-street unlock state consistent with routing subdivisions,
-- official Berlin WFS importer URL construction, feature discovery, geometry simplification, projection, address normalization and deterministic output sorting.
+- Ringbahn polygon import/stitch validation,
+- official Berlin WFS capability/feature request construction,
+- exact address schema normalization,
+- official street-number-first address attachment,
+- canonical street-name matching,
+- explicit geometric fallback diagnostics and fallback-share quality gate,
+- Detailnetz from/to node topology overriding harmless coordinate drift,
+- candidate graph connectivity/address coverage gates,
+- shadow comparison of official candidate vs curated runtime for recognizable street overlap, route-scale distortion and import quality.
 
-CI does **not** call Berlin WFS endpoints; importer tests use local fixture data so network availability cannot make the game build flaky.
+CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic.
 
-A browser-level manual acceptance pass is still valuable because the current execution environment cannot render the feature branch in a local headless browser. The automated suite therefore treats browser JS parsing, DOM architecture and simulation invariants as the pre-merge gate.
+A real browser acceptance pass is still valuable because the current execution environment cannot render the feature branch in a local headless browser. Automated checks therefore cover source parsing, UI structure/read-only boundaries, deterministic simulation and data-pipeline invariants; actual rendered spacing, hover feel and human scanning speed remain manual acceptance items.

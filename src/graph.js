@@ -1,55 +1,7 @@
-export function distance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-export function buildAdjacency(nodes, edges) {
-  const adjacency = new Map(nodes.map((node) => [node.id, []]));
-  for (const edge of edges) {
-    adjacency.get(edge.a)?.push({ to: edge.b, edge });
-    adjacency.get(edge.b)?.push({ to: edge.a, edge });
-  }
-  return adjacency;
-}
-
-export function shortestPath(nodes, edges, startId, goalId, costFn = defaultCost) {
-  if (startId === goalId) return [startId];
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  if (!byId.has(startId) || !byId.has(goalId)) return [];
-  const adjacency = buildAdjacency(nodes, edges);
-  const dist = new Map(nodes.map((node) => [node.id, Infinity]));
-  const previous = new Map();
-  const open = new Set(nodes.map((node) => node.id));
-  dist.set(startId, 0);
-
-  while (open.size) {
-    let current = null;
-    let best = Infinity;
-    for (const id of open) {
-      const value = dist.get(id);
-      if (value < best) {
-        best = value;
-        current = id;
-      }
-    }
-    if (current === null || best === Infinity) break;
-    if (current === goalId) break;
-    open.delete(current);
-    for (const { to, edge } of adjacency.get(current) ?? []) {
-      if (!open.has(to)) continue;
-      const candidate = best + costFn(edge, byId.get(current), byId.get(to));
-      if (candidate < dist.get(to)) {
-        dist.set(to, candidate);
-        previous.set(to, current);
-      }
-    }
-  }
-
-  if (!previous.has(goalId)) return [];
-  const path = [goalId];
-  while (path[0] !== startId) path.unshift(previous.get(path[0]));
-  return path;
-}
-
-export function defaultCost(edge) {
-  return edge.distance / Math.max(0.1, edge.speed ?? 1);
-}
+export function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+export function buildAdjacency(nodes,edges){const adjacency=new Map(nodes.map((n)=>[n.id,[]]));for(const edge of edges){adjacency.get(edge.a)?.push({to:edge.b,edge});adjacency.get(edge.b)?.push({to:edge.a,edge});}return adjacency;}
+export function createGraphIndex(nodes,edges){return{nodes,edges,nodeMap:new Map(nodes.map((n)=>[n.id,n])),adjacency:buildAdjacency(nodes,edges)};}
+class MinHeap{constructor(){this.items=[];}push(item){const a=this.items;a.push(item);let i=a.length-1;while(i>0){const p=(i-1)>>1;if(a[p].priority<=item.priority)break;a[i]=a[p];i=p;a[i]=item;}}pop(){const a=this.items;if(!a.length)return null;const root=a[0],last=a.pop();if(a.length){let i=0;a[0]=last;while(true){let l=i*2+1,r=l+1,b=i;if(l<a.length&&a[l].priority<a[b].priority)b=l;if(r<a.length&&a[r].priority<a[b].priority)b=r;if(b===i)break;[a[i],a[b]]=[a[b],a[i]];i=b;}}return root;}get size(){return this.items.length;}}
+export function shortestPathIndexed(index,startId,goalId,costFn=defaultCost){if(startId===goalId)return[startId];const start=index.nodeMap.get(startId),goal=index.nodeMap.get(goalId);if(!start||!goal)return[];const open=new MinHeap(),gScore=new Map([[startId,0]]),previous=new Map(),closed=new Set();const heuristic=(id)=>distance(index.nodeMap.get(id),goal)/1.5;open.push({id:startId,priority:heuristic(startId)});while(open.size){const current=open.pop();if(!current||closed.has(current.id))continue;if(current.id===goalId)break;closed.add(current.id);const currentScore=gScore.get(current.id)??Infinity;for(const{to,edge}of index.adjacency.get(current.id)??[]){if(closed.has(to))continue;const candidate=currentScore+costFn(edge,index.nodeMap.get(current.id),index.nodeMap.get(to));if(candidate<(gScore.get(to)??Infinity)){gScore.set(to,candidate);previous.set(to,current.id);open.push({id:to,priority:candidate+heuristic(to)});}}}if(!previous.has(goalId))return[];const path=[goalId];while(path[0]!==startId){const p=previous.get(path[0]);if(!p)return[];path.unshift(p);}return path;}
+export function shortestPath(nodes,edges,startId,goalId,costFn=defaultCost){return shortestPathIndexed(createGraphIndex(nodes,edges),startId,goalId,costFn);}
+export function defaultCost(edge){return edge.distance/Math.max(.1,edge.speed??1);}

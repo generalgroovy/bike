@@ -1,160 +1,96 @@
-const nodes = [
-  {id:'charl_west',name:'Bismarckstraße / Kaiser-Friedrich-Straße',districtId:'charlottenburg',x:120,y:445,kind:'hub'},
-  {id:'savigny',name:'Savignyplatz',short:'Savignyplatz',districtId:'charlottenburg',x:205,y:470,kind:'hub'},
-  {id:'zoo',name:'Zoologischer Garten',short:'Zoo',glyph:'●',districtId:'charlottenburg',x:275,y:470,kind:'landmark',landmarkId:'zoo'},
-  {id:'kudamm',name:'Kurfürstendamm',short:"Ku'damm",glyph:'◆',districtId:'charlottenburg',x:180,y:535,kind:'landmark',landmarkId:'kudamm'},
-  {id:'ernst_reuter',name:'Ernst-Reuter-Platz',short:'Ernst-Reuter-Platz',districtId:'charlottenburg',x:305,y:410,kind:'hub'},
-  {id:'wittenberg',name:'Wittenbergplatz',short:'Wittenbergplatz',districtId:'charlottenburg',x:360,y:540,kind:'hub'},
-  {id:'kleistpark',name:'Kleistpark',short:'Kleistpark',districtId:'schoeneberg',x:430,y:620,kind:'service'},
-  {id:'nollendorf',name:'Nollendorfplatz',short:'Nollendorfplatz',districtId:'schoeneberg',x:435,y:555,kind:'hub'},
-  {id:'victory',name:'Siegessäule',short:'Siegessäule',glyph:'✦',districtId:'tiergarten',x:490,y:440,kind:'landmark',landmarkId:'victory'},
-  {id:'tiergarten_s',name:'Tiergartenstraße / Stauffenbergstraße',districtId:'tiergarten',x:520,y:500,kind:'service'},
-  {id:'moabit_w',name:'Alt-Moabit / Beusselstraße',districtId:'moabit',x:420,y:325,kind:'service'},
-  {id:'turmstr',name:'Turmstraße',short:'Turmstraße',districtId:'moabit',x:500,y:330,kind:'hub'},
-  {id:'hbf',name:'Berlin Hauptbahnhof',short:'Hbf',glyph:'▣',districtId:'moabit',x:610,y:335,kind:'landmark',landmarkId:'hauptbahnhof'},
-  {id:'reichstag',name:'Reichstag',short:'Reichstag',glyph:'▥',districtId:'mitte',x:635,y:415,kind:'landmark',landmarkId:'reichstag'},
-  {id:'brandenburg',name:'Brandenburger Tor',short:'Brandenburger Tor',glyph:'Π',districtId:'mitte',x:665,y:450,kind:'landmark',landmarkId:'brandenburg'},
-  {id:'potsdamer',name:'Potsdamer Platz',short:'Potsdamer Platz',glyph:'◇',districtId:'tiergarten',x:620,y:545,kind:'landmark',landmarkId:'potsdamer'},
-  {id:'friedrich_ul',name:'Friedrichstraße / Unter den Linden',short:'Friedrichstraße',districtId:'mitte',x:735,y:445,kind:'service'},
-  {id:'friedrich_leipzig',name:'Friedrichstraße / Leipziger Straße',districtId:'mitte',x:745,y:535,kind:'service'},
-  {id:'checkpoint',name:'Checkpoint Charlie',short:'Checkpoint Charlie',glyph:'✚',districtId:'kreuzberg',x:750,y:585,kind:'landmark',landmarkId:'checkpoint'},
-  {id:'mehringplatz',name:'Mehringplatz',short:'Mehringplatz',districtId:'kreuzberg',x:720,y:635,kind:'service'},
-  {id:'mehringdamm',name:'Mehringdamm / Gneisenaustraße',short:'Mehringdamm',districtId:'kreuzberg',x:700,y:690,kind:'hub'},
-  {id:'suedstern',name:'Südstern',short:'Südstern',districtId:'kreuzberg',x:760,y:735,kind:'service'},
-  {id:'luftbruecke',name:'Platz der Luftbrücke',short:'Luftbrücke',districtId:'tempelhof',x:685,y:790,kind:'hub'},
-  {id:'tempelhofer',name:'Tempelhofer Feld',short:'Tempelhofer Feld',glyph:'▱',districtId:'tempelhof',x:690,y:875,kind:'landmark',landmarkId:'tempelhofer'},
-  {id:'leopold',name:'Leopoldplatz',short:'Leopoldplatz',districtId:'wedding',x:610,y:205,kind:'hub'},
-  {id:'gesundbrunnen',name:'Gesundbrunnen',short:'Gesundbrunnen',districtId:'wedding',x:715,y:155,kind:'hub'},
-  {id:'nordbahnhof',name:'Nordbahnhof',short:'Nordbahnhof',districtId:'mitte',x:710,y:300,kind:'service'},
-  {id:'rosenthaler',name:'Rosenthaler Platz',short:'Rosenthaler Platz',districtId:'mitte',x:810,y:330,kind:'hub'},
-  {id:'naturkunde',name:'Invalidenstraße / Chausseestraße',districtId:'mitte',x:665,y:300,kind:'service'},
-  {id:'eberwalder',name:'Eberswalder Straße',short:'Eberswalder Straße',districtId:'prenzlauer',x:850,y:225,kind:'hub'},
-  {id:'mauerpark',name:'Mauerpark',short:'Mauerpark',glyph:'♧',districtId:'prenzlauer',x:805,y:205,kind:'landmark',landmarkId:'mauerpark'},
-  {id:'senefelder',name:'Senefelderplatz',short:'Senefelderplatz',districtId:'prenzlauer',x:855,y:300,kind:'service'},
-  {id:'rosa',name:'Rosa-Luxemburg-Platz',short:'Rosa-Luxemburg-Platz',districtId:'mitte',x:865,y:350,kind:'service'},
-  {id:'prenzlauer_n',name:'Danziger Straße / Prenzlauer Allee',districtId:'prenzlauer',x:930,y:240,kind:'service'},
-  {id:'prenzlauer_s',name:'Prenzlauer Allee / Torstraße',districtId:'prenzlauer',x:910,y:335,kind:'service'},
-  {id:'greifswalder',name:'Danziger Straße / Greifswalder Straße',districtId:'prenzlauer',x:1010,y:260,kind:'service'},
-  {id:'alex',name:'Alexanderplatz',short:'Alexanderplatz',glyph:'◎',districtId:'mitte',x:930,y:410,kind:'landmark',landmarkId:'alex'},
-  {id:'tv',name:'Fernsehturm',short:'TV Tower',glyph:'▲',districtId:'mitte',x:900,y:392,kind:'landmark',landmarkId:'fernsehturm'},
-  {id:'museuminsel',name:'Museumsinsel',short:'Museumsinsel',glyph:'▤',districtId:'mitte',x:825,y:435,kind:'landmark',landmarkId:'museuminsel'},
-  {id:'spittelmarkt',name:'Spittelmarkt',short:'Spittelmarkt',districtId:'mitte',x:840,y:540,kind:'service'},
-  {id:'moritzplatz',name:'Moritzplatz',short:'Moritzplatz',districtId:'kreuzberg',x:845,y:605,kind:'hub'},
-  {id:'kotti',name:'Kottbusser Tor',short:'Kottbusser Tor',districtId:'kreuzberg',x:880,y:650,kind:'hub'},
-  {id:'oranienplatz',name:'Oranienplatz',short:'Oranienplatz',districtId:'kreuzberg',x:900,y:600,kind:'service'},
-  {id:'goerlitzer',name:'Görlitzer Park',short:'Görli',glyph:'♧',districtId:'kreuzberg',x:980,y:675,kind:'landmark',landmarkId:'goerlitzer'},
-  {id:'schlesisches',name:'Schlesisches Tor',short:'Schlesisches Tor',districtId:'kreuzberg',x:1035,y:635,kind:'hub'},
-  {id:'oberbaum',name:'Oberbaumbrücke',short:'Oberbaumbrücke',glyph:'⌁',districtId:'friedrichshain',x:1080,y:590,kind:'landmark',landmarkId:'oberbaum'},
-  {id:'warschauer',name:'Warschauer Straße',short:'Warschauer Straße',districtId:'friedrichshain',x:1100,y:515,kind:'hub'},
-  {id:'frankfurter_tor',name:'Frankfurter Tor',short:'Frankfurter Tor',districtId:'friedrichshain',x:1100,y:420,kind:'hub'},
-  {id:'strausberger',name:'Strausberger Platz',short:'Strausberger Platz',districtId:'friedrichshain',x:1005,y:420,kind:'service'},
-  {id:'ostbahnhof',name:'Ostbahnhof',short:'Ostbahnhof',districtId:'friedrichshain',x:1030,y:500,kind:'hub'},
-  {id:'eastside',name:'East Side Gallery',short:'East Side Gallery',glyph:'▰',districtId:'friedrichshain',x:1070,y:555,kind:'landmark',landmarkId:'eastside'},
-  {id:'boxi',name:'Boxhagener Platz',short:'Boxhagener Platz',districtId:'friedrichshain',x:1180,y:485,kind:'hub'},
-  {id:'jannowitz',name:'Jannowitzbrücke',short:'Jannowitzbrücke',districtId:'mitte',x:940,y:510,kind:'hub'},
-  {id:'heinrich_heine',name:'Heinrich-Heine-Straße',short:'Heinrich-Heine-Straße',districtId:'kreuzberg',x:930,y:570,kind:'service'},
-  {id:'hermannplatz',name:'Hermannplatz',short:'Hermannplatz',glyph:'◈',districtId:'neukoelln',x:905,y:785,kind:'landmark',landmarkId:'hermannplatz'},
-  {id:'rathaus_nk',name:'Rathaus Neukölln',short:'Rathaus Neukölln',districtId:'neukoelln',x:930,y:835,kind:'hub'},
-  {id:'karl_marx_nk',name:'Karl-Marx-Straße / Flughafenstraße',districtId:'neukoelln',x:925,y:755,kind:'service'},
-  {id:'sonnenallee',name:'Sonnenallee / Pannierstraße',short:'Sonnenallee',districtId:'neukoelln',x:1000,y:790,kind:'hub'},
-  {id:'hermannstr',name:'Hermannstraße / Flughafenstraße',short:'Hermannstraße',districtId:'neukoelln',x:830,y:800,kind:'service'},
-  {id:'schoeneberg',name:'Rathaus Schöneberg',short:'Rathaus Schöneberg',districtId:'schoeneberg',x:430,y:720,kind:'hub'},
-  {id:'bayerischer',name:'Bayerischer Platz',short:'Bayerischer Platz',districtId:'schoeneberg',x:470,y:665,kind:'service'},
-  {id:'hallesch',name:'Hallesches Tor',short:'Hallesches Tor',districtId:'kreuzberg',x:760,y:615,kind:'hub'},
-  {id:'gleisdreieck',name:'Gleisdreieck',short:'Gleisdreieck',districtId:'kreuzberg',x:585,y:625,kind:'service'},
-  {id:'westhafen',name:'Westhafen',short:'Westhafen',districtId:'moabit',x:510,y:255,kind:'service'},
-  {id:'jungfernheide_e',name:'Siemensstraße / Beusselstraße',districtId:'moabit',x:410,y:255,kind:'service'},
-  {id:'heidestr',name:'Heidestraße / Invalidenstraße',districtId:'moabit',x:590,y:300,kind:'service'},
-  {id:'hackescher',name:'Hackescher Markt',short:'Hackescher Markt',districtId:'mitte',x:840,y:390,kind:'service'},
-  {id:'molkenmarkt',name:'Molkenmarkt',short:'Molkenmarkt',districtId:'mitte',x:870,y:475,kind:'service'},
-  {id:'ostkreuz',name:'Ostkreuz',short:'Ostkreuz',districtId:'friedrichshain',x:1260,y:500,kind:'hub'},
-  {id:'samariter',name:'Samariterstraße',short:'Samariterstraße',districtId:'friedrichshain',x:1180,y:420,kind:'service'},
-  {id:'treptower',name:'Treptower Park',short:'Treptower Park',districtId:'neukoelln',x:1160,y:710,kind:'service'},
-  {id:'neukoelln_s',name:'S-Bahnhof Neukölln',short:'S Neukölln',districtId:'neukoelln',x:930,y:900,kind:'service'},
-  {id:'tempelhof_s',name:'S-Bahnhof Tempelhof',short:'S Tempelhof',districtId:'tempelhof',x:700,y:930,kind:'service'}
+const DATA_SOURCES={detailNetwork:'Berlin Open Data · Detailnetz Berlin',addresses:'Berlin Open Data · Adressen Berlin',license:'Datenlizenz Deutschland – Zero – Version 2.0'};
+const DISTRICTS=[
+{id:'charlottenburg',name:'Charlottenburg',color:'#d8a94f',postcode:['10623','10625','10627','10707'],polygon:[[40,330],[330,320],[360,585],[80,610]],center:[190,470]},
+{id:'moabit',name:'Moabit',color:'#6aa9d7',postcode:['10551','10553','10555','10557'],polygon:[[300,190],[565,180],[580,390],[315,405]],center:[430,295]},
+{id:'wedding',name:'Wedding',color:'#9a86c9',postcode:['13347','13349','13353','13355'],polygon:[[390,35],[670,35],[690,245],[405,250]],center:[535,145]},
+{id:'prenzlauer',name:'Prenzlauer Berg',color:'#d67f8e',postcode:['10405','10407','10435','10437'],polygon:[[650,35],[930,40],[935,300],[690,300]],center:[795,165]},
+{id:'mitte',name:'Mitte',color:'#55aeb5',postcode:['10115','10117','10119','10178','10179'],polygon:[[520,205],[860,205],[885,455],[535,465]],center:[700,335]},
+{id:'friedrichshain',name:'Friedrichshain',color:'#c778a4',postcode:['10243','10245','10247','10249'],polygon:[[840,260],[1190,270],[1180,545],[860,550]],center:[1015,405]},
+{id:'kreuzberg',name:'Kreuzberg',color:'#d98455',postcode:['10961','10963','10967','10997','10999'],polygon:[[515,430],[940,420],[960,665],[530,675]],center:[730,550]},
+{id:'schoeneberg',name:'Schöneberg',color:'#709bc7',postcode:['10777','10779','10823','10827'],polygon:[[270,470],[555,455],[565,705],[270,710]],center:[420,590]},
+{id:'neukoelln',name:'Neukölln',color:'#76ab67',postcode:['12043','12045','12047','12049'],polygon:[[750,535],[1120,530],[1140,790],[760,790]],center:[930,660]},
+{id:'tempelhof',name:'Tempelhof',color:'#91a654',postcode:['12099','12101','12103'],polygon:[[470,625],[805,620],[820,820],[470,820]],center:[645,725]}
 ];
-
-const streets = [
-  {name:'Kurfürstendamm',class:'primary',nodes:['kudamm','savigny','zoo','wittenberg']},
-  {name:'Kantstraße',class:'secondary',nodes:['charl_west','savigny','zoo']},
-  {name:'Bismarckstraße',class:'primary',nodes:['charl_west','ernst_reuter']},
-  {name:'Hardenbergstraße',class:'secondary',nodes:['ernst_reuter','zoo']},
-  {name:'Straße des 17. Juni',class:'arterial',nodes:['ernst_reuter','victory','brandenburg']},
-  {name:'Tiergartenstraße',class:'secondary',nodes:['zoo','victory','tiergarten_s','potsdamer']},
-  {name:'Potsdamer Straße',class:'primary',nodes:['potsdamer','nollendorf','kleistpark','schoeneberg']},
-  {name:'Alt-Moabit / Turmstraße',class:'primary',nodes:['moabit_w','turmstr','hbf']},
-  {name:'Beusselstraße',class:'secondary',nodes:['jungfernheide_e','moabit_w','westhafen']},
-  {name:'Invalidenstraße',class:'primary',nodes:['westhafen','heidestr','hbf','naturkunde','nordbahnhof']},
-  {name:'Müllerstraße',class:'primary',nodes:['westhafen','leopold','gesundbrunnen']},
-  {name:'Brunnenstraße',class:'primary',nodes:['gesundbrunnen','nordbahnhof','rosenthaler']},
-  {name:'Schönhauser Allee',class:'primary',nodes:['eberwalder','senefelder','rosa']},
-  {name:'Eberswalder / Danziger Straße',class:'primary',nodes:['mauerpark','eberwalder','prenzlauer_n','greifswalder']},
-  {name:'Prenzlauer Allee',class:'primary',nodes:['prenzlauer_n','prenzlauer_s','alex']},
-  {name:'Torstraße',class:'primary',nodes:['rosenthaler','rosa','prenzlauer_s']},
-  {name:'Unter den Linden',class:'arterial',nodes:['brandenburg','friedrich_ul','museuminsel']},
-  {name:'Karl-Liebknecht-Straße',class:'primary',nodes:['museuminsel','hackescher','tv','alex']},
-  {name:'Friedrichstraße',class:'arterial',nodes:['naturkunde','friedrich_ul','friedrich_leipzig','checkpoint','hallesch','mehringplatz']},
-  {name:'Leipziger Straße',class:'primary',nodes:['potsdamer','friedrich_leipzig','spittelmarkt','molkenmarkt']},
-  {name:'Alexanderstraße',class:'primary',nodes:['alex','jannowitz']},
-  {name:'Karl-Marx-Allee',class:'arterial',nodes:['alex','strausberger','frankfurter_tor','samariter']},
-  {name:'Frankfurter Allee',class:'primary',nodes:['frankfurter_tor','samariter','ostkreuz']},
-  {name:'Warschauer Straße',class:'primary',nodes:['frankfurter_tor','warschauer','oberbaum']},
-  {name:'Mühlenstraße / Stralauer Allee',class:'secondary',nodes:['jannowitz','ostbahnhof','eastside','warschauer']},
-  {name:'Boxhagener Straße',class:'secondary',nodes:['frankfurter_tor','boxi','ostkreuz']},
-  {name:'Heinrich-Heine-Straße',class:'primary',nodes:['jannowitz','heinrich_heine','moritzplatz']},
-  {name:'Oranienstraße',class:'secondary',nodes:['checkpoint','moritzplatz','oranienplatz','kotti']},
-  {name:'Gitschiner / Skalitzer Straße',class:'primary',nodes:['hallesch','mehringdamm','kotti','goerlitzer','schlesisches','oberbaum']},
-  {name:'Mehringdamm',class:'primary',nodes:['mehringplatz','mehringdamm','suedstern','luftbruecke']},
-  {name:'Kottbusser Damm',class:'primary',nodes:['kotti','hermannplatz']},
-  {name:'Karl-Marx-Straße',class:'primary',nodes:['hermannplatz','karl_marx_nk','rathaus_nk','neukoelln_s']},
-  {name:'Hermannstraße',class:'primary',nodes:['hermannplatz','hermannstr','neukoelln_s']},
-  {name:'Sonnenallee',class:'primary',nodes:['hermannplatz','sonnenallee','treptower']},
-  {name:'Tempelhofer Damm',class:'primary',nodes:['suedstern','luftbruecke','tempelhofer','tempelhof_s']},
-  {name:'Gneisenaustraße',class:'secondary',nodes:['kleistpark','gleisdreieck','mehringdamm','suedstern']},
-  {name:'Yorckstraße',class:'secondary',nodes:['nollendorf','gleisdreieck','hallesch']},
-  {name:'Grunewaldstraße',class:'secondary',nodes:['nollendorf','bayerischer','schoeneberg']},
-  {name:'Urbanstraße',class:'secondary',nodes:['mehringdamm','suedstern','hermannplatz']},
-  {name:'Oberbaumbrücke',class:'bridge',nodes:['schlesisches','oberbaum','warschauer']},
-  {name:'Moltkebrücke',class:'bridge',nodes:['hbf','reichstag']},
-  {name:'Jannowitzbrücke',class:'bridge',nodes:['jannowitz','heinrich_heine']},
-  {name:'Spreebogen',class:'secondary',nodes:['hbf','reichstag','brandenburg']},
-  {name:'Alexanderufer',class:'secondary',nodes:['hbf','heidestr','naturkunde']},
-  {name:'Köpenicker Straße',class:'secondary',nodes:['heinrich_heine','moritzplatz','schlesisches']},
-  {name:'Petersburger Straße',class:'secondary',nodes:['greifswalder','frankfurter_tor','warschauer']}
+const ZONES=[
+{id:'charlottenburg',x:[70,320],y:[350,565],h:[['Bismarckstraße',365,'primary'],['Kantstraße',415,'secondary'],['Hardenbergstraße',455,'primary'],['Kurfürstendamm',505,'arterial'],['Lietzenburger Straße',555,'primary']],v:[['Wilmersdorfer Straße',95,'primary'],['Kaiser-Friedrich-Straße',155,'secondary'],['Leibnizstraße',215,'secondary'],['Fasanenstraße',275,'secondary']]},
+{id:'moabit',x:[315,560],y:[205,390],h:[['Huttenstraße',220,'secondary'],['Invalidenstraße',260,'primary'],['Turmstraße',310,'primary'],['Alt-Moabit',365,'primary']],v:[['Beusselstraße',335,'primary'],['Stromstraße',395,'secondary'],['Lübecker Straße',445,'secondary'],['Lehrter Straße',500,'secondary'],['Rathenower Straße',545,'secondary']]},
+{id:'wedding',x:[410,675],y:[55,235],h:[['Osloer Straße',70,'primary'],['Seestraße',115,'arterial'],['Luxemburger Straße',165,'secondary'],['Amrumer Straße',215,'secondary']],v:[['Reinickendorfer Straße',430,'primary'],['Müllerstraße',495,'arterial'],['Schulstraße',550,'secondary'],['Brunnenstraße',610,'primary'],['Pankstraße',660,'secondary']]},
+{id:'prenzlauer',x:[675,920],y:[60,285],h:[['Danziger Straße',95,'arterial'],['Stargarder Straße',145,'secondary'],['Wichertstraße',195,'secondary'],['Eberswalder Straße',245,'primary']],v:[['Schönhauser Allee',700,'arterial'],['Pappelallee',755,'secondary'],['Prenzlauer Allee',815,'arterial'],['Dunckerstraße',865,'secondary'],['Greifswalder Straße',915,'primary']]},
+{id:'mitte',x:[540,860],y:[225,445],h:[['Invalidenstraße',245,'primary'],['Torstraße',285,'primary'],['Oranienburger Straße',325,'secondary'],['Unter den Linden',365,'arterial'],['Leipziger Straße',415,'arterial']],v:[['Chausseestraße',565,'primary'],['Friedrichstraße',630,'arterial'],['Glinkastraße',685,'secondary'],['Rosenthaler Straße',745,'secondary'],['Alexanderstraße',825,'primary']]},
+{id:'friedrichshain',x:[855,1170],y:[290,530],h:[['Karl-Marx-Allee',325,'arterial'],['Frankfurter Allee',370,'arterial'],['Grünberger Straße',415,'secondary'],['Boxhagener Straße',465,'primary'],['Revaler Straße',515,'secondary']],v:[['Warschauer Straße',885,'arterial'],['Petersburger Straße',965,'primary'],['Samariterstraße',1040,'secondary'],['Proskauer Straße',1115,'secondary']]},
+{id:'kreuzberg',x:[535,935],y:[455,650],h:[['Oranienstraße',475,'primary'],['Wiener Straße',520,'secondary'],['Skalitzer Straße',560,'arterial'],['Gneisenaustraße',605,'primary'],['Yorckstraße',645,'primary']],v:[['Mehringdamm',575,'arterial'],['Prinzenstraße',675,'primary'],['Kottbusser Straße',770,'arterial'],['Görlitzer Straße',865,'secondary']]},
+{id:'schoeneberg',x:[295,545],y:[490,695],h:[['Kleiststraße',505,'primary'],['Grunewaldstraße',550,'secondary'],['Hauptstraße',595,'arterial'],['Kolonnenstraße',640,'secondary'],['Dominicusstraße',685,'primary']],v:[['Potsdamer Straße',320,'arterial'],['Goltzstraße',385,'secondary'],['Akazienstraße',450,'secondary'],['Martin-Luther-Straße',520,'primary']]},
+{id:'neukoelln',x:[775,1115],y:[550,775],h:[['Flughafenstraße',565,'primary'],['Donaustraße',610,'secondary'],['Sonnenallee',660,'arterial'],['Weserstraße',710,'secondary'],['Erkstraße',760,'secondary']],v:[['Kottbusser Damm',795,'arterial'],['Pannierstraße',865,'secondary'],['Karl-Marx-Straße',940,'arterial'],['Hermannstraße',1030,'arterial']]},
+{id:'tempelhof',x:[490,795],y:[645,805],h:[['Columbiadamm',655,'arterial'],['Dudenstraße',705,'primary'],['Ringbahnstraße',755,'primary'],['Albrechtstraße',800,'secondary']],v:[['Manfred-von-Richthofen-Straße',515,'secondary'],['Boelckestraße',590,'secondary'],['Tempelhofer Damm',665,'arterial'],['Manteuffelstraße',750,'secondary']]}
 ];
-
-export const BERLIN = {
-  name:'Berlin', width:1400, height:1000,
-  river:[[350,370],[470,360],[580,370],[650,390],[740,420],[820,440],[900,465],[960,500],[1030,535],[1110,555],[1210,560],[1350,585]],
-  canal:[[470,610],[560,625],[650,640],[760,650],[860,675],[960,690],[1080,660],[1180,650]],
-  parks:[
-    {id:'tiergarten',name:'Tiergarten',color:'#77aa72',polygon:[[335,380],[560,365],[635,430],[610,535],[445,555],[330,490]]},
-    {id:'tempelhofer-feld',name:'Tempelhofer Feld',color:'#7eaa68',polygon:[[585,805],[805,800],[825,950],[650,980],[555,915]]},
-    {id:'goerlitzer-park',name:'Görlitzer Park',color:'#74a56e',polygon:[[930,650],[1010,645],[1025,720],[945,735]]}
-  ],
-  districts:[
-    {id:'charlottenburg',name:'Charlottenburg',color:'#d7a23a',polygon:[[45,330],[330,330],[390,555],[300,640],[60,600]],center:[190,455]},
-    {id:'moabit',name:'Moabit',color:'#5aa6c8',polygon:[[330,210],[650,220],[690,390],[520,420],[340,365]],center:[505,300]},
-    {id:'wedding',name:'Wedding',color:'#9377c5',polygon:[[500,65],[800,70],[850,255],[650,285],[500,220]],center:[650,165]},
-    {id:'prenzlauer',name:'Prenzlauer Berg',color:'#ca7182',polygon:[[790,90],[1090,110],[1100,345],[890,390],[790,270]],center:[940,225]},
-    {id:'tiergarten',name:'Tiergarten',color:'#5d9874',polygon:[[315,350],[650,340],[690,570],[430,600],[300,500]],center:[485,470]},
-    {id:'mitte',name:'Mitte',color:'#4ca7b8',polygon:[[620,260],[1010,270],[1015,555],[780,620],[620,520]],center:[810,430]},
-    {id:'friedrichshain',name:'Friedrichshain',color:'#c2709d',polygon:[[980,300],[1360,320],[1380,610],[1120,675],[1010,560]],center:[1190,460]},
-    {id:'kreuzberg',name:'Kreuzberg',color:'#cb854d',polygon:[[560,555],[1080,545],[1120,760],[850,815],[575,735]],center:[820,665]},
-    {id:'schoeneberg',name:'Schöneberg',color:'#638fb8',polygon:[[300,555],[600,550],[620,790],[420,825],[260,700]],center:[430,690]},
-    {id:'tempelhof',name:'Tempelhof',color:'#7e9f55',polygon:[[520,735],[850,725],[880,995],[560,995]],center:[690,865]},
-    {id:'neukoelln',name:'Neukölln',color:'#5a9a68',polygon:[[820,700],[1170,650],[1260,960],[870,995]],center:[1000,825]}
-  ],
-  nodes, streets,
-  landmarks:nodes.filter((node)=>node.kind==='landmark'),
-  hubs:nodes.filter((node)=>node.kind==='hub'),
-  bridges:[
-    {id:'moltkebruecke',name:'Moltkebrücke',short:'Moltkebrücke',edge:['hbf','reichstag']},
-    {id:'jannowitzbruecke',name:'Jannowitzbrücke',short:'Jannowitzbrücke',edge:['jannowitz','heinrich_heine']},
-    {id:'oberbaumbruecke',name:'Oberbaumbrücke',short:'Oberbaumbrücke',edge:['schlesisches','oberbaum']}
-  ]
-};
-
-export function districtById(id){ return BERLIN.districts.find((district)=>district.id===id); }
-export function landmarkById(id){ return BERLIN.landmarks.find((landmark)=>landmark.landmarkId===id||landmark.id===id); }
-export function bridgeById(id){ return BERLIN.bridges.find((bridge)=>bridge.id===id); }
+const ARTERIALS=[
+{name:'Straße des 17. Juni',class:'arterial',points:[[275,420],[390,400],[505,385],[590,370]]},
+{name:'Invalidenstraße',class:'primary',points:[[480,260],[575,245],[690,245],[790,250]]},
+{name:'Torstraße',class:'primary',points:[[610,285],[725,285],[845,300]]},
+{name:'Unter den Linden',class:'arterial',points:[[590,370],[675,365],[760,365]]},
+{name:'Karl-Marx-Allee',class:'arterial',points:[[800,365],[925,345],[1080,355]]},
+{name:'Friedrichstraße',class:'arterial',points:[[630,240],[630,365],[640,475],[645,605]]},
+{name:'Müllerstraße',class:'arterial',points:[[495,95],[495,210],[500,310]]},
+{name:'Schönhauser Allee',class:'arterial',points:[[700,245],[720,175],[735,95]]},
+{name:'Prenzlauer Allee',class:'arterial',points:[[815,280],[815,190],[815,95]]},
+{name:'Potsdamer Straße',class:'arterial',points:[[590,420],[505,500],[420,590]]},
+{name:'Mehringdamm',class:'arterial',points:[[575,475],[575,560],[590,655]]},
+{name:'Kottbusser Damm',class:'arterial',points:[[770,560],[795,635],[820,715]]},
+{name:'Karl-Marx-Straße',class:'arterial',points:[[940,565],[940,660],[955,750]]},
+{name:'Warschauer Straße',class:'arterial',points:[[885,325],[895,430],[915,525]]},
+{name:'Sonnenallee',class:'arterial',points:[[805,660],[940,660],[1080,680]]},
+{name:'Oberbaumbrücke',class:'bridge',bridgeId:'oberbaumbruecke',points:[[865,545],[915,500]]},
+{name:'Jannowitzbrücke',class:'bridge',bridgeId:'jannowitzbruecke',points:[[805,385],[835,430]]},
+{name:'Moltkebrücke',class:'bridge',bridgeId:'moltkebruecke',points:[[520,300],[565,340]]}
+];
+const LANDMARKS=[
+{id:'zoo',name:'Zoologischer Garten',short:'Zoo',glyph:'●',districtId:'charlottenburg',x:275,y:455},
+{id:'kudamm',name:'Kurfürstendamm',short:"Ku'damm",glyph:'◆',districtId:'charlottenburg',x:220,y:505},
+{id:'victory',name:'Siegessäule',short:'Siegessäule',glyph:'✦',districtId:'mitte',x:470,y:390},
+{id:'hauptbahnhof',name:'Hauptbahnhof',short:'Hbf',glyph:'▣',districtId:'moabit',x:535,y:285},
+{id:'reichstag',name:'Reichstag',short:'Reichstag',glyph:'▥',districtId:'mitte',x:570,y:350},
+{id:'brandenburg',name:'Brandenburger Tor',short:'Brandenburger Tor',glyph:'Π',districtId:'mitte',x:600,y:370},
+{id:'potsdamer',name:'Potsdamer Platz',short:'Potsdamer Platz',glyph:'◇',districtId:'mitte',x:610,y:430},
+{id:'checkpoint',name:'Checkpoint Charlie',short:'Checkpoint Charlie',glyph:'✚',districtId:'kreuzberg',x:650,y:475},
+{id:'museuminsel',name:'Museumsinsel',short:'Museumsinsel',glyph:'▤',districtId:'mitte',x:735,y:350},
+{id:'alex',name:'Alexanderplatz',short:'Alexanderplatz',glyph:'◎',districtId:'mitte',x:820,y:350},
+{id:'fernsehturm',name:'Fernsehturm',short:'TV Tower',glyph:'▲',districtId:'mitte',x:800,y:330},
+{id:'mauerpark',name:'Mauerpark',short:'Mauerpark',glyph:'♧',districtId:'prenzlauer',x:720,y:205},
+{id:'eastside',name:'East Side Gallery',short:'East Side Gallery',glyph:'▰',districtId:'friedrichshain',x:900,y:500},
+{id:'oberbaum',name:'Oberbaumbrücke',short:'Oberbaumbrücke',glyph:'⌁',districtId:'friedrichshain',x:915,y:500},
+{id:'goerlitzer',name:'Görlitzer Park',short:'Görli',glyph:'♧',districtId:'kreuzberg',x:850,y:555},
+{id:'hermannplatz',name:'Hermannplatz',short:'Hermannplatz',glyph:'◈',districtId:'neukoelln',x:825,y:610},
+{id:'tempelhofer',name:'Tempelhofer Feld',short:'Tempelhofer Feld',glyph:'▱',districtId:'tempelhof',x:665,y:700}
+];
+const PARKS=[
+{id:'tiergarten',name:'Tiergarten',color:'#8bbf80',polygon:[[330,330],[515,310],[585,380],[525,455],[350,445]]},
+{id:'tempelhofer-feld',name:'Tempelhofer Feld',color:'#91bd7e',polygon:[[555,665],[770,650],[800,780],[560,795]]},
+{id:'goerlitzer-park',name:'Görlitzer Park',color:'#8bbf80',polygon:[[810,525],[900,515],[920,585],[825,595]]}
+];
+const RIVER=[[350,330],[470,325],[560,340],[650,365],[760,380],[845,410],[930,450],[1035,470],[1185,490]];
+const CANAL=[[350,515],[470,505],[570,520],[690,545],[790,560],[890,555]];
+const BRIDGES=[
+{id:'moltkebruecke',name:'Moltkebrücke',short:'Moltkebrücke'},
+{id:'jannowitzbruecke',name:'Jannowitzbrücke',short:'Jannowitzbrücke'},
+{id:'oberbaumbruecke',name:'Oberbaumbrücke',short:'Oberbaumbrücke'}
+];
+function districtAt(x,y){let best=DISTRICTS[0],score=Infinity;for(const d of DISTRICTS){const dx=x-d.center[0],dy=y-d.center[1],s=dx*dx+dy*dy;if(s<score){score=s;best=d;}}return best;}
+function keyXY(x,y){return `${Math.round(x*10)}:${Math.round(y*10)}`;}
+function buildBerlin(){
+  const nodes=[],baseEdges=[],nodeByKey=new Map(),edgeSeen=new Map(),streetNumbers=new Map();let nodeSerial=0,baseSerial=0;
+  const getNode=(x,y,districtId=null)=>{const k=keyXY(x,y);if(nodeByKey.has(k))return nodeByKey.get(k);const d=DISTRICTS.find((item)=>item.id===districtId)??districtAt(x,y);const n={id:`i${nodeSerial++}`,name:'intersection',districtId:d.id,x,y,kind:'intersection'};nodes.push(n);nodeByKey.set(k,n);return n;};
+  const addBase=(a,b,streetName,roadClass='secondary',bridgeId=null)=>{if(!a||!b||a.id===b.id)return;const k=[a.id,b.id].sort().join('|');const existing=edgeSeen.get(k);if(existing){if(!existing.streetNames.includes(streetName))existing.streetNames.push(streetName);if(roadClass==='arterial')existing.roadClass='arterial';if(bridgeId)existing.bridgeId=bridgeId;return existing;}const e={id:`v${baseSerial++}`,a:a.id,b:b.id,streetName,streetNames:[streetName],roadClass,bridgeId,distance:Math.hypot(a.x-b.x,a.y-b.y)};baseEdges.push(e);edgeSeen.set(k,e);return e;};
+  for(const zone of ZONES){const rowNodes=new Map(),colNodes=new Map();for(const [hName,y,hClass] of zone.h){const row=[];for(const [vName,x] of zone.v){const n=getNode(x,y,zone.id);row.push(n);const col=colNodes.get(vName)??[];col.push(n);colNodes.set(vName,col);}rowNodes.set(hName,{nodes:row,class:hClass});}for(const [hName,row] of rowNodes){const ordered=[...row.nodes].sort((a,b)=>a.x-b.x);for(let i=1;i<ordered.length;i++)addBase(ordered[i-1],ordered[i],hName,row.class);}for(const [vName,x,vClass] of zone.v){const ordered=[...(colNodes.get(vName)??[])].sort((a,b)=>a.y-b.y);for(let i=1;i<ordered.length;i++)addBase(ordered[i-1],ordered[i],vName,vClass);}}
+  for(const arterial of ARTERIALS){const line=arterial.points.map(([x,y])=>getNode(x,y));for(let i=1;i<line.length;i++)addBase(line[i-1],line[i],arterial.name,arterial.class,arterial.bridgeId??null);for(const n of line){let nearest=null;for(const candidate of nodes){if(candidate.id===n.id)continue;const d=Math.hypot(candidate.x-n.x,candidate.y-n.y);if(d<55&&(!nearest||d<nearest.d))nearest={candidate,d};}if(nearest)addBase(n,nearest.candidate,arterial.name,arterial.class,arterial.bridgeId??null);}}
+  const graphNodes=[...nodes],edges=[];let edgeSerial=0,addressSerial=0;
+  const postcodeFor=(districtId,index)=>{const list=DISTRICTS.find((d)=>d.id===districtId)?.postcode??['10115'];return list[index%list.length];};
+  for(const base of baseEdges){const a=nodes.find((n)=>n.id===base.a),b=nodes.find((n)=>n.id===base.b);const counter=streetNumbers.get(base.streetName)??1;const points=[.34,.68].map((t,idx)=>{const district=districtAt(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t);const parity=idx===0?1:2;const number=Math.max(1,counter+parity);const n={id:`a${addressSerial++}`,name:`${base.streetName} ${number}`,short:`${base.streetName} ${number}`,districtId:district.id,x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,kind:'address',streetName:base.streetName,houseNumber:number,postcode:postcodeFor(district.id,addressSerial),addressLabel:`${base.streetName} ${number}`,fullAddress:`${base.streetName} ${number}, ${postcodeFor(district.id,addressSerial)} Berlin`};graphNodes.push(n);return n;});streetNumbers.set(base.streetName,counter+4);const chain=[a,...points,b];for(let i=1;i<chain.length;i++){const p=chain[i-1],q=chain[i];edges.push({id:`e${edgeSerial++}`,visualId:base.id,a:p.id,b:q.id,distance:Math.hypot(p.x-q.x,p.y-q.y),speed:base.roadClass==='arterial'?1.04:base.roadClass==='primary'?1:.96,bikeLane:false,eventMultiplier:1,roadClass:base.roadClass,streetName:base.streetName,streetNames:base.streetNames,bridgeId:base.bridgeId});}}
+  const addressNodes=graphNodes.filter((n)=>n.kind==='address');
+  const landmarks=LANDMARKS.map((landmark)=>{let nearest=addressNodes[0],best=Infinity;for(const n of addressNodes){const d=Math.hypot(n.x-landmark.x,n.y-landmark.y);if(d<best){best=d;nearest=n;}}return{...landmark,addressNodeId:nearest.id};});
+  const streetCatalog=[...new Set(baseEdges.map((e)=>e.streetName))].sort((a,b)=>a.localeCompare(b,'de'));
+  return{name:'Berlin',width:1220,height:840,dataSources:DATA_SOURCES,districts:DISTRICTS,parks:PARKS,river:RIVER,canal:CANAL,landmarks,bridges:BRIDGES,nodes:graphNodes,edges,visualEdges:baseEdges,addressNodes,streetCatalog};
+}
+export const BERLIN=buildBerlin();
+export function districtById(id){return BERLIN.districts.find((d)=>d.id===id);}
+export function landmarkById(id){return BERLIN.landmarks.find((l)=>l.id===id);}
+export function bridgeById(id){return BERLIN.bridges.find((b)=>b.id===id);}

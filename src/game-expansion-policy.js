@@ -9,13 +9,11 @@ export const EXPANSION_POLICIES=[
 const baseAdvance=Game.prototype.maybeAdvanceCity;
 Game.prototype.maybeAdvanceCity=function(){
   const changed=baseAdvance.call(this);if(!changed)return false;
-  this.expansionPolicyPending={level:this.cityLevel,stage:this.currentStage().name,choices:EXPANSION_POLICIES.map(policy=>policy.id)};
-  this.expansionPauseWas=this.paused;this.paused=true;this.logDispatch('policy-offer',null,{level:this.cityLevel,stage:this.currentStage().name});
-  return true;
+  if(!this.expansionPolicyPending)this.expansionPolicyPending={level:this.cityLevel,stage:this.currentStage().name,choices:EXPANSION_POLICIES.map(policy=>policy.id)};
+  this.logDispatch('policy-offer',null,{level:this.cityLevel,stage:this.currentStage().name});return true;
 };
-
 Game.prototype.expansionPolicyChoices=function(){if(!this.expansionPolicyPending)return[];return EXPANSION_POLICIES.filter(policy=>this.expansionPolicyPending.choices.includes(policy.id));};
 Game.prototype.applyExpansionPolicy=function(id){
   const pending=this.expansionPolicyPending,policy=EXPANSION_POLICIES.find(item=>item.id===id);if(!pending||!policy||!pending.choices.includes(id))return false;
-  policy.apply(this);this.expansionPolicies??=[];this.expansionPolicies.push({level:pending.level,stage:pending.stage,id:policy.id,title:policy.title});this.expansionPolicyPending=null;const restore=Boolean(this.expansionPauseWas);this.expansionPauseWas=false;this.paused=restore;this.logDispatch('policy',null,{level:pending.level,stage:pending.stage,policy:policy.title});this.flash(`${policy.title.toUpperCase()} · operating doctrine active`,5);return true;
+  policy.apply(this);this.expansionPolicies??=[];this.expansionPolicies.push({level:pending.level,stage:pending.stage,id:policy.id,title:policy.title});this.expansionPolicyPending=null;this.logDispatch('policy',null,{level:pending.level,stage:pending.stage,policy:policy.title});this.flash(`${policy.title.toUpperCase()} · operating doctrine active`,5);return true;
 };

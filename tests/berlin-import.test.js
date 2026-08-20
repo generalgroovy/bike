@@ -12,7 +12,7 @@ test('official Adressen RBS schema pins documented canonical fields',()=>{assert
 
 test('official address schema validation rejects missing canonical identity fields',()=>{assert.deepEqual(validateOfficialAddressProperties({strnam:'Skalitzer Straße',hausnr:'127'}),{valid:true,missing:[]});assert.deepEqual(validateOfficialAddressProperties({strnam:'Skalitzer Straße'}),{valid:false,missing:['hausnr']});});
 
-test('canonical street names normalize display spelling without losing identity',()=>{assert.equal(canonicalStreetName('  SKALITZER STRASSE  '),'skalitzer straße');assert.equal(canonicalStreetName('Skalitzer Straße'),'skalitzer straße');assert.equal(canonicalStreetName('Karl-Marx-Strasse.'),'karl-marx-strasse');});
+test('canonical street names normalize display spelling without losing identity',()=>{assert.equal(canonicalStreetName('  SKALITZER STRASSE  '),'skalitzer straße');assert.equal(canonicalStreetName('Skalitzer Straße'),'skalitzer straße');assert.equal(canonicalStreetName('Karl-Marx-Strasse.'),'karl-marx-straße');});
 
 test('feature type discovery parses namespaced capabilities and picks hinted layer',()=>{const xml=`<wfs:WFS_Capabilities xmlns:wfs="x"><wfs:FeatureTypeList><wfs:FeatureType><wfs:Name>fis:verkehr_knoten</wfs:Name></wfs:FeatureType><wfs:FeatureType><wfs:Name>fis:strassenabschnitt</wfs:Name></wfs:FeatureType></wfs:FeatureTypeList></wfs:WFS_Capabilities>`;const names=featureTypeNames(xml);assert.deepEqual(names,['fis:verkehr_knoten','fis:strassenabschnitt']);assert.equal(chooseFeatureType(names,['strassenabschnitt','strasse']),'fis:strassenabschnitt');});
 

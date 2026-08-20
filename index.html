@@ -1,73 +1,82 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f2efe7">
-  <meta name="description" content="BIKE — a Berlin courier dispatch roguelike about managing an autonomous rider radio across real-named streets.">
-  <title>BIKE // Berlin Dispatch</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#e9e5dc">
+<meta name="description" content="BIKE: an indirect-control Berlin bicycle courier dispatch roguelike.">
+<title>BIKE // Berlin Dispatch</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <header class="topbar">
-      <button class="brand" id="reset-view" title="Reset map view"><span class="brand-mark">B</span><span><strong>BIKE</strong><small>BERLIN DISPATCH</small></span></button>
-      <div class="metrics" aria-label="Shift status">
-        <div><span>REP</span><strong id="rep" data-level="good">100%</strong></div>
-        <div><span>SCORE</span><strong id="score">0</strong></div>
-        <div><span>CASH</span><strong id="cash">€0</strong></div>
-        <div><span>WAVE</span><strong id="wave">1</strong></div>
-      </div>
-      <div class="top-actions"><button id="controls-toggle" class="quiet" aria-expanded="false" aria-controls="controls-overview">CONTROLS</button><button id="new-run">NEW SHIFT</button></div>
-    </header>
-
-    <section class="workspace">
-      <aside class="left-rail" aria-label="Dispatch board">
-        <section class="rail-head"><div><span class="kicker">DISPATCH</span><h1>Choose what riders hear.</h1></div><div class="radio-capacity"><span>RADIO</span><strong><b id="called-count">0</b>/<b id="radio-slots">4</b></strong></div></section>
-        <p class="rail-rule">Every job is an address-to-address run. Broadcast a useful choice set; riders decide independently.</p>
-        <div class="section-line"><span>OPEN JOBS</span><b id="active-count">0</b></div>
-        <div id="deliveries" class="job-list" aria-live="polite"></div>
-      </aside>
-
-      <section class="map-wrap" aria-label="Simplified detailed Berlin street map">
-        <canvas id="game-canvas"></canvas>
-        <div class="map-status"><span>BERLIN</span><strong id="trait">---</strong><small id="trait-desc"></small></div>
-        <div class="seed-chip">SHIFT <strong id="seed">---</strong></div>
-        <div id="event-chip" class="event-chip" hidden><span id="event-state">FORECAST</span><strong id="event-title">---</strong><small id="event-detail"></small><b id="event-time"></b></div>
-        <div id="notice" class="notice" role="status"></div>
-        <div class="map-tools" aria-label="Map controls"><button id="zoom-out" title="Zoom out">−</button><button id="zoom-reset" title="Reset zoom">1:1</button><button id="zoom-in" title="Zoom in">+</button><span id="zoom-label">100%</span></div>
-        <div class="sim-tools" aria-label="Simulation speed"><button id="pause" title="Pause (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
-      </section>
-
-      <aside class="right-rail" aria-label="Riders and objectives">
-        <section class="rider-section"><div class="section-line"><span>RIDERS</span><small>autonomous</small></div><div id="couriers" class="rider-list"></div></section>
-        <section class="goal-section"><div class="section-line"><span>SHIFT GOALS</span><small>Berlin</small></div><div id="goals" class="goal-list"></div></section>
-      </aside>
-
-      <aside id="controls-overview" class="controls-overview" hidden aria-label="Controls and visual legend">
-        <div class="overview-head"><div><span class="kicker">QUICK REFERENCE</span><h2>How to dispatch</h2></div><button id="controls-close" class="icon-button" aria-label="Close controls">×</button></div>
-        <ol class="steps">
-          <li><b>1</b><span><strong>Read the addresses</strong>Each job has a pickup street + number and a destination street + number. Deadline rings shrink immediately.</span></li>
-          <li><b>2</b><span><strong>Read the map</strong>Zoom in for the local street grid. Short, mid and long jobs create different positioning tradeoffs.</span></li>
-          <li><b>3</b><span><strong>Broadcast selectively</strong>OPEN = 1 radio, PRIORITY = 2, LOCAL = 1. You never pick a rider.</span></li>
-          <li><b>4</b><span><strong>Read the team</strong>Riders deliberate, choose, ride, tire, and sometimes switch radio off for a break.</span></li>
-          <li><b>5</b><span><strong>Protect reputation</strong>Missed deadlines reduce REP. At 0%, the shift ends.</span></li>
-        </ol>
-        <div class="legend-grid">
-          <div><i class="sample job food">▲</i><span>Food</span></div><div><i class="sample job parcel">●</i><span>Parcel</span></div><div><i class="sample job docs">■</i><span>Docs</span></div>
-          <div><i class="sample job medical">✚</i><span>Medical</span></div><div><i class="sample job grocery">⬢</i><span>Grocery</span></div><div><i class="sample job fragile">◆</i><span>Fragile</span></div>
-          <div><i class="sample rider">▲</i><span>Rider</span></div><div><i class="sample break">Ⅱ</i><span>Break / radio off</span></div><div><i class="sample route"></i><span>Committed route</span></div>
-        </div>
-        <div class="channel-explain"><span class="open">OPEN · 1</span><span class="priority">PRIORITY · 2</span><span class="local">LOCAL · 1</span></div>
-        <div class="shortcut-grid"><span><kbd>Wheel</kbd> zoom</span><span><kbd>Drag map</kbd> pan</span><span><kbd>Space</kbd> pause</span><span><kbd>1/2/3</kbd> speed</span><span><kbd>?</kbd> controls</span><span><kbd>0</kbd> reset map</span></div>
-        <p class="overview-note">Street names are real; the map and house numbers are gameplay abstractions, not navigation data. Grey rider = break / radio off.</p>
-      </aside>
-    </section>
-  </main>
-
-  <dialog id="upgrade-modal" class="modal" hidden><span class="kicker">SHIFT UPGRADE</span><h2>Choose one.</h2><div id="upgrade-choices" class="upgrade-grid"></div></dialog>
-  <dialog id="gameover-modal" class="modal gameover" hidden><span class="kicker danger">SHIFT ENDED</span><h2>Berlin outran dispatch.</h2><div id="run-summary" class="run-summary"></div><section class="review"><h3>Dispatch review</h3><div id="review-metrics" class="review-metrics"></div><div id="review-advice" class="review-advice"></div></section><p>Best score: <strong id="best-score">0</strong></p><div class="modal-actions"><button id="same-seed" class="quiet">RETRY SEED</button><button id="random-seed">NEW SHIFT</button></div></dialog>
-
-  <script type="module" src="src/main.js"></script>
+<main class="app-shell">
+<header class="commandbar">
+<div class="brand"><span class="brand-mark">B</span><span><strong>BIKE</strong><small>BERLIN DISPATCH</small></span></div>
+<div class="shift-identity"><span>SHIFT</span><strong id="trait">—</strong><small id="trait-desc">—</small><span class="contract-sep">×</span><strong id="contract">—</strong><small id="contract-desc">—</small></div>
+<div class="metrics" aria-label="Shift statistics">
+<div><span>REP</span><strong id="rep" data-level="good">100%</strong></div>
+<div><span>SCORE</span><strong id="score">0</strong></div>
+<div><span>CASH</span><strong id="cash">€0</strong></div>
+<div><span>WAVE</span><strong id="wave">1</strong></div>
+</div>
+<div class="top-actions"><button id="controls-toggle" class="ghost" aria-expanded="false">CONTROLS</button><button id="new-run">NEW SHIFT</button></div>
+</header>
+<section class="core-rule"><strong>DISPATCH, DON'T COMMAND.</strong><span>Jobs appear at exact Berlin addresses. Put only the right work on the radio. Free riders choose for themselves.</span><span class="survival-rule">REP 0 = shift over</span></section>
+<section class="workspace">
+<aside class="side-panel jobs-panel">
+<div class="panel-title"><div><span class="eyebrow">YOUR DECISIONS</span><h1>Dispatch</h1></div><div class="radio-usage"><strong><span id="called-count">0</span>/<span id="radio-slots">4</span></strong><small>RADIO</small></div></div>
+<p class="panel-intro"><b>OPEN</b> is neutral. <b>PRIORITY</b> spends 2 bandwidth. <b>LOCAL</b> favors nearby riders. You never pick the rider.</p>
+<div class="list-head"><span>LIVE WORK</span><b id="active-count">0</b></div>
+<div id="deliveries" class="job-list" aria-live="polite"></div>
+</aside>
+<section class="map-stage" aria-label="Berlin dispatch map">
+<canvas id="game-canvas"></canvas>
+<div class="map-city"><strong>BERLIN</strong><small>SHIFT <span id="seed">—</span></small></div>
+<div id="event-chip" class="event-chip" hidden><span id="event-state">FORECAST</span><strong id="event-title">—</strong><small id="event-detail">—</small><b id="event-time">—</b></div>
+<div id="notice" class="notice" role="status"></div>
+<div class="map-tools" aria-label="Map controls"><button id="zoom-out" title="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in">+</button><button id="zoom-reset" title="Reset map">1:1</button></div>
+<div class="time-tools" aria-label="Simulation controls"><button id="pause" title="Pause / resume (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
+</section>
+<aside class="side-panel team-panel">
+<section>
+<div class="panel-title"><div><span class="eyebrow">AUTONOMOUS TEAM</span><h2>Riders</h2></div></div>
+<p class="panel-intro">Color = rider. Number = experience. Grey = break / radio off. Fatigue predicts downtime.</p>
+<div id="couriers" class="rider-list"></div>
+</section>
+<section class="goals-section">
+<div class="panel-title compact"><div><span class="eyebrow">ROGUELIKE TARGETS</span><h2>Shift goals</h2></div></div>
+<div id="goals" class="goals"></div>
+</section>
+</aside>
+</section>
+</main>
+<aside id="controls-overview" class="controls-overview" hidden>
+<div class="overview-head"><div><span class="eyebrow">QUICK REFERENCE</span><h2>How BIKE works</h2></div><button id="controls-close" aria-label="Close controls">×</button></div>
+<div class="overview-grid">
+<section><h3>1 · Read the job</h3><p>Every job has a real Berlin street name + house number, destination, deadline, payout and cargo class.</p></section>
+<section><h3>2 · Put it on radio</h3><p><b>OPEN 1</b> normal. <b>PRIORITY 2</b> stronger attraction. <b>LOCAL 1</b> favors riders near the pickup. <b>OFF</b> removes the call.</p></section>
+<section><h3>3 · Riders decide</h3><p>Personality, experience, current location, deadline, payout and fatigue determine what each free rider chooses.</p></section>
+<section><h3>4 · Read rider state</h3><p><b>LISTENING</b> can choose. <b>THINKING</b> is deliberating. <b>RIDING</b> is committed. <b>BREAK</b> means radio off.</p></section>
+<section><h3>5 · Learn Berlin</h3><p>Street topology, bridges and temporary disruptions matter. Zoom in for secondary streets and exact labels.</p></section>
+<section><h3>6 · Survive the shift</h3><p>Missed jobs cost reputation. Complete goals and choose upgrades. Same seed = same Berlin shift setup.</p></section>
+</div>
+<div class="legend-grid">
+<div><strong>JOBS</strong><span>▲ Food</span><span>● Parcel</span><span>■ Docs</span><span>✚ Medical</span><span>⬢ Grocery</span><span>◆ Fragile</span></div>
+<div><strong>RADIO</strong><span>O Open</span><span>! Priority</span><span>L Local</span><span>grey Off</span></div>
+<div><strong>MAP</strong><span>dashed color = rider route</span><span>orange/red street = disruption</span><span>green = improved bike corridor</span></div>
+<div><strong>INPUT</strong><span>Wheel = zoom</span><span>Drag map = pan</span><span>Space = pause</span><span>1 / 2 / 3 = speed</span><span>0 = reset map</span><span>H or ? = this panel</span></div>
+</div>
+<button id="controls-done">BACK TO SHIFT</button>
+</aside>
+<dialog id="upgrade-modal" class="modal" hidden>
+<span class="eyebrow">SHIFT UPGRADE</span><h2>Choose one advantage.</h2><p>Permanent for this seed/run.</p><div id="upgrade-choices" class="upgrade-grid"></div>
+</dialog>
+<dialog id="gameover-modal" class="modal gameover" hidden>
+<span class="eyebrow danger">SHIFT COLLAPSED</span><h2>Berlin outran dispatch.</h2><div id="run-summary" class="run-summary"></div>
+<section class="dispatch-review"><h3>Dispatch review</h3><div id="review-metrics" class="review-metrics"></div><div id="review-advice" class="review-advice"></div></section>
+<p class="best">Browser best: <strong id="best-score">0</strong></p>
+<div class="modal-actions"><button id="same-seed" class="ghost">RETRY SAME SEED</button><button id="random-seed">NEW SHIFT</button></div>
+</dialog>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

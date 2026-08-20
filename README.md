@@ -46,7 +46,7 @@ address contract appears
 → adapt the next broadcast
 ```
 
-There is intentionally no direct `assign()` API. Tests guard this invariant, including future-availability UI: a busy rider may be forecast as available soon but cannot be reserved or made to claim early.
+There is intentionally no direct `assign()` API. Tests guard this invariant, including future-availability and Dispatch Insight UI: a busy rider may be forecast as available soon, and a channel may be estimated as a stronger fit, but neither system may reserve, assign or force work.
 
 ---
 
@@ -70,7 +70,7 @@ The selected-contract inspector exposes realistic interventions rather than powe
 - **+€ Bonus** — spend cash to make one job more attractive.
 - **Client call** — spend Dispatch Focus for +20 seconds.
 - **Rebroadcast** — spend Dispatch Focus to refresh rider attention.
-- **Event response** — spend Dispatch Focus to pre-brief routes, detour riders, prepare capacity or stagger clients depending on event type.
+- **Event response** — choose event-specific counterplay using Dispatch Focus or cash.
 
 These tools attack different failure modes using **money, time, attention and routing**.
 
@@ -85,7 +85,7 @@ compact command bar
 └─ shift / area / REP / cash / score / focus
 
 horizontal contract rail
-└─ work runs left → right
+└─ highest-attention work first by default
 
 map
 └─ dominant spatial decision surface
@@ -114,7 +114,19 @@ A compact card contains only live decision information:
 - payout,
 - current radio/likely-rider state.
 
-Hover adds route streets, likely riders, special-contract explanation and cargo handling consequences.
+Hover adds route streets, deadline risk/slack, rider fit, qualitative OPEN/LOCAL/PRIORITY comparison, special-contract explanation and cargo handling consequences.
+
+### Attention-first queue
+
+The task rail defaults to **ATTENTION** ordering:
+
+1. at-risk and tight contracts,
+2. live calls that still have no taker,
+3. important special work,
+4. normal waiting work,
+5. already committed work.
+
+Manual views remain available for arrival order, raw urgency, payout and nearest-pickup range. Sorting changes only CSS order on persistent keyed cards; it does not mutate simulation state.
 
 ### Rider Outlook
 
@@ -125,6 +137,17 @@ A selected contract includes a compact capacity forecast:
 - **BREAK · 0:xx** — projected time after radio-off recovery and travel.
 
 This is informational only. It creates a choice between broadcasting now, waiting, paying a bonus or buying deadline time without introducing reservation/pre-assignment.
+
+### Dispatch Insight
+
+The selected contract and hover layer expose a qualitative, non-mutating decision projection:
+
+- SAFE / FUTURE / TIGHT / AT RISK feasibility,
+- best projected finisher and delivery slack,
+- likely rider fit for OPEN / LOCAL / PRIORITY,
+- concise suggestions such as hold, call, strengthen signal, buy time or sweeten payout.
+
+The insight layer is explicitly tested not to spend resources, change a channel, commit a rider or advance simulation state.
 
 ### Rider card
 
@@ -140,6 +163,12 @@ Every rider card is an operational instrument:
 - energy bar.
 
 A rider on break is greyed out and explicitly **RADIO OFF**.
+
+### Map rider feedback
+
+Rider markers are directional: the triangle points along the actual segment being ridden, including cargo-aware movement. While moving, a restrained cadence cue reinforces motion without particle clutter. Pickup and dropoff produce short milestone halos plus a compact `P` / `✓` mark.
+
+When the browser reports `prefers-reduced-motion: reduce`, decorative cadence motion is removed and animated radio/milestone expansion is frozen while all state information remains visible.
 
 ### Anti-flicker rule
 
@@ -228,6 +257,7 @@ From Inner City onward, deterministic seeds may create special work:
 
 - **RUSH** — tighter window, increased payout/appeal.
 - **RETURN** — successful completion creates a paid reverse follow-up leg.
+- **Scheduled pickup** — a rider may volunteer early but must wait until the client-ready time; waiting occupies the rider and never becomes pre-assignment.
 
 Specials modify the normal contract loop; they do not create separate minigames.
 
@@ -260,30 +290,51 @@ Reference datasets:
 
 - Berlin Open Data — **Detailnetz Berlin**
 - Berlin Open Data — **Adressen Berlin**
-- BVG S41/S42 Ringbahn orientation
+- S41/S42 Ringbahn geometry/orientation reference
 - Datenlizenz Deutschland – Zero – Version 2.0 where applicable
 
-The current shipped streets use real names and broadly recognizable topology, but the graph is a hand-curated gameplay abstraction, not navigation-grade GIS geometry. Current house numbers are deterministic street-consistent gameplay addresses, not claims of exact current parcels.
+The shipped runtime remains a hand-curated gameplay abstraction, not navigation-grade GIS geometry. House-number and parcel accuracy must never be implied beyond what the chosen static source snapshot supports.
 
-### Official static-import foundation
+### Official static candidate pipeline
 
-The repo now includes a build-time importer foundation:
+The repository contains an offline candidate pipeline rather than a runtime map dependency:
 
 ```text
-tools/berlin-import-lib.mjs
+tools/import-ringbahn.mjs
+→ documented S41/S42 interior polygon
+
 tools/import-berlin.mjs
-docs/BERLIN_IMPORT.md
+→ WFS street/address snapshot
+→ polygon clip + deterministic projection/simplification
+→ canonical street identity
+
+tools/build-berlin-candidate.mjs
+→ Detailnetz topology + address attachment
+→ official street number first
+→ canonical street name second
+→ explicit geometric fallback last
+
+tools/compare-berlin-candidate.mjs
+→ shadow comparison against curated runtime
 ```
 
-It can discover WFS feature types, construct GeoJSON requests, clip/project/simplify street geometry, normalize address points and produce stably sorted static output with source metadata.
+The importer preserves official RBS street numbers on addresses and Detailnetz street segments. Official Detailnetz from/to node IDs are preferred over harmless coordinate drift when building topology. Geometric address fallback is counted, surfaced and can fail the quality gate instead of silently attaching an address to a nearby parallel street.
 
-The importer is **not yet runtime authority**. The curated graph remains active until official-data topology is joined, clipped to a documented Ring polygon and proven at least as readable/playable.
+An official candidate is not allowed to become runtime authority merely because it has more data. Shadow comparison independently gates:
 
-CI tests importer logic only with local fixtures; CI and runtime make no map-network requests.
+- recognizable street-name overlap,
+- largest connected-network share,
+- official address match rate,
+- geometric fallback share,
+- sampled cross-city route-scale distortion.
+
+The curated graph remains active until an actual imported snapshot passes these gates and a browser playtest confirms that the denser geometry is at least as readable and playable.
+
+CI tests the pipeline using local fixtures; CI and runtime make no geographic network requests.
 
 ---
 
-## 9. Spatial progression
+## 9. Spatial progression and operating doctrine
 
 The whole city is not dumped onto the player immediately.
 
@@ -305,7 +356,15 @@ highest-tier cargo
 
 The map camera automatically fits newly unlocked operating bounds. Locked geography is heavily suppressed until relevant.
 
-The 30-delivery Ring threshold is intentional: automated pacing tests showed that a 16-delivery threshold could expose the entire city in roughly two minutes under competent dispatch. The second expansion is now a mid-run transition rather than an onboarding event.
+The 30-delivery Ring threshold is intentional: automated pacing tests showed that a 16-delivery threshold could expose the entire city in roughly two minutes under competent dispatch. The second expansion is a mid-run transition rather than an onboarding event.
+
+Each territory expansion also offers one concise operating-doctrine decision. It reuses existing systems rather than creating a separate tech tree:
+
+- **Signal Desk** — +1 radio bandwidth and +1 maximum Dispatch Focus.
+- **Rider Care** — slower fatigue growth and shorter future autonomous breaks.
+- **Client Network** — stronger future contract economics and modest deadline room.
+
+The simulation model itself does not pause for doctrine state; only the browser choice overlay pauses presentation until the player chooses. Resolved doctrines remain visible as a tiny hoverable `S` / `R` / `C` memory badge inside the existing AREA chip.
 
 ---
 
@@ -324,12 +383,12 @@ Examples:
 
 Effects alter graph travel cost and physical movement. Forecasted segments are visually distinct from active segments.
 
-Counterplay:
+Two different response families are available:
 
-- **PRE-BRIEF** during forecast,
-- **DETOUR** while active.
+- **PRE-BRIEF / DETOUR** — spend Dispatch Focus to soften route impact and reroute riders.
+- **CLIENT BUFFER** — spend client tolerance/time instead of improving the route itself.
 
-A prepared route event has a softer slowdown and riders recalculate their routes.
+The alternatives may be stacked deliberately, but doing so consumes resources needed elsewhere.
 
 ### Demand events
 
@@ -340,12 +399,12 @@ Examples:
 
 A district is visibly highlighted on the map. When the event starts it creates tagged contracts concentrated around that area.
 
-Counterplay:
+Two different response families are available:
 
-- **CAPACITY PLAN** during forecast reduces the burst and buffers deadlines.
-- **STAGGER CLIENTS** while active buys time for unresolved event jobs.
+- **CAPACITY PLAN / STAGGER CLIENTS** — spend Dispatch Focus to reduce pressure or buy time.
+- **SURGE PAY** — spend cash so event-generated contracts become more attractive to autonomous riders.
 
-Every event therefore has forecast → spatial cue → pressure → meaningful response.
+Every event therefore has forecast → spatial cue → pressure → multiple resource-specific responses.
 
 ---
 
@@ -385,6 +444,8 @@ Progressive disclosure prevents the denser map from becoming clutter:
 - closer: primary streets,
 - higher zoom: secondary streets + labels,
 - selected work: exact pickup/drop tags and route context.
+
+Motion is state feedback, not decoration. Rider orientation follows actual route direction, pickup/dropoff use short milestone feedback, and reduced-motion preferences suppress decorative animation.
 
 Controls:
 
@@ -433,6 +494,7 @@ A **Critical Timeline** reconstructs high-value causal events:
 - city expansions,
 - event forecasts/starts/responses,
 - demand bursts,
+- doctrine choices,
 - breaks/returns,
 - radio-denied moments,
 - dispatch interventions,
@@ -459,39 +521,52 @@ This supports measured human balance work instead of tuning only by feel.
 
 ## 15. Determinism and architecture
 
-Same seed reproduces the same opening run state and stochastic sequence as long as the same player actions are applied.
+Same seed reproduces the same simulation state and stochastic sequence as long as the same player actions are applied. Browser-only projections such as hover, sorting and doctrine presentation must not alter that sequence.
 
 Core modules:
 
 ```text
 src/
-├── berlin.js                 curated Berlin gameplay graph
-├── graph.js                  indexed pathfinding
-├── rng.js                    seeded RNG
-├── game-core.js              run state / contracts / city state
-├── game-radio.js             autonomous rider choice
-├── game-riders.js            rider lifecycle
-├── game-pacing.js            progression pacing
-├── game-cargo.js             cargo handling data
-├── game-cargo-motion.js      loaded movement/fatigue
-├── game-availability.js      NOW / busy / break capacity projection
-├── game-events.js            event lifecycle
-├── game-event-demand.js      demand burst generation
-├── event-data.js             extended city-event catalogue
-├── game-tools.js             player interventions
-├── game-strategic-upgrades.js strategic upgrade effects
-├── game-review.js            causal post-shift timeline
-├── game-telemetry.js         comparable run metrics
-├── camera.js                 zoom/pan/fit
-├── render-map.js             geography/event rendering
-├── render-entities.js        riders/contracts/routes
-├── ui-outlook.js             future capacity UI
-├── ui-telemetry.js           post-shift telemetry UI
-└── main.js                   browser controller
+├── berlin.js                   curated Berlin gameplay graph
+├── graph.js                    indexed pathfinding
+├── rng.js                      seeded RNG
+├── game-core.js                run state / contracts / city state
+├── game-radio.js               autonomous rider choice
+├── game-riders.js              rider lifecycle / milestones
+├── game-pacing.js              progression pacing
+├── game-cargo.js               cargo handling data
+├── game-cargo-motion.js        effective loaded movement/fatigue + heading
+├── game-availability.js        NOW / busy / break capacity projection
+├── game-feasibility.js         deadline feasibility projection
+├── game-insight.js             read-only dispatch/rider insight
+├── game-events.js              event lifecycle
+├── game-event-demand.js        demand burst generation
+├── game-event-options.js       alternate event responses
+├── event-data.js               extended city-event catalogue
+├── game-tools.js               player interventions
+├── game-expansion-policy.js    operating doctrines
+├── game-strategic-upgrades.js  strategic upgrade effects
+├── game-review.js              causal post-shift timeline
+├── game-telemetry.js           comparable run metrics
+├── camera.js                   zoom/pan/fit
+├── render-map.js               geography/event rendering
+├── render-entities.js          riders/contracts/routes/motion feedback
+├── ui-outlook.js               future capacity UI
+├── ui-feasibility.js           compact feasibility state
+├── ui-queue.js                 attention/manual queue ordering
+├── ui-event-options.js         contextual second event response
+├── ui-expansion-policy.js      browser-only doctrine choice/memory
+├── ui-telemetry.js             post-shift telemetry UI
+└── main.js                     browser controller
 
 tools/
-├── berlin-import-lib.mjs     deterministic import primitives
-└── import-berlin.mjs         offline WFS import CLI
+├── berlin-import-lib.mjs       deterministic import primitives
+├── berlin-graph-lib.mjs        topology/address candidate builder
+├── berlin-compare-lib.mjs      shadow-comparison gates
+├── import-ringbahn.mjs         offline Ring polygon importer
+├── import-berlin.mjs           offline Berlin WFS importer
+├── build-berlin-candidate.mjs  static candidate graph CLI
+└── compare-berlin-candidate.mjs candidate-vs-runtime CLI
 ```
 
 Rendering and simulation are separated. Canvas may animate continuously; DOM state projects at a slower cadence with persistent nodes.
@@ -502,7 +577,7 @@ Rendering and simulation are separated. Canvas may animate continuously; DOM sta
 
 `npm test` must remain green before a merge candidate is accepted.
 
-Current green gate: **71 tests / 71 pass / 0 fail** plus browser/importer syntax checks.
+Current green gate: **124 tests / 124 pass / 0 fail** plus browser/importer/comparator syntax checks.
 
 Coverage includes, among other things:
 
@@ -516,18 +591,25 @@ Coverage includes, among other things:
 - personality differentiation and dominance checks,
 - route/bridge goals,
 - staged territory and cargo gating,
-- full-Ring pacing under an adaptive dispatcher,
-- route/weather/demand event counterplay,
+- 6 → 30 full-Ring pacing under an adaptive dispatcher,
+- operating doctrines without simulation-boundary leakage,
+- route/weather/demand event counterplay with resource-specific alternatives,
 - cargo handling speed/fatigue effects,
 - strategic upgrade effects,
-- rider task progress/ETA,
+- rider task progress/ETA/travel heading,
+- pickup/dropoff milestone feedback state,
+- reduced-motion-safe entity rendering source invariants,
 - future rider availability without pre-assignment,
+- read-only Dispatch Insight,
+- attention-first queue ordering on persistent cards,
 - six-rider high-load finite-state simulation,
 - stable keyed UI structure,
 - event-specific UI wording and demand-area map feedback,
 - causal review timeline and deterministic telemetry,
-- official Berlin importer primitives and deterministic sorting,
-- browser entry/render/outlook/telemetry syntax checks.
+- Ringbahn polygon import/stitch validation,
+- official Berlin identity/topology/address-attachment gates,
+- candidate shadow comparison and route-scale checks,
+- browser entry/render/outlook/feasibility/queue/doctrine/telemetry syntax checks.
 
 A red gate is treated as either a real implementation bug or a flawed fixture; it is investigated rather than weakened automatically.
 
@@ -548,13 +630,16 @@ Then open:
 http://localhost:8080
 ```
 
-Importer foundation:
+Official-data candidate workflow:
 
 ```bash
-npm run import:berlin -- --output=generated/berlin-official.json
+npm run import:ringbahn
+npm run import:berlin -- --ring-polygon=generated/ringbahn.geojson --output=generated/berlin-official.json
+npm run build:berlin-candidate -- --input=generated/berlin-official.json
+npm run compare:berlin-candidate -- --candidate=generated/berlin-candidate-graph.json
 ```
 
-The importer is a development action; the game itself requires no network.
+These are development actions; the game itself requires no network.
 
 ---
 
@@ -575,11 +660,11 @@ radio decision quality
 
 Do not add breadth to compensate for a weak inner loop.
 
-Highest-value remaining work:
+Highest-value remaining work after v5:
 
-1. integrate official imported streets/addresses into a candidate Ring polygon/topology,
-2. real browser acceptance at multiple desktop aspect ratios,
-3. measured tuning from human runs rather than autoplay alone,
-4. stronger but restrained motion/audio feedback,
-5. additional contract chains only when each adds a distinct dispatch decision,
+1. run a reviewed official Berlin snapshot through the completed candidate + shadow-comparison pipeline and browser-test it before any runtime authority switch,
+2. perform real browser acceptance at multiple desktop aspect ratios and collect human run telemetry,
+3. tune attention ordering, doctrine balance, event resource costs and break overlap from measured human runs,
+4. add optional restrained sound feedback only if it improves state recognition and has a mute path,
+5. deepen contract chains only when each new contract adds a distinct dispatch decision,
 6. no second city until Berlin is excellent.

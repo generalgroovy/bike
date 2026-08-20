@@ -1,365 +1,411 @@
-# BIKE — Inside-Out Implementation Plan
+# SEND IT — Inside-Out Implementation Plan
 
-This file records the implementation order and quality gates. `README.md` is the product/design specification; this document is the execution plan.
+`README.md` is the authoritative product/design specification. This file records implementation order, completed slices and the next gates.
 
 ## Principle
 
-Build from the atomic decision outward:
+Build outward from one meaningful dispatch decision:
 
 ```text
-address job
-→ radio choice
+contract
+→ radio / intervention choice
 → autonomous rider choice
-→ movement
-→ completion/failure
-→ pressure
-→ roguelike variation
-→ map presentation
-→ polish
+→ movement through Berlin
+→ delivery result
+→ rider energy / future availability
+→ city pressure / events
+→ progression / roguelike variation
+→ review / telemetry
+→ visual polish
 ```
 
-Do not add outer systems to compensate for a weak inner loop.
+Do not add outer systems to hide a weak inner loop.
 
 ---
 
-## Phase A — Core contract identity
+## V5 invariant
 
-Status: implemented in the current overhaul branch.
+The player controls **information and operating resources**, never a rider directly.
 
-Acceptance criteria:
-
-- [x] Every normal job has pickup street + number.
-- [x] Every normal job has dropoff street + number.
-- [x] Pickup/dropoff are graph nodes, not cosmetic labels.
-- [x] Route length derives from street graph.
-- [x] Deadline/reward derive from route/cargo/run modifiers.
-- [x] Player cannot assign rider directly.
-- [x] Radio state is explicit and bandwidth-limited.
-
-Revision questions:
-
-- Can a player understand a job card in under 2 seconds?
-- Does every field affect a real decision?
-- Can any field be removed without losing strategy?
-
----
-
-## Phase B — Berlin as gameplay board
-
-Status: implemented at gameplay-abstraction fidelity.
-
-Current work:
-
-- [x] Replace sparse landmark graph with dense district grids.
-- [x] Add 45+ real named streets.
-- [x] Preserve district relative positions.
-- [x] Add arterials crossing district grids.
-- [x] Keep Spree / canal / parks as orientation anchors.
-- [x] Add named bridge metadata.
-- [x] Separate visual road blocks from address/routing subdivision.
-- [x] Add progressive street-label reveal with zoom.
-
-Quality gate:
-
-- map must read as a city at overview scale,
-- map must become street-legible when zoomed,
-- local streets must not hide jobs/riders,
-- route paths must remain connected across districts.
-
-### Precision Tier 2 — official static import
-
-Next major geography task after gameplay tuning.
-
-Goal:
-
-1. Query Berlin Open Data `Detailnetz Berlin` WFS offline during development.
-2. Query `Adressen Berlin` WFS for the chosen playable bounding box.
-3. Normalize source coordinates to game-local coordinates.
-4. Keep only bike-relevant connected streets/ways.
-5. Simplify geometry with a documented tolerance.
-6. Associate official address points with the nearest retained street edge.
-7. Write a static generated module/data file.
-8. Commit generated output so runtime stays deterministic/offline.
-9. Record dataset date, source endpoint and license in generated metadata.
-
-Acceptance gate:
-
-- no runtime network call,
-- same seed remains replayable,
-- address labels in imported tier are actual source records,
-- importer output can be regenerated from documented commands,
-- routing graph remains manageable on GitHub Pages.
-
----
-
-## Phase C — Rider autonomy
-
-Status: implemented and retained from earlier versions.
-
-- [x] personality preference weights,
-- [x] experience levels,
-- [x] deliberation delay,
-- [x] decision noise,
-- [x] visible likely/active consideration,
-- [x] fatigue,
-- [x] autonomous breaks,
-- [x] radio-off state,
-- [x] inability to hear/claim while radio-off.
-
-Next tuning pass:
-
-- measure how often each personality wins competing calls,
-- ensure no personality dominates all seeds,
-- ensure rookie randomness feels human rather than arbitrary,
-- ensure breaks create planning pressure without frequent total team blackout.
-
----
-
-## Phase D — Pacing
-
-Status: rebuilt; needs playtest tuning after CI.
-
-Current shape:
+There must be no direct:
 
 ```text
-0–2m   learn shift modifier + riders
-2–6m   radio conflicts begin
-6–12m  events + fatigue interact
-12m+   system complexity drives collapse
+rider → job
 ```
 
-Parameters to tune together:
+The player can instead change:
 
-- spawn interval,
-- burst probability,
-- deadline scale,
-- reputation penalties,
-- fatigue rate,
-- break duration,
-- radio bandwidth,
-- initial job count,
-- upgrade cadence.
-
-Rule: do not tune one parameter in isolation if it simply shifts pressure somewhere else.
-
-Instrumentation candidates:
-
-- jobs created/minute,
-- average call delay,
-- average pickup distance,
-- radio utilization,
-- percent uncalled failures,
-- percent unclaimed failures,
-- percent claimed-late failures,
-- rider utilization,
-- simultaneous breaks,
-- run duration.
-
----
-
-## Phase E — Roguelike variation
-
-Status: expanded in current overhaul.
-
-Current variation dimensions:
-
-- [x] seeded rider personalities/experience,
-- [x] run trait,
-- [x] contract profile,
-- [x] job stream,
-- [x] goals,
-- [x] events,
-- [x] upgrades.
-
-Design restriction:
-
-Variation should modify the same core decisions rather than add disconnected minigames.
-
-Strong modifiers:
-
-- more/less radio bandwidth,
-- shorter/longer average trips,
-- different cargo mix,
-- different spawn tempo,
-- different fatigue pressure,
-- different street speed structure.
-
-Weak modifiers to avoid:
-
-- cosmetic-only numerical bonuses,
-- random penalties with no forecast/counterplay,
-- district stereotypes tied to cargo.
-
----
-
-## Phase F — GUI clarity and charm
-
-Status: overhauled; validate in browser after merge candidate.
-
-### Classification system
-
-Jobs:
-
-- cargo glyph/color,
-- ID,
-- exact pickup address,
-- exact dropoff address,
-- deadline,
-- approximate trip length,
+- whether a job is audible,
+- radio channel strength/locality,
 - payout,
-- current radio channel.
+- negotiated deadline,
+- attention through rebroadcast,
+- event preparation/routing information,
+- longer-term desk capability through upgrades.
 
-Riders:
+Tests explicitly guard against direct assignment and pre-assignment through future rider forecasting.
 
-- stable color,
-- name,
+---
+
+## Phase A — Contract readability
+
+Status: implemented and tested.
+
+Every contract exposes:
+
+- street + house number pickup,
+- street + house number destination,
+- deadline,
+- payout,
+- cargo identity,
+- graph-derived distance,
+- graph-derived street sequence,
+- radio state,
+- optional RUSH / RETURN / event tag.
+
+Normal-play cards stay compact; route detail, handling effects and likely riders are disclosed on hover/inspection.
+
+Quality question:
+
+> Can the dispatcher decide whether this deserves airtime in roughly two seconds?
+
+---
+
+## Phase B — Decision vocabulary
+
+Status: implemented and tested.
+
+Core radio:
+
+1. OFF — withhold work,
+2. OPEN — neutral call,
+3. PRIORITY — stronger call for 2 bandwidth,
+4. LOCAL — favor nearby/same-area riders.
+
+Contextual tools:
+
+5. +€ Bonus — money changes incentives,
+6. Client Call — focus buys time,
+7. Rebroadcast — focus refreshes attention,
+8. Event Response — focus pre-briefs/detours routes or buffers/staggers demand surges.
+
+Quality gates:
+
+- every action mutates real simulation state,
+- no action selects a rider,
+- money/time/attention/routing solve different problems,
+- no action is universally dominant.
+
+---
+
+## Phase C — Riders as autonomous operating capacity
+
+Status: implemented and balance-tested.
+
+Roster order:
+
+```text
+Kira → Mauro → Brian → Sam → Michail → Zorro
+```
+
+Rider state includes:
+
 - personality,
 - experience,
-- location,
-- current intention/action,
-- fatigue,
-- radio/break state.
+- street/location,
+- deliberation,
+- active task/phase,
+- task progress,
+- ETA,
+- fatigue/energy,
+- autonomous break / radio-off state.
 
-Map:
+Personality niches:
 
-- jobs and riders above geography,
-- selected address labels only when useful,
-- routes above roads,
-- disruptions above roads but below entities,
-- progressive street labels.
+- Sprinter — close + urgent,
+- Earner — unusually profitable,
+- Guardian — critical/medical,
+- Local — same-area/nearby,
+- Tourer — long city runs,
+- Steady — balanced generalist.
 
-### Anti-flicker gate
+Automated gates reject a generic job stream dominated overwhelmingly by one archetype.
 
-- keyed job/rider/goal DOM nodes,
-- no live panel `innerHTML` reconstruction,
-- stable timer widths,
-- stable scroll gutter,
-- no CSS blinking animation for core state,
-- canvas animation separated from DOM cadence.
+### Future availability
 
----
+Implemented:
 
-## Phase G — Performance
+- selected contract can show riders available **NOW**,
+- busy/break riders can be shown as future availability estimates,
+- busy/break riders remain unable to claim work early,
+- no reservation or pre-assignment is introduced.
 
-Status: structural optimization implemented.
-
-- [x] cached node map,
-- [x] cached edge map,
-- [x] cached adjacency graph index,
-- [x] A* + binary heap,
-- [x] separate visual edges from routing/address edges,
-- [x] fixed simulation timestep,
-- [x] canvas render loop separate from DOM loop.
-
-Next profiler gate:
-
-- test 6 riders + 30 active jobs,
-- test maximum zoom,
-- test long run with repeated events/reroutes,
-- ensure path scoring does not create frame hitches.
-
-Possible future optimization only if profiling requires it:
-
-- pickup route-cost cache keyed by rider node + job pickup + event version,
-- route cache invalidated when bike lanes/events change,
-- spatial index for click hit-testing.
-
-Do not add caches before profiling shows need.
+This creates a real dispatch choice between broadcasting now, waiting, buying time or changing incentive.
 
 ---
 
-## Phase H — Automated revision loop
+## Phase D — Cargo semantics
 
-Every substantial slice follows:
+Status: implemented and tested.
+
+Cargo is not merely icon/deadline variation. Loaded movement affects speed and fatigue.
+
+Examples:
+
+- documents/keys: light,
+- grocery: heavy,
+- flowers/fragile: careful slower handling,
+- catering: strongest load/fatigue penalty,
+- cold-chain: moderate protected-load penalty,
+- medical: critical but light.
+
+Cargo Racks can reduce load penalties without erasing cargo identity.
+
+---
+
+## Phase E — Berlin progression
+
+### Stage 1 — Center Desk
+
+Threshold: **0 completed**.
+
+Purpose:
+
+- learn radio,
+- learn riders,
+- learn address contracts,
+- keep geography compact.
+
+### Stage 2 — Inner City
+
+Threshold: **6 completed**.
+
+Adds:
+
+- west/east operating corridors,
+- larger camera bounds,
+- radio/focus capacity,
+- bridge objective,
+- stage-2 cargo,
+- special contracts.
+
+### Stage 3 — Inside the Ring
+
+Threshold: **30 completed**.
+
+Adds:
+
+- remaining Ringbahn-interior operating areas,
+- full Ring-oriented extent,
+- Ring station labels,
+- additional radio/focus capacity,
+- cross-area objective,
+- stage-3 cargo.
+
+The previous 16-delivery threshold was removed after automated pacing showed a competent dispatcher could reveal the entire city in roughly two minutes. The 30-delivery threshold makes full Ring operation a mid-run transition.
+
+Automated pacing gates require:
+
+- readable two-minute opening,
+- natural first expansion,
+- competent full-Ring reachability,
+- nontrivial queue pressure,
+- survival under six-rider/high-job load.
+
+---
+
+## Phase F — City events and counterplay
+
+Status: implemented and tested.
+
+Route events:
+
+- roadworks,
+- demonstration,
+- bridge squeeze,
+- heavy rain cell.
+
+Demand events:
+
+- venue release,
+- transit outage.
+
+Every event must have:
 
 ```text
-1. state hypothesis
-2. implement smallest coherent change
-3. run syntax/tests
-4. run deterministic stress seeds
-5. inspect failures
-6. repair root cause
-7. rerun full suite
-8. review diff for unrelated complexity
-9. update docs if invariant changed
-10. merge only when green
+forecast
+→ spatial cue
+→ pressure
+→ meaningful response
+→ clear end
 ```
 
-### Current overhaul automated checks
+Route counterplay:
 
-The core suite is intended to cover:
+- PRE-BRIEF before activation,
+- DETOUR while active.
 
-- deterministic RNG,
-- street density,
-- address integrity,
-- address uniqueness,
-- graph connectivity,
-- seeded reproduction,
-- exact rider roster,
-- address-to-address contracts,
-- district-independent cargo,
-- absence of direct assignment,
-- radio accounting,
-- radio-off behavior,
-- break recovery,
-- autonomous claiming,
-- street goals,
-- bridge goals,
-- road-event cost change,
-- named-street routes,
-- run-contract variation,
-- multi-seed long-run finite-state stress.
+Demand counterplay:
+
+- CAPACITY PLAN before activation,
+- STAGGER CLIENTS while active.
+
+Demand events visibly mark the affected operating area on the map.
 
 ---
 
-## Phase I — Manual browser acceptance
+## Phase G — Strategic roguelike upgrades
 
-After automated tests are green, verify:
+Status: expanded and tested.
 
-### First 30 seconds
+Baseline upgrades remain tied to existing systems: riders, radio, deadlines, speed, bike corridors, fatigue, focus and reputation.
 
-- player sees one-sentence objective,
-- player can identify pickup vs destination,
-- player understands OPEN / PRIORITY / LOCAL,
-- player understands they do not choose rider,
-- controls overlay is discoverable.
+Strategic upgrades now include:
 
-### Map
+- **Cargo Racks** — reduce heavy/delicate load penalties,
+- **Local Repeater** — strengthen same-area LOCAL attraction,
+- **Event Feed** — earlier event forecasts,
+- **Relief Roster** — shorter future autonomous breaks.
 
-- wheel zooms around cursor,
-- drag pans without accidental selection,
-- reset works,
-- secondary streets appear only when useful,
-- selected job address labels remain readable,
-- break rider is unmistakably grey/off-radio.
+Rule:
 
-### Pressure
-
-- first minute is readable,
-- radio choices become meaningful before difficulty spikes,
-- no unavoidable collapse from simultaneous breaks,
-- road events are forecast with enough time to react.
-
-### Charm
-
-- riders feel like distinct people,
-- Berlin feels learnable,
-- route lines make the city feel alive,
-- job cards are compact but not sterile,
-- state changes feel deliberate rather than noisy.
+> An upgrade should create an operating style, not just inflate a score number.
 
 ---
 
-## Next highest-value slices after this overhaul
+## Phase H — GUI hierarchy
 
-Ordered by expected impact:
+Status: implemented; live-browser acceptance remains.
 
-1. **Official address/street import pipeline** for higher geographic precision.
-2. **Pacing telemetry + balance pass** using deterministic seed batches.
-3. **Rider personality differentiation pass** based on competing-call scenarios.
-4. **Selected-job route leg summary** showing 2–4 key streets without exposing exact utility.
-5. **Better street-event placement** using arterial/bridge importance.
-6. **Run-history comparison** for same-seed retry learning.
-7. **Additional city only after Berlin is excellent.**
+Normal play:
 
-The project should not add another city until Berlin's core run is consistently readable, strategically varied and fun.
+```text
+compact command bar
+horizontal task rail → → →
+large Berlin map        | rider dock
+selected-job inspector  | goals
+```
+
+Information placement:
+
+- permanent = current decision variable,
+- hover = occasional explanation/context,
+- inspector = selected-contract actions,
+- help = rules/reference,
+- post-shift = diagnosis/history.
+
+Anti-flicker gates:
+
+- persistent keyed contract nodes,
+- persistent keyed rider nodes,
+- persistent keyed goal nodes,
+- stable contract ordering,
+- no full live-list rebuild,
+- canvas animation independent from DOM update cadence.
+
+---
+
+## Phase I — Post-shift learning and telemetry
+
+Status: implemented and tested.
+
+Critical Timeline retains causal events rather than raw chatter:
+
+- expansion,
+- event forecast/start/response,
+- demand burst,
+- rider break/return,
+- radio blocked,
+- intervention,
+- failure,
+- collapse.
+
+Run telemetry derives deterministic comparable measures:
+
+- delivered/minute,
+- average call delay,
+- average acceptance delay,
+- average delivery time,
+- peak queue,
+- peak radio,
+- event preparations,
+- expansion timing,
+- failure mix.
+
+This is the basis for future human-run balance work.
+
+---
+
+## Phase J — Berlin precision
+
+### Current runtime tier
+
+Hand-compressed gameplay map using real street names and broad recognizable topology.
+
+Automated floors:
+
+- 900+ graph nodes,
+- 600+ address nodes,
+- 500+ visual road blocks,
+- 110+ street names,
+- 27+ Ringbahn anchors,
+- connected routing graph.
+
+### Official-data importer foundation
+
+Status: implemented and tested, **not yet runtime authority**.
+
+`tools/import-berlin.mjs` + `tools/berlin-import-lib.mjs` currently provide:
+
+- Detailnetz Berlin WFS endpoint,
+- Adressen Berlin WFS endpoint,
+- WFS capabilities discovery,
+- GeoJSON GetFeature request construction,
+- configurable bbox,
+- deterministic line simplification,
+- projection into game coordinates,
+- address normalization,
+- stable sorting,
+- static JSON output metadata.
+
+CI uses local fixture data; it never depends on Berlin's network services.
+
+### Next precision slice
+
+1. replace rough bbox with documented S41/S42 interior polygon,
+2. pin exact official source schemas,
+3. join address points to retained street geometry,
+4. construct connected bike-usable topology,
+5. preserve intersection/bridge semantics during simplification,
+6. emit compact static generated data,
+7. compare imported and curated readability,
+8. switch authority only when the imported candidate clears all gameplay gates.
+
+Runtime must remain offline and deterministic.
+
+---
+
+## Current automated gate
+
+Current green implementation gate before documentation-only reconciliation:
+
+```text
+71 tests
+71 pass
+0 fail
+```
+
+Plus syntax checks for browser entry/render modules, Rider Outlook/telemetry UI and the Berlin importer CLI.
+
+See `docs/TEST_NOTES.md` for coverage.
+
+---
+
+## Next executable work
+
+1. integrate imported official data into a **candidate** Ring polygon/topology build,
+2. run real browser acceptance at multiple desktop aspect ratios,
+3. collect human-run telemetry and tune pacing/personality/intervention economics,
+4. add restrained motion/audio feedback only where it improves state recognition,
+5. deepen contract chains only when they preserve the same indirect radio loop,
+6. keep Berlin as the benchmark; do not add a second city yet.

@@ -1,11 +1,58 @@
-# Validation notes
+# Send It v5 — validation notes
 
-The Berlin radio-dispatch redesign was validated locally before merge with:
+Current merge-candidate validation is automated through GitHub Actions with `npm test`.
 
-- `node --test` — 9/9 tests passing
-- syntax checks for `src/game.js`, `src/main.js`, `src/render.js`, and `src/berlin.js`
-- multi-seed full-network routing tests
-- 40 seeded six-minute simulation smoke runs
-- static HTTP load smoke test
+The gate includes browser/controller syntax checks for the main renderer/UI modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
 
-The test suite specifically guards the indirect-dispatch rule by asserting that the direct `assign` API is absent and that an idle rider autonomously claims a called job.
+Current green implementation suite: **124 tests / 124 pass / 0 fail**.
+
+Coverage includes:
+
+- deterministic RNG and same-seed reproduction,
+- 900+ node / 500+ visual-edge / 110+ street Berlin scale,
+- address uniqueness/integrity and graph connectivity,
+- canonical Kira/Mauro/Brian/Sam/Michail/Zorro roster,
+- address-to-address contracts and district-independent cargo,
+- direct-assignment API absence,
+- OPEN/PRIORITY/LOCAL/OFF bandwidth accounting,
+- autonomous deliberation/claiming,
+- radio-off breaks and recovery,
+- personality niche and anti-dominance tests,
+- staged territory unlocks and 6 → 30 expansion pacing,
+- adaptive dispatcher reaching the full Ring under meaningful pressure,
+- expansion operating doctrine choices and distinct existing-system effects,
+- browser-only doctrine pause plus compact AREA-chip doctrine memory,
+- cargo handling speed/fatigue differences,
+- RUSH/RETURN and scheduled-window contract behavior,
+- bonus/client-call/rebroadcast interventions,
+- route/rain/demand event generation,
+- route preparation vs client buffering,
+- capacity planning vs surge pay,
+- demand-surge district map feedback,
+- rider task progress and ETA,
+- future rider availability forecasts that cannot pre-assign work,
+- read-only Dispatch Insight and qualitative channel comparison,
+- attention-first queue sorting with persistent keyed cards,
+- strategic Cargo Racks / Local Repeater / Event Feed / Relief Roster effects,
+- causal critical timeline,
+- deterministic run telemetry,
+- six-rider high-load finite-state simulation,
+- Send It task-rail/map/rider-dock information architecture,
+- stable keyed live-DOM rules,
+- visual-street unlock state consistent with routing subdivisions,
+- rider travel heading propagated through the effective cargo-aware movement path,
+- pickup/dropoff milestone state and restrained map feedback,
+- reduced-motion-safe entity feedback and frozen decorative radio motion,
+- Ringbahn polygon import/stitch validation,
+- official Berlin WFS capability/feature request construction,
+- exact address schema normalization,
+- official street-number-first address attachment,
+- canonical street-name matching,
+- explicit geometric fallback diagnostics and fallback-share quality gate,
+- Detailnetz from/to node topology overriding harmless coordinate drift,
+- candidate graph connectivity/address coverage gates,
+- shadow comparison of official candidate vs curated runtime for recognizable street overlap, route-scale distortion and import quality.
+
+CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic.
+
+A real browser acceptance pass remains valuable for rendered spacing, hover feel, task-rail scanning and different desktop aspect ratios. Automated checks cover source parsing, UI structure/read-only boundaries, deterministic simulation, visual-feedback state and data-pipeline invariants.

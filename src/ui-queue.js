@@ -1,0 +1,12 @@
+import { Game } from './game.js';
+
+const summary=document.querySelector('.task-summary'),strip=document.querySelector('#deliveries');
+let mode='attention',lastKey='';
+const MODES=['attention','arrival','urgent','payout','range'];
+function readMode(){try{const value=localStorage.getItem('sendit.queueSort.v5');if(MODES.includes(value))mode=value;}catch{}}
+function writeMode(){try{localStorage.setItem('sendit.queueSort.v5',mode);}catch{}}
+function install(){if(!summary||summary.querySelector('.queue-sort'))return;const root=document.createElement('div');root.className='queue-sort';root.setAttribute('aria-label','Sort work queue');for(const[id,label,title]of[['attention','◆','Needs attention first'],['arrival','↦','Arrival order'],['urgent','!','Most urgent first'],['payout','€','Highest payout first'],['range','⌖','Closest pickup to a free rider']]){const button=document.createElement('button');button.type='button';button.dataset.queueSort=id;button.textContent=label;button.title=title;button.dataset.tip=title;button.setAttribute('aria-label',title);button.addEventListener('click',()=>{mode=id;writeMode();render(true);});root.append(button);}summary.append(root);}
+function attentionValue(game,d){if(d.status==='claimed')return 100000+d.deadlineAt;const insight=game.deliveryDispatchInsight?.(d),state=insight?.state??'unknown',band={risk:0,tight:10000,future:20000,safe:30000,unknown:40000}[state]??40000,stalled=d.called&&insight?.deliberating===0?-1400:0,special=d.specialId?-700:0,live=d.called?-300:0;return band+stalled+special+live+d.deadlineAt;}
+function value(game,d){if(mode==='attention')return attentionValue(game,d);if(mode==='urgent')return d.deadlineAt;if(mode==='payout')return-d.reward;if(mode==='range')return game.nearestIdleDistance(d)??Infinity;return d.createdAt;}
+function render(force=false){const game=Game.lastInstance;if(!game||!strip)return;const active=game.activeDeliveries(),key=`${mode}|${active.map(d=>`${d.id}:${Math.round(value(game,d)*10)}`).join(',')}`;if(!force&&key===lastKey)return;lastKey=key;const sorted=[...active].sort((a,b)=>value(game,a)-value(game,b)||a.createdAt-b.createdAt||a.id.localeCompare(b.id));sorted.forEach((d,index)=>{const card=strip.querySelector(`[data-delivery="${d.id}"]`);if(card)card.style.order=String(index);});document.querySelectorAll('[data-queue-sort]').forEach(button=>{button.classList.toggle('active',button.dataset.queueSort===mode);button.setAttribute('aria-pressed',String(button.dataset.queueSort===mode));});}
+readMode();install();setInterval(render,240);render(true);

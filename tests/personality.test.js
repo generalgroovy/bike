@@ -1,0 +1,51 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Game,PERSONALITIES } from '../src/game.js';
+
+function baseDelivery(game,{pickupId,type='parcel',reward=16,distance=360,deadline=80,channel='open',age=60}={}){
+  const pickup=game.nodeById(pickupId)??game.playableAddressNodes()[0];
+  return {id:'probe',type,pickupId:pickup.id,dropoffId:pickup.id,reward,plannedDistance:distance,createdAt:game.elapsed-age,deadlineAt:game.elapsed+deadline,called:true,channel,status:'waiting'};
+}
+
+function score(game,rider,personality,delivery){
+  const previous=rider.personality;
+  rider.personality=personality;
+  const value=game.courierChoiceScore(rider,delivery,false);
+  rider.personality=previous;
+  return value;
+}
+
+test('specialist personalities own clear niches while Steady stays competitive on balanced work',()=>{
+  const game=new Game({seed:'PERSONALITY-NICHES'}),rider=game.couriers[0],here=game.nodeById(rider.nodeId),addresses=game.playableAddressNodes();
+  const ordered=addresses.slice().sort((a,b)=>game.routeTravelCost(rider.nodeId,a.id)-game.routeTravelCost(rider.nodeId,b.id));
+  const close=ordered[1],far=ordered.at(-1),sameDistrict=addresses.find(n=>n.districtId===here.districtId&&n.id!==rider.nodeId)??close;
+  const otherDistrict=ordered.filter(n=>n.districtId!==here.districtId),steadyPickup=otherDistrict[Math.floor(otherDistrict.length*.45)]??ordered[Math.floor(ordered.length*.45)];
+  const scenarios={
+    sprinter:baseDelivery(game,{pickupId:close.id,reward:11,distance:180,deadline:14,age:72}),
+    earner:baseDelivery(game,{pickupId:far.id,reward:44,distance:520,deadline:80,age:25}),
+    guardian:baseDelivery(game,{pickupId:far.id,type:'medical',reward:18,distance:330,deadline:20,age:70}),
+    local:baseDelivery(game,{pickupId:sameDistrict.id,reward:10,distance:160,deadline:62,age:20,channel:'local'}),
+    tourer:baseDelivery(game,{pickupId:far.id,reward:18,distance:900,deadline:90,age:24}),
+    steady:baseDelivery(game,{pickupId:steadyPickup.id,reward:21,distance:420,deadline:60,age:20})
+  };
+  for(const personality of PERSONALITIES){
+    const d=scenarios[personality.id],own=score(game,rider,personality,d),others=PERSONALITIES.filter(p=>p.id!==personality.id).map(p=>score(game,rider,p,d)),best=Math.max(...others),tolerance=personality.id==='steady'?.55:.22;
+    assert.ok(Number.isFinite(own));
+    assert.ok(own>=best-tolerance,`${personality.id} niche weak: ${own.toFixed(2)} vs ${best.toFixed(2)}`);
+  }
+});
+
+test('generic deterministic job streams do not collapse to one personality',()=>{
+  const wins=new Map(PERSONALITIES.map(p=>[p.id,0])),game=new Game({seed:'PERSONALITY-STREAM'}),rider=game.couriers[0];
+  game.cityLevel=3;
+  for(let i=0;i<160;i++){
+    game.deliveries=[];game.spawnDelivery({special:false});const d=game.deliveries[0];if(!d)continue;
+    const age=12+(i%7)*9,remaining=14+(i%9)*10;d.createdAt=game.elapsed-age;d.deadlineAt=game.elapsed+remaining;
+    const ranked=PERSONALITIES.map(p=>({id:p.id,score:score(game,rider,p,d)})).sort((a,b)=>b.score-a.score);
+    wins.set(ranked[0].id,wins.get(ranked[0].id)+1);
+  }
+  const values=[...wins.values()],total=values.reduce((a,b)=>a+b,0),max=Math.max(...values),represented=values.filter(v=>v>0).length;
+  assert.ok(total>=140);
+  assert.ok(represented>=4,`only ${represented} personalities ever win: ${JSON.stringify(Object.fromEntries(wins))}`);
+  assert.ok(max/total<.5,`one personality dominates ${(max/total*100).toFixed(1)}%: ${JSON.stringify(Object.fromEntries(wins))}`);
+});

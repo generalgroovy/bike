@@ -21,8 +21,11 @@ Prioritize depth, precision, readability and measured play quality over feature 
 - [x] Official street-number-first address joining, canonical-name fallback, explicit geometric fallback accounting and Detailnetz node-ID topology.
 - [x] Candidate quality gate for connectivity, address match and fallback share.
 - [x] Shadow comparison against the curated runtime for street overlap, route-scale distortion and candidate quality before any authority switch.
+- [x] Directional rider markers based on actual cargo-aware movement heading.
+- [x] Restrained pickup/dropoff milestone feedback and active-riding cadence cues.
+- [x] Reduced-motion-safe entity feedback with decorative motion frozen/removed while state remains visible.
 
-## Next slices
+## Next slices after v5
 
 1. **Run the official static Berlin pipeline on current source snapshots**
    - import Detailnetz + Adressen using the documented Ringbahn polygon,
@@ -37,15 +40,15 @@ Prioritize depth, precision, readability and measured play quality over feature 
    - top-rail scanning under 10–20 simultaneous contracts,
    - Dispatch Insight usefulness without feeling like autoplay,
    - doctrine overlay comprehension,
-   - rider Outlook and event-response comprehension,
+   - Rider Outlook and event-response comprehension,
+   - directional marker / milestone readability,
    - record human run telemetry instead of relying only on autoplay.
 
-3. **Feedback and charm without visual noise**
-   - subtle pickup/dropoff confirmation,
-   - rider motion orientation/cadence,
-   - restrained radio/commit feedback,
-   - optional lightweight sound cues,
-   - reduced-motion-safe behavior.
+3. **Optional sound only if it improves recognition**
+   - restrained radio/commit/pickup/dropoff cues,
+   - clear mute path,
+   - no constant ambience required,
+   - avoid audio as the only source of state information.
 
 4. **Contract-chain depth**
    - refine RETURN and scheduled-window work,

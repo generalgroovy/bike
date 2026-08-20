@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --test",
-    "serve": "python -m http.server 8080"
+    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --check tools/import-berlin.mjs && node --test",
+    "serve": "python -m http.server 8080",
+    "import:berlin": "node tools/import-berlin.mjs"
   }
 }

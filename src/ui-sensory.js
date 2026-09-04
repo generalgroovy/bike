@@ -30,7 +30,7 @@ function cueLog(entry){const data={riderIndex:riderIndex(entry.rider),flow:entry
   case'service-breach':audio.cue('breach',data);break;
   case'district-brief':audio.cue('brief',data);break;
   case'event-forecast':audio.cue('event-forecast',data);break;
-  case'event-start':audio.cue('event-start',data);break;
+  case'event-start':audio.cue(entry.kind==='demand'?'event-demand':entry.kind==='route'?'event-route':'event-start',data);break;
   case'event-end':audio.cue('event-end',data);break;
   case'break':audio.cue('break',data);break;
   case'radio-on':audio.cue('radio-on',data);break;
@@ -53,4 +53,4 @@ setInterval(tick,90);
 function hoverTarget(event){return event.target.closest?.('.task-card,.rider-card,.goal-card,#event-chip,[data-channel],[data-tool],[data-speed],.client-hub-chip,.demand-chip,.service-load,.district-brief,.map-tools button,.time-tools button,.top-actions button');}
 document.addEventListener('pointerover',event=>{const target=hoverTarget(event);if(!target)return;const key=target.dataset.delivery?`job:${target.dataset.delivery}`:target.dataset.courier?`rider:${target.dataset.courier}`:target.dataset.channel?`channel:${target.dataset.channel}`:target.dataset.tool?`tool:${target.dataset.tool}`:target.id||String(target.className);if(key===lastHovered)return;lastHovered=key;if(target.dataset.delivery)audio.cue('hover-job');else if(target.dataset.courier){const i=game?.couriers.findIndex(c=>c.id===target.dataset.courier)??0;audio.cue('hover-rider',{riderIndex:Math.max(0,i)});}else audio.cue('ui-hover');});
 document.addEventListener('pointerout',event=>{if(!event.relatedTarget||!hoverTarget({target:event.relatedTarget}))lastHovered='';});
-document.addEventListener('click',event=>{const target=event.target.closest?.('[data-tool],[data-speed],#pause,#zoom-in,#zoom-out,#zoom-reset,#help-toggle,#new-run,#same-seed,#random-seed,#event-advisory');if(!target)return;if(target===soundToggle)return;audio.cue(target.dataset.tool?`tool-${target.dataset.tool}`:target.id==='event-advisory'?'brief':'ui-click');});
+document.addEventListener('click',event=>{const target=event.target.closest?.('[data-tool],[data-speed],#pause,#zoom-in,#zoom-out,#zoom-reset,#help-toggle,#new-run,#same-seed,#random-seed,#event-advisory');if(!target||target===soundToggle)return;let cue='ui-click';if(target.dataset.tool)cue=`tool-${target.dataset.tool}`;else if(target.dataset.speed)cue=`control-speed-${target.dataset.speed}`;else if(target.id==='pause')cue='control-pause';else if(target.id==='zoom-in')cue='control-zoom-in';else if(target.id==='zoom-out')cue='control-zoom-out';else if(target.id==='zoom-reset')cue='control-fit';else if(target.id==='help-toggle')cue='control-help';else if(['new-run','same-seed','random-seed'].includes(target.id))cue='control-new';else if(target.id==='event-advisory')cue='brief';audio.cue(cue);});

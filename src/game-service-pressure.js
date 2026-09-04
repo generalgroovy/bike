@@ -56,6 +56,11 @@ Game.prototype.servicePressureSnapshot=function(){
 };
 Game.prototype.cityPressure=function(){const list=this.servicePressureSnapshot();return list.length?Math.max(...list.map(x=>x.pressure)):0;};
 Game.prototype.mostPressuredDistrict=function(){return this.servicePressureSnapshot()[0]??null;};
+Game.prototype.districtOperatingSnapshot=function(id){
+  const district=this.districts.find(d=>d.id===id);if(!district||(district.unlockLevel??1)>this.cityLevel)return null;
+  const pressure=this.districtPressure(id)??{},jobs=this.activeDeliveries().filter(d=>d.pickupDistrict===id),riders=this.couriers.filter(c=>districtForCourier(this,c)===id),hubs=typeof this.activeClientHubs==='function'?this.activeClientHubs().filter(h=>h.districtId===id):[],brief=typeof this.districtBriefRemaining==='function'?this.districtBriefRemaining(id):0,forecast=typeof this.demandForecast==='function'?this.demandForecast():null,event=this.currentEvent?.districtId===id?{id:this.currentEvent.id,title:this.currentEvent.title,state:this.currentEvent.state,kind:this.currentEvent.kind}:null;
+  return{district:{id:district.id,name:district.name},pressure:pressure.pressure??0,overload:pressure.overload??0,breaches:pressure.breaches??0,jobs:{total:jobs.length,waiting:jobs.filter(d=>d.status==='waiting'&&!d.called).length,called:jobs.filter(d=>d.status==='waiting'&&d.called).length,claimed:jobs.filter(d=>d.status==='claimed').length,urgent:jobs.filter(d=>this.urgency(d)<.42).length},riders:{total:riders.length,ready:riders.filter(c=>c.phase==='idle'&&c.radioOn).length,busy:riders.filter(c=>c.phase!=='idle'&&c.phase!=='break').length,break:riders.filter(c=>c.phase==='break'||!c.radioOn).length},clients:hubs.map(h=>({id:h.id,name:h.name,type:h.typeTitle,glyph:h.glyph})),briefRemaining:brief,event,demand:forecast?{current:forecast.current.title,next:forecast.next.title,in:forecast.in}:null};
+};
 
 const baseUpdate=Game.prototype.update;
 Game.prototype.update=function(dt){

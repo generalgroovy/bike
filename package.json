@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --check src/game-client-hubs.js && node --check src/ui-outlook.js && node --check src/ui-telemetry.js && node --check src/ui-scheduled.js && node --check src/ui-queue.js && node --check src/ui-feasibility.js && node --check src/ui-event-options.js && node --check src/ui-expansion-policy.js && node --check src/ui-service-pressure.js && node --check src/ui-client-hubs.js && node --check tools/import-ringbahn.mjs && node --check tools/import-berlin.mjs && node --check tools/build-berlin-candidate.mjs && node --check tools/compare-berlin-candidate.mjs && node --test",
+    "test": "node --check src/main.js && node --check src/render-map.js && node --check src/render-entities.js && node --check src/game-client-hubs.js && node --check src/game-demand-rhythm.js && node --check src/ui-outlook.js && node --check src/ui-telemetry.js && node --check src/ui-scheduled.js && node --check src/ui-queue.js && node --check src/ui-feasibility.js && node --check src/ui-event-options.js && node --check src/ui-expansion-policy.js && node --check src/ui-service-pressure.js && node --check src/ui-client-hubs.js && node --check src/ui-demand-rhythm.js && node --check tools/import-ringbahn.mjs && node --check tools/import-berlin.mjs && node --check tools/build-berlin-candidate.mjs && node --check tools/compare-berlin-candidate.mjs && node --test",
     "serve": "python -m http.server 8080",
     "import:ringbahn": "node tools/import-ringbahn.mjs",
     "import:berlin": "node tools/import-berlin.mjs",

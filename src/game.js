@@ -22,6 +22,7 @@ import './game-demand-rhythm.js';
 import './game-district-brief.js';
 import './game-client-hubs.js';
 import './game-service-pressure.js';
+import './game-service-flow.js';
 export class Game extends CoreGame{
   static lastInstance=null;
   constructor(options){super(options);Game.lastInstance=this;}

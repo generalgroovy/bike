@@ -9,6 +9,7 @@ import './ui-demand-rhythm.js';
 import './ui-district-brief.js';
 import './ui-map-lens.js';
 import './ui-adaptive-upgrades.js';
+import './ui-sensory.js';
 
 const root=document.querySelector('#inspect-outlook');
 const formatTime=seconds=>{const value=Math.max(0,Math.ceil(seconds));return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};

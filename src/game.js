@@ -18,6 +18,7 @@ import './game-review.js';
 import './game-telemetry.js';
 import './game-insight.js';
 import './game-demand-rhythm.js';
+import './game-district-brief.js';
 import './game-client-hubs.js';
 import './game-service-pressure.js';
 export class Game extends CoreGame{

@@ -17,6 +17,7 @@ import './game-strategic-upgrades.js';
 import './game-review.js';
 import './game-telemetry.js';
 import './game-insight.js';
+import './game-client-hubs.js';
 import './game-service-pressure.js';
 export class Game extends CoreGame{
   static lastInstance=null;
@@ -24,5 +25,6 @@ export class Game extends CoreGame{
 }
 export * from './game-data.js';
 export * from './game-cargo.js';
+export { CLIENT_HUB_TYPES } from './game-client-hubs.js';
 export { EXPANSION_POLICIES } from './game-expansion-policy.js';
 export { SCHEDULED_SPECIAL } from './game-scheduled.js';

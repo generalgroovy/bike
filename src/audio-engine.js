@@ -1,7 +1,8 @@
-export const AUDIO_THEME={key:'D minor pentatonic',bpm:102,scale:[50,53,55,57,60,62,65,67,69,72],master:.2};
+export const AUDIO_THEME={key:'D minor pentatonic',bpm:102,scale:[50,53,55,57,60,62,65,67,69,72,74],master:.2};
 
 const midiHz=midi=>440*Math.pow(2,(midi-69)/12);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const cargoPitch={food:65,parcel:62,document:67,grocery:57,fragile:69,flowers:72,keys:67,medical:74,catering:60,coldchain:72};
 
 class AudioEngine{
   constructor(){this.ctx=null;this.master=null;this.enabled=true;this.lastCue=new Map();this.maxVoices=18;this.voices=0;this.riderNotes=[62,65,67,69,72,74];}
@@ -10,7 +11,7 @@ class AudioEngine{
   allow(key,gap=.04){const now=typeof performance!=='undefined'?performance.now()/1000:Date.now()/1000,last=this.lastCue.get(key)??-Infinity;if(now-last<gap)return false;this.lastCue.set(key,now);return true;}
   tone({midi=62,duration=.13,volume=.16,type='sine',when=null,pan=0,attack=.008,detune=0,filter=4200}={}){const ctx=this.ensure();if(!ctx||this.voices>=this.maxVoices)return;const start=when??ctx.currentTime+.006,osc=ctx.createOscillator(),gain=ctx.createGain(),biquad=ctx.createBiquadFilter();osc.type=type;osc.frequency.setValueAtTime(midiHz(midi),start);osc.detune.value=detune;biquad.type='lowpass';biquad.frequency.value=filter;gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),start+attack);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(biquad);biquad.connect(gain);let output=gain;if(typeof ctx.createStereoPanner==='function'){const p=ctx.createStereoPanner();p.pan.value=clamp(pan,-1,1);gain.connect(p);output=p;}output.connect(this.master);this.voices++;osc.start(start);osc.stop(start+duration+.03);osc.addEventListener('ended',()=>{this.voices=Math.max(0,this.voices-1);});}
   chord(notes,{volume=.09,duration=.22,type='triangle',step=.025}={}){const when=this.beat(2);notes.forEach((midi,i)=>this.tone({midi,volume,duration,type,when:when+i*step,pan:(i-(notes.length-1)/2)*.18}));}
-  ping({urgent=false,pan=0}={}){if(!this.allow(`ping-${urgent}`,urgent?.22:.42))return;const when=this.beat(4),root=urgent?69:62;this.tone({midi:root,volume:urgent?.13:.085,duration:urgent?.34:.42,type:'sine',when,pan,filter:5000});this.tone({midi:root+12,volume:urgent?.045:.025,duration:.18,type:'sine',when:when+.018,pan,filter:6000});}
+  ping({urgent=false,pan=0,type='parcel'}={}){if(!this.allow(`ping-${urgent}`,urgent?.22:.42))return;const when=this.beat(4),base=cargoPitch[type]??62,index=Math.max(0,AUDIO_THEME.scale.indexOf(base)),root=urgent?(AUDIO_THEME.scale[Math.min(AUDIO_THEME.scale.length-1,index+2)]??base):base;this.tone({midi:root,volume:urgent?.13:.085,duration:urgent?.34:.42,type:'sine',when,pan,filter:5000});this.tone({midi:root+12,volume:urgent?.045:.025,duration:.18,type:'sine',when:when+.018,pan,filter:6000});}
   riderSpeed(riderIndex=0,speed=1){if(!this.allow(`rider-speed-${riderIndex}`,clamp(.58-speed*.1,.2,.52)))return;const base=this.riderNotes[riderIndex%this.riderNotes.length],lift=speed>1.18?5:speed>1.04?2:0;this.tone({midi:base+lift,volume:.045+clamp(speed-1,0,.45)*.06,duration:.09,type:riderIndex%2?'triangle':'sine',when:this.beat(4),pan:(riderIndex-2.5)/3.4,filter:3800});}
   cue(name,data={}){if(!this.enabled)return;const pan=clamp(data.pan??0,-1,1);switch(name){
     case'hover-job':if(this.allow(name,.09))this.tone({midi:69,volume:.025,duration:.045,type:'triangle',pan});break;
@@ -43,6 +44,11 @@ class AudioEngine{
     case'pressure':if(this.allow(name,1.6))this.tone({midi:50,volume:.04,duration:.38,type:'sine',filter:900});break;
     case'breach':this.chord([50,53,49],{volume:.075,duration:.38,type:'sine',step:.055});break;
     case'brief':this.chord([57,62,65,69],{volume:.05,duration:.24,type:'triangle',step:.035});break;
+    case'phase-quiet':this.chord([57,62],{volume:.035,duration:.2,type:'sine',step:.04});break;
+    case'phase-lunch':this.chord([62,67,69],{volume:.045,duration:.16,type:'triangle',step:.03});break;
+    case'phase-office':this.chord([60,62,67],{volume:.04,duration:.18,type:'sine',step:.03});break;
+    case'phase-evening':this.chord([57,60,65],{volume:.043,duration:.22,type:'triangle',step:.04});break;
+    case'phase-reset':this.chord([65,62,57],{volume:.033,duration:.2,type:'sine',step:.045});break;
     case'event-forecast':this.chord([55,60],{volume:.04,duration:.24,type:'sine'});break;
     case'event-route':this.chord([50,55,60],{volume:.05,duration:.25,type:'triangle',step:.045});break;
     case'event-demand':this.chord([57,62,69],{volume:.052,duration:.19,type:'triangle',step:.03});break;

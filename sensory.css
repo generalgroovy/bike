@@ -1,0 +1,12 @@
+:root{--sensory-beat:.588s;}
+.task-card,.rider-card,#event-chip,[data-tool],[data-speed]{transition:transform .12s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease;}
+.task-card:hover,.rider-card:hover{transform:translateY(-1px);filter:saturate(1.06);}
+.task-card[data-urgent="true"]{animation:task-breathe calc(var(--sensory-beat)*2) ease-in-out infinite;}
+.task-card[data-channel="priority"]{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--type,#d6a83f) 36%,transparent);}
+.rider-card[data-break="false"]:hover{box-shadow:0 5px 18px rgba(47,54,55,.1);}
+#event-chip[data-state="active"]{animation:event-breathe calc(var(--sensory-beat)*3) ease-in-out infinite;}
+[data-tool]:active,[data-channel]:active,[data-speed]:active{transform:scale(.96);}
+.demand-chip[data-phase="lunch"],.demand-chip[data-phase="evening"]{filter:saturate(1.08);}
+@keyframes task-breathe{0%,100%{box-shadow:0 0 0 rgba(206,69,86,0)}50%{box-shadow:0 0 0 2px rgba(206,69,86,.14)}}
+@keyframes event-breathe{0%,100%{filter:saturate(1)}50%{filter:saturate(1.18) brightness(1.02)}}
+@media(prefers-reduced-motion:reduce){.task-card,.rider-card,#event-chip,[data-tool],[data-speed]{transition:none}.task-card[data-urgent="true"],#event-chip[data-state="active"]{animation:none}}

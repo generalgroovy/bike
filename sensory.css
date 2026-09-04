@@ -1,5 +1,5 @@
 :root{--sensory-beat:.588s;}
-.task-card,.rider-card,#event-chip,[data-tool],[data-speed]{transition:transform .12s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease;}
+.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle{transition:transform .12s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease;}
 .task-card:hover,.rider-card:hover{transform:translateY(-1px);filter:saturate(1.06);}
 .task-card[data-urgent="true"]{animation:task-breathe calc(var(--sensory-beat)*2) ease-in-out infinite;}
 .task-card[data-channel="priority"]{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--type,#d6a83f) 36%,transparent);}
@@ -7,6 +7,10 @@
 #event-chip[data-state="active"]{animation:event-breathe calc(var(--sensory-beat)*3) ease-in-out infinite;}
 [data-tool]:active,[data-channel]:active,[data-speed]:active{transform:scale(.96);}
 .demand-chip[data-phase="lunch"],.demand-chip[data-phase="evening"]{filter:saturate(1.08);}
+#sound-toggle[data-muted="true"]{opacity:.58;filter:grayscale(.7);}
+.service-load{position:relative;}
+:root[data-flow="3"] .service-load::after,:root[data-flow="4"] .service-load::after,:root[data-flow="5"] .service-load::after,:root[data-flow="6"] .service-load::after,:root[data-flow="7"] .service-load::after{position:absolute;right:5px;top:-10px;padding:2px 5px;border-radius:999px;background:#fffdf8;border:1px solid rgba(74,125,105,.28);font:800 8px/1 system-ui;color:#3f7864;letter-spacing:.04em;box-shadow:0 2px 8px rgba(45,68,61,.08);}
+:root[data-flow="3"] .service-load::after{content:"FLOW ×3"}:root[data-flow="4"] .service-load::after{content:"FLOW ×4"}:root[data-flow="5"] .service-load::after{content:"FLOW ×5"}:root[data-flow="6"] .service-load::after{content:"FLOW ×6"}:root[data-flow="7"] .service-load::after{content:"FLOW ×7"}
 @keyframes task-breathe{0%,100%{box-shadow:0 0 0 rgba(206,69,86,0)}50%{box-shadow:0 0 0 2px rgba(206,69,86,.14)}}
 @keyframes event-breathe{0%,100%{filter:saturate(1)}50%{filter:saturate(1.18) brightness(1.02)}}
-@media(prefers-reduced-motion:reduce){.task-card,.rider-card,#event-chip,[data-tool],[data-speed]{transition:none}.task-card[data-urgent="true"],#event-chip[data-state="active"]{animation:none}}
+@media(prefers-reduced-motion:reduce){.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle{transition:none}.task-card[data-urgent="true"],#event-chip[data-state="active"]{animation:none}}

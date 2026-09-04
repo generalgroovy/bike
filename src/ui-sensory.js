@@ -13,7 +13,7 @@ document.documentElement.dataset.audioKey=AUDIO_THEME.key;document.documentEleme
 const unlock=()=>audio.ensure();document.addEventListener('pointerdown',unlock,{passive:true});document.addEventListener('keydown',unlock,{passive:true});
 soundToggle?.addEventListener('click',()=>{audio.enabled=!audio.enabled;writeSound(audio.enabled);syncSoundButton();if(audio.enabled){audio.ensure();audio.cue('radio-on');}});
 
-let game=null,logIndex=0,lastHovered='',lastSelectedDelivery=null,lastSelectedCourier=null,lastPressureCue=0;
+let game=null,logIndex=0,lastHovered='',lastSelectedDelivery=null,lastSelectedCourier=null,lastPressureCue=0,lastDemandPhase=null;
 const deliveryPings=new Map(),riderMotion=new Map();
 const now=()=>typeof performance!=='undefined'?performance.now()/1000:Date.now()/1000;
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -23,12 +23,15 @@ function cueLog(entry){const data={riderIndex:riderIndex(entry.rider),flow:entry
   case'call':case'channel':audio.cue(`call-${entry.channel??'open'}`,data);break;
   case'uncall':audio.cue('call-off',data);break;
   case'radio-denied':audio.cue('radio-denied',data);break;
+  case'sweeten':audio.cue('tool-sweeten',data);break;
+  case'client-call':audio.cue('tool-extend',data);break;
+  case'rebroadcast':audio.cue('tool-rebroadcast',data);break;
   case'claim':audio.cue('claim',data);break;
   case'pickup':audio.cue('pickup',data);break;
   case'complete':audio.cue('complete',data);break;
   case'fail':audio.cue('fail',data);break;
   case'service-breach':audio.cue('breach',data);break;
-  case'district-brief':audio.cue('brief',data);break;
+  case'district-brief':case'event-response':audio.cue('brief',data);break;
   case'event-forecast':audio.cue('event-forecast',data);break;
   case'event-start':audio.cue(entry.kind==='demand'?'event-demand':entry.kind==='route'?'event-route':'event-start',data);break;
   case'event-end':audio.cue('event-end',data);break;
@@ -41,16 +44,17 @@ function cueLog(entry){const data={riderIndex:riderIndex(entry.rider),flow:entry
   case'city-expand':audio.cue('city-expand',data);break;
 }}
 function processLogs(){for(;logIndex<game.dispatchLog.length;logIndex++)cueLog(game.dispatchLog[logIndex]);}
-function pingDeliveries(t){const jobs=game.activeDeliveries().filter(d=>d.status==='waiting').sort((a,b)=>game.urgency(a)-game.urgency(b));for(const d of jobs){const urgency=game.urgency(d),urgent=urgency<.3,interval=urgent?.72:d.called?1.8:3.4,last=deliveryPings.get(d.id)??-Infinity;if(t-last<interval)continue;deliveryPings.set(d.id,t);audio.ping({urgent,pan:worldPan(game,d.pickupId)});break;}for(const id of deliveryPings.keys())if(!game.deliveryById(id)||!jobs.some(d=>d.id===id))deliveryPings.delete(id);}
+function pingDeliveries(t){const jobs=game.activeDeliveries().filter(d=>d.status==='waiting').sort((a,b)=>game.urgency(a)-game.urgency(b));for(const d of jobs){const urgency=game.urgency(d),urgent=urgency<.3,interval=urgent?.72:d.called?1.8:3.4,last=deliveryPings.get(d.id)??-Infinity;if(t-last<interval)continue;deliveryPings.set(d.id,t);audio.ping({urgent,pan:worldPan(game,d.pickupId),type:d.type});break;}for(const id of deliveryPings.keys())if(!game.deliveryById(id)||!jobs.some(d=>d.id===id))deliveryPings.delete(id);}
 function riderNotes(t){for(let i=0;i<game.couriers.length;i++){const c=game.couriers[i],prev=riderMotion.get(c.id);riderMotion.set(c.id,{x:c.x,y:c.y,t});if(!prev||c.phase==='break'||!c.radioOn)continue;const dt=Math.max(.02,t-prev.t),speed=Math.hypot(c.x-prev.x,c.y-prev.y)/dt,relative=speed/Math.max(1,c.baseSpeed);if(relative<.42)continue;audio.riderSpeed(i,relative);}}
 function pressureTone(t){const pressure=typeof game.cityPressure==='function'?game.cityPressure():0;if(pressure<58||t-lastPressureCue<Math.max(.85,3.4-pressure/34))return;lastPressureCue=t;audio.cue('pressure',{pressure});}
+function demandCue(){if(typeof game.demandPhase!=='function')return;const phase=game.demandPhase().id;if(lastDemandPhase==null){lastDemandPhase=phase;return;}if(phase!==lastDemandPhase){lastDemandPhase=phase;audio.cue(`phase-${phase}`);}}
 function selectionCues(){if(game.selectedDeliveryId!==lastSelectedDelivery){lastSelectedDelivery=game.selectedDeliveryId;if(lastSelectedDelivery){const d=game.deliveryById(lastSelectedDelivery);audio.cue('select-job',{pan:d?worldPan(game,d.pickupId):0});}}if(game.selectedCourierId!==lastSelectedCourier){lastSelectedCourier=game.selectedCourierId;if(lastSelectedCourier){const i=game.couriers.findIndex(c=>c.id===lastSelectedCourier);audio.cue('select-rider',{riderIndex:Math.max(0,i)});}}}
 function exposeFlow(){const flow=typeof game.serviceFlowState==='function'?game.serviceFlowState():null;document.documentElement.dataset.flow=String(flow?.streak??0);}
-function reset(next){game=next;logIndex=next.dispatchLog.length;deliveryPings.clear();riderMotion.clear();lastSelectedDelivery=next.selectedDeliveryId;lastSelectedCourier=next.selectedCourierId;lastPressureCue=0;exposeFlow();}
-function tick(){const next=Game.lastInstance;if(!next)return;if(next!==game)reset(next);const t=now();processLogs();selectionCues();exposeFlow();if(!game.paused&&!game.gameOver&&audio.enabled){pingDeliveries(t);riderNotes(t);pressureTone(t);}}
+function reset(next){game=next;logIndex=next.dispatchLog.length;deliveryPings.clear();riderMotion.clear();lastSelectedDelivery=next.selectedDeliveryId;lastSelectedCourier=next.selectedCourierId;lastPressureCue=0;lastDemandPhase=typeof next.demandPhase==='function'?next.demandPhase().id:null;exposeFlow();}
+function tick(){const next=Game.lastInstance;if(!next)return;if(next!==game)reset(next);const t=now();processLogs();selectionCues();demandCue();exposeFlow();if(!game.paused&&!game.gameOver&&audio.enabled){pingDeliveries(t);riderNotes(t);pressureTone(t);}}
 setInterval(tick,90);
 
-function hoverTarget(event){return event.target.closest?.('.task-card,.rider-card,.goal-card,#event-chip,[data-channel],[data-tool],[data-speed],.client-hub-chip,.demand-chip,.service-load,.district-brief,.map-tools button,.time-tools button,.top-actions button');}
+function hoverTarget(event){return event.target.closest?.('.task-card,.rider-card,.goal-card,#event-chip,[data-channel],[data-tool],[data-speed],.client-hub-chip,.demand-rhythm,.service-load,.district-brief,.map-tools button,.time-tools button,.top-actions button');}
 document.addEventListener('pointerover',event=>{const target=hoverTarget(event);if(!target)return;const key=target.dataset.delivery?`job:${target.dataset.delivery}`:target.dataset.courier?`rider:${target.dataset.courier}`:target.dataset.channel?`channel:${target.dataset.channel}`:target.dataset.tool?`tool:${target.dataset.tool}`:target.id||String(target.className);if(key===lastHovered)return;lastHovered=key;if(target.dataset.delivery)audio.cue('hover-job');else if(target.dataset.courier){const i=game?.couriers.findIndex(c=>c.id===target.dataset.courier)??0;audio.cue('hover-rider',{riderIndex:Math.max(0,i)});}else audio.cue('ui-hover');});
 document.addEventListener('pointerout',event=>{if(!event.relatedTarget||!hoverTarget({target:event.relatedTarget}))lastHovered='';});
-document.addEventListener('click',event=>{const target=event.target.closest?.('[data-tool],[data-speed],#pause,#zoom-in,#zoom-out,#zoom-reset,#help-toggle,#new-run,#same-seed,#random-seed,#event-advisory');if(!target||target===soundToggle)return;let cue='ui-click';if(target.dataset.tool)cue=`tool-${target.dataset.tool}`;else if(target.dataset.speed)cue=`control-speed-${target.dataset.speed}`;else if(target.id==='pause')cue='control-pause';else if(target.id==='zoom-in')cue='control-zoom-in';else if(target.id==='zoom-out')cue='control-zoom-out';else if(target.id==='zoom-reset')cue='control-fit';else if(target.id==='help-toggle')cue='control-help';else if(['new-run','same-seed','random-seed'].includes(target.id))cue='control-new';else if(target.id==='event-advisory')cue='brief';audio.cue(cue);});
+document.addEventListener('click',event=>{const target=event.target.closest?.('[data-tool],[data-speed],#pause,#zoom-in,#zoom-out,#zoom-reset,#help-toggle,#new-run,#same-seed,#random-seed,#event-advisory');if(!target||target===soundToggle)return;let cue='ui-click';if(target.dataset.speed)cue=`control-speed-${target.dataset.speed}`;else if(target.id==='pause')cue='control-pause';else if(target.id==='zoom-in')cue='control-zoom-in';else if(target.id==='zoom-out')cue='control-zoom-out';else if(target.id==='zoom-reset')cue='control-fit';else if(target.id==='help-toggle')cue='control-help';else if(['new-run','same-seed','random-seed'].includes(target.id))cue='control-new';else if(target.id==='event-advisory')cue='brief';audio.cue(cue);});

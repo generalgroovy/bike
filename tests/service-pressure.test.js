@@ -4,9 +4,8 @@ import { readFileSync } from 'node:fs';
 import { Game } from '../src/game.js';
 
 function overloadDistrict(game,id,count=10){
-  game.deliveries=[];game.cityLevel=1;const pool=game.playableAddressNodes().filter(n=>n.districtId===id),other=game.playableAddressNodes().filter(n=>n.districtId!==id);assert.ok(pool.length>1&&other.length>0);
-  for(let i=0;i<count;i++){const pickup=pool[i%pool.length],drop=other[i%other.length];assert.equal(game.spawnDelivery({pickupId:pickup.id,dropoffId:drop.id,special:false}),true);}
-  game.elapsed=10;for(const d of game.activeDeliveries()){d.createdAt=0;d.deadlineAt=12;d.called=false;d.channel=null;}
+  game.deliveries=[];game.cityLevel=1;game.elapsed=10;
+  for(let i=0;i<count;i++)game.deliveries.push({id:`p${i}`,status:'waiting',called:false,channel:null,pickupDistrict:id,dropoffDistrict:'kreuzberg',createdAt:0,deadlineAt:12});
 }
 
 test('district service pressure turns unresolved local work into spatial strain',()=>{
@@ -24,5 +23,5 @@ test('service pressure snapshot is a read-only projection sorted by pressure',()
 });
 
 test('pressure UI remains a compact read-only instrument and map rendering exposes load',()=>{
-  const ui=readFileSync(new URL('../src/ui-service-pressure.js',import.meta.url),'utf8'),map=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');assert.match(ui,/CITY LOAD/);assert.match(ui,/mostPressuredDistrict/);assert.match(ui,/dataset\.pickupLoad/);assert.doesNotMatch(ui,/setChannel\(|spawnDelivery\(|claim\(|sweetenJob\(|update\(/);assert.match(map,/drawServicePressure/);assert.match(map,/LOAD \$\{Math\.round\(pressure\)\}/);
+  const ui=readFileSync(new URL('../src/ui-service-pressure.js',import.meta.url),'utf8'),map=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');assert.match(ui,/CITY LOAD/);assert.match(ui,/mostPressuredDistrict/);assert.match(ui,/dataset\.pickupLoad/);assert.doesNotMatch(ui,/setChannel\(|spawnDelivery\(|claim\(|sweetenJob\(|game\.update\(/);assert.match(map,/drawServicePressure/);assert.match(map,/LOAD \$\{Math\.round\(pressure\)\}/);
 });

@@ -1,11 +1,21 @@
 :root{--sensory-beat:.588s;}
-.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle{transition:transform .12s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease;}
+.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle,.map-tools button,.time-tools button{transition:transform .12s ease,box-shadow .16s ease,filter .16s ease,opacity .16s ease,background-color .16s ease;}
 .task-card:hover,.rider-card:hover{transform:translateY(-1px);filter:saturate(1.06);}
 .task-card[data-urgent="true"]{animation:task-breathe calc(var(--sensory-beat)*2) ease-in-out infinite;}
 .task-card[data-channel="priority"]{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--type,#d6a83f) 36%,transparent);}
 .rider-card[data-break="false"]:hover{box-shadow:0 5px 18px rgba(47,54,55,.1);}
 #event-chip[data-state="active"]{animation:event-breathe calc(var(--sensory-beat)*3) ease-in-out infinite;}
-[data-tool]:active,[data-channel]:active,[data-speed]:active{transform:scale(.96);}
+[data-tool]:active,[data-channel]:active,[data-speed]:active,.map-tools button:active,.time-tools button:active{transform:scale(.96);}
+[data-tool="sweeten"]:hover{box-shadow:inset 0 -2px 0 rgba(216,158,53,.72),0 2px 9px rgba(216,158,53,.11);}
+[data-tool="extend"]:hover{box-shadow:inset 0 -2px 0 rgba(68,155,174,.68),0 2px 9px rgba(68,155,174,.1);}
+[data-tool="rebroadcast"]:hover{box-shadow:inset 0 -2px 0 rgba(128,108,194,.7),0 2px 9px rgba(128,108,194,.1);}
+[data-channel="open"]:hover{filter:saturate(1.15);box-shadow:0 0 0 1px rgba(79,166,195,.25)}
+[data-channel="priority"]:hover{filter:saturate(1.18);box-shadow:0 0 0 1px rgba(214,168,63,.3)}
+[data-channel="local"]:hover{filter:saturate(1.15);box-shadow:0 0 0 1px rgba(79,172,145,.28)}
+.map-tools button:hover{box-shadow:inset 0 -2px 0 rgba(96,112,118,.22)}
+.time-tools button[data-speed="1"]:hover{box-shadow:inset 0 -2px 0 rgba(86,125,110,.22)}
+.time-tools button[data-speed="2"]:hover{box-shadow:inset 0 -2px 0 rgba(86,125,110,.36)}
+.time-tools button[data-speed="4"]:hover{box-shadow:inset 0 -2px 0 rgba(86,125,110,.52)}
 .demand-chip[data-phase="lunch"],.demand-chip[data-phase="evening"]{filter:saturate(1.08);}
 #sound-toggle[data-muted="true"]{opacity:.58;filter:grayscale(.7);}
 .service-load{position:relative;}
@@ -13,4 +23,4 @@
 :root[data-flow="3"] .service-load::after{content:"FLOW ×3"}:root[data-flow="4"] .service-load::after{content:"FLOW ×4"}:root[data-flow="5"] .service-load::after{content:"FLOW ×5"}:root[data-flow="6"] .service-load::after{content:"FLOW ×6"}:root[data-flow="7"] .service-load::after{content:"FLOW ×7"}
 @keyframes task-breathe{0%,100%{box-shadow:0 0 0 rgba(206,69,86,0)}50%{box-shadow:0 0 0 2px rgba(206,69,86,.14)}}
 @keyframes event-breathe{0%,100%{filter:saturate(1)}50%{filter:saturate(1.18) brightness(1.02)}}
-@media(prefers-reduced-motion:reduce){.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle{transition:none}.task-card[data-urgent="true"],#event-chip[data-state="active"]{animation:none}}
+@media(prefers-reduced-motion:reduce){.task-card,.rider-card,#event-chip,[data-tool],[data-speed],#sound-toggle,.map-tools button,.time-tools button{transition:none}.task-card[data-urgent="true"],#event-chip[data-state="active"]{animation:none}}

@@ -5,6 +5,7 @@ import './ui-queue.js';
 import './ui-feasibility.js';
 import './ui-service-pressure.js';
 import './ui-client-hubs.js';
+import './ui-demand-rhythm.js';
 
 const root=document.querySelector('#inspect-outlook');
 const formatTime=seconds=>{const value=Math.max(0,Math.ceil(seconds));return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};

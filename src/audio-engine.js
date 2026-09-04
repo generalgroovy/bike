@@ -13,11 +13,29 @@ class AudioEngine{
   chord(notes,{volume=.09,duration=.22,type='triangle',step=.025}={}){const when=this.beat(2);notes.forEach((midi,i)=>this.tone({midi,volume,duration,type,when:when+i*step,pan:(i-(notes.length-1)/2)*.18}));}
   ping({urgent=false,pan=0,type='parcel'}={}){if(!this.allow(`ping-${urgent}`,urgent?.22:.42))return;const when=this.beat(4),base=cargoPitch[type]??62,index=Math.max(0,AUDIO_THEME.scale.indexOf(base)),root=urgent?(AUDIO_THEME.scale[Math.min(AUDIO_THEME.scale.length-1,index+2)]??base):base;this.tone({midi:root,volume:urgent?.13:.085,duration:urgent?.34:.42,type:'sine',when,pan,filter:5000});this.tone({midi:root+12,volume:urgent?.045:.025,duration:.18,type:'sine',when:when+.018,pan,filter:6000});}
   riderSpeed(riderIndex=0,speed=1){if(!this.allow(`rider-speed-${riderIndex}`,clamp(.58-speed*.1,.2,.52)))return;const base=this.riderNotes[riderIndex%this.riderNotes.length],lift=speed>1.18?5:speed>1.04?2:0;this.tone({midi:base+lift,volume:.045+clamp(speed-1,0,.45)*.06,duration:.09,type:riderIndex%2?'triangle':'sine',when:this.beat(4),pan:(riderIndex-2.5)/3.4,filter:3800});}
+  ambience({phase='quiet',pressure=0,flow=0}={}){if(!this.enabled||!this.allow('ambient',2.35))return;const roots={quiet:50,lunch:57,office:53,evening:50,reset:55},colors={quiet:62,lunch:67,office:65,evening:60,reset:62},when=this.beat(1),root=roots[phase]??50,color=colors[phase]??62,stress=clamp(pressure/100,0,1),lift=flow>=5?5:flow>=3?2:0;this.tone({midi:root,volume:.009+stress*.013,duration:.72,type:'sine',when,filter:900});this.tone({midi:color+lift,volume:.007+Math.min(.008,flow*.001),duration:.42,type:'sine',when:when+.08,pan:.22,filter:2600});}
   cue(name,data={}){if(!this.enabled)return;const pan=clamp(data.pan??0,-1,1);switch(name){
     case'hover-job':if(this.allow(name,.09))this.tone({midi:69,volume:.025,duration:.045,type:'triangle',pan});break;
     case'hover-rider':if(this.allow(name,.09))this.tone({midi:this.riderNotes[data.riderIndex%6]??65,volume:.026,duration:.05,type:'sine',pan});break;
+    case'hover-radio-open':if(this.allow(name,.09))this.tone({midi:62,volume:.018,duration:.035,type:'sine'});break;
+    case'hover-radio-priority':if(this.allow(name,.09))this.tone({midi:69,volume:.021,duration:.04,type:'triangle'});break;
+    case'hover-radio-local':if(this.allow(name,.09))this.tone({midi:57,volume:.018,duration:.04,type:'sine'});break;
+    case'hover-tool-sweeten':if(this.allow(name,.09))this.tone({midi:72,volume:.018,duration:.035,type:'triangle'});break;
+    case'hover-tool-extend':if(this.allow(name,.09))this.tone({midi:65,volume:.016,duration:.045,type:'sine'});break;
+    case'hover-tool-rebroadcast':if(this.allow(name,.09))this.tone({midi:67,volume:.017,duration:.035,type:'triangle'});break;
+    case'hover-shift':if(this.allow(name,.12))this.tone({midi:55,volume:.015,duration:.05,type:'sine'});break;
+    case'hover-city':if(this.allow(name,.12))this.tone({midi:60,volume:.016,duration:.055,type:'triangle'});break;
+    case'hover-load':if(this.allow(name,.14))this.tone({midi:50,volume:.014,duration:.08,type:'sine',filter:1000});break;
+    case'hover-goal':if(this.allow(name,.12))this.tone({midi:74,volume:.015,duration:.04,type:'triangle'});break;
     case'ui-hover':if(this.allow(name,.08))this.tone({midi:65,volume:.014,duration:.028,type:'triangle'});break;
     case'ui-click':this.tone({midi:62,volume:.028,duration:.045,type:'triangle'});break;
+    case'metric-cash-up':this.tone({midi:72,volume:.026,duration:.055,type:'triangle'});break;
+    case'metric-cash-down':this.tone({midi:60,volume:.018,duration:.06,type:'triangle'});break;
+    case'metric-rep-up':this.chord([60,65],{volume:.018,duration:.08,type:'sine'});break;
+    case'metric-rep-down':this.chord([53,50],{volume:.022,duration:.1,type:'sine',step:.03});break;
+    case'metric-focus-up':this.chord([57,62],{volume:.019,duration:.07,type:'triangle'});break;
+    case'metric-focus-down':this.tone({midi:57,volume:.017,duration:.055,type:'sine'});break;
+    case'metric-radio-full':this.chord([53,55],{volume:.02,duration:.07,type:'triangle'});break;
     case'select-job':this.tone({midi:62,volume:.065,duration:.09,type:'triangle',when:this.beat(4),pan});break;
     case'select-rider':this.chord([this.riderNotes[data.riderIndex%6]??62,(this.riderNotes[data.riderIndex%6]??62)+7],{volume:.045,duration:.12,type:'sine'});break;
     case'call-open':this.chord([62,67],{volume:.055,duration:.14,type:'sine'});break;

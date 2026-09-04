@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { Game } from '../src/game.js';
+
+test('district operating snapshot combines pressure work riders clients rhythm and brief without mutation',()=>{const g=new Game({seed:'DISTRICT-LENS'});g.ensureClientHubs();g.updateServicePressure(.5);const before=[g.cash,g.dispatchFocus,g.deliveries.length,g.couriers.map(c=>c.deliveryId)],snap=g.districtOperatingSnapshot('mitte');assert.ok(snap);assert.equal(snap.district.id,'mitte');assert.ok(Number.isFinite(snap.pressure));assert.ok(Number.isInteger(snap.jobs.total));assert.ok(Number.isInteger(snap.riders.total));assert.ok(Array.isArray(snap.clients));assert.ok(snap.demand?.current);assert.deepEqual([g.cash,g.dispatchFocus,g.deliveries.length,g.couriers.map(c=>c.deliveryId)],before);});
+
+test('map lens uses camera screen-to-world conversion and point-in-polygon hover only',()=>{const ui=readFileSync(new URL('../src/ui-map-lens.js',import.meta.url),'utf8'),renderer=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');assert.match(ui,/screenToWorld/);assert.match(ui,/pointermove/);assert.match(ui,/districtOperatingSnapshot/);assert.match(ui,/WORK/);assert.match(ui,/RIDERS/);assert.match(ui,/CLIENTS/);assert.match(ui,/RHYTHM/);assert.match(renderer,/static lastInstance/);for(const source of[ui,renderer])assert.doesNotMatch(source,/setChannel\(|claim\(|spawnDelivery\(|briefDistrict\(|sweetenJob\(/);});
+
+test('map lens contains no permanent dashboard or click action',()=>{const ui=readFileSync(new URL('../src/ui-map-lens.js',import.meta.url),'utf8'),css=readFileSync(new URL('../map-lens.css',import.meta.url),'utf8');assert.match(css,/pointer-events:none/);assert.match(ui,/pointerleave/);assert.doesNotMatch(ui,/addEventListener\(['"]click/);});

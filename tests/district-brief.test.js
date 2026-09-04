@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { Game } from '../src/game.js';
+
+function twoDistrictJobs(g){g.cityLevel=3;g.deliveries=[];const a=g.playableAddressNodes().find(n=>n.districtId==='mitte'),b=g.playableAddressNodes().find(n=>n.districtId==='kreuzberg'),drop=g.playableAddressNodes().find(n=>n.districtId==='friedrichshain');assert.ok(a&&b&&drop);assert.equal(g.spawnDelivery({pickupId:a.id,dropoffId:drop.id,special:false}),true);const first=g.deliveries.at(-1);assert.equal(g.spawnDelivery({pickupId:b.id,dropoffId:drop.id,special:false}),true);return[first,g.deliveries.at(-1)];}
+
+test('Kiez Brief spends Focus and raises interest in all work from one district only',()=>{const g=new Game({seed:'KIEZ-BRIEF'}),[a,b]=twoDistrictJobs(g),r=g.couriers[0];a.channel='open';b.channel='open';const beforeA=g.courierChoiceScore(r,a,false),beforeB=g.courierChoiceScore(r,b,false),focus=g.dispatchFocus;assert.equal(g.briefDistrict(a.pickupDistrict),true);assert.equal(g.dispatchFocus,focus-1);assert.ok(g.courierChoiceScore(r,a,false)>beforeA+.2);assert.equal(g.courierChoiceScore(r,b,false),beforeB);assert.equal(a.status,'waiting');assert.equal(a.courierId,null);});
+
+test('Kiez Brief cannot be spammed and expires cleanly',()=>{const g=new Game({seed:'KIEZ-EXPIRE'}),[a]=twoDistrictJobs(g);assert.equal(g.briefDistrict(a.pickupDistrict),true);assert.equal(g.briefDistrict(a.pickupDistrict),false);assert.ok(g.districtBriefRemaining(a.pickupDistrict)>23);g.elapsed+=25;assert.equal(g.districtBriefActive(a.pickupDistrict),false);assert.equal(g.briefDistrict(a.pickupDistrict),true);});
+
+test('Kiez Brief is an indirect spatial tool, not an assignment shortcut',()=>{const game=readFileSync(new URL('../src/game-district-brief.js',import.meta.url),'utf8'),ui=readFileSync(new URL('../src/ui-district-brief.js',import.meta.url),'utf8'),map=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');assert.match(ui,/KIEZ BRIEF/);assert.match(map,/drawDistrictBriefs/);assert.match(game,/districtBriefs/);for(const source of[game,ui])assert.doesNotMatch(source,/assignCourier|assign\(|reserveRider|preassign|\.claim\(/);});

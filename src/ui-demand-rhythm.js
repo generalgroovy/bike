@@ -1,0 +1,6 @@
+import { Game } from './game.js';
+if(!document.querySelector('link[href="rhythm.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='rhythm.css';document.head.append(link);}
+const host=document.querySelector('.task-summary'),root=document.createElement('div');root.className='demand-rhythm';root.innerHTML='<span>DEMAND</span><strong></strong><small></small>';if(host)host.append(root);let last='';
+function fmt(seconds){return `${Math.max(0,Math.ceil(seconds))}s`;}
+function render(){const game=Game.lastInstance;if(!game?.demandForecast)return;const forecast=game.demandForecast(),phase=forecast.current,key=`${phase.id}:${Math.ceil(forecast.in)}`;if(key===last)return;last=key;root.dataset.phase=phase.id;root.querySelector('strong').textContent=phase.title;root.querySelector('small').textContent=`${fmt(forecast.in)} → ${forecast.next.title}`;root.dataset.tip=`Demand rhythm is predictable. ${phase.desc} Next: ${forecast.next.title} in ${fmt(forecast.in)}. Use the quiet windows to recover energy and clear district load.`;}
+setInterval(render,250);render();

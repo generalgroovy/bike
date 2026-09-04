@@ -14,7 +14,7 @@ test('district service pressure turns unresolved local work into spatial strain'
 });
 
 test('sustained overload causes an explicit service breach instead of an invisible loss',()=>{
-  const g=new Game({seed:'PRESSURE-BREACH'});overloadDistrict(g,'mitte',12);const before=g.reputation;for(let i=0;i<120&&g.runStats.districtBreaches<1;i++)g.updateServicePressure(.5);
+  const g=new Game({seed:'PRESSURE-BREACH'});overloadDistrict(g,'mitte',12);g.ensureServicePressure();const before=g.reputation;for(let i=0;i<120&&(g.runStats.districtBreaches??0)<1;i++)g.updateServicePressure(.5);
   assert.ok(g.runStats.districtBreaches>=1);assert.equal(g.reputation,before-5);const state=g.districtPressure('mitte');assert.ok(state.breaches>=1);assert.equal(g.dispatchLog.at(-1).type,'service-breach');
 });
 

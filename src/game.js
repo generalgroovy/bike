@@ -14,6 +14,7 @@ import './game-expansion-policy.js';
 import './game-tools.js';
 import './game-event-options.js';
 import './game-strategic-upgrades.js';
+import './game-adaptive-upgrades.js';
 import './game-review.js';
 import './game-telemetry.js';
 import './game-insight.js';

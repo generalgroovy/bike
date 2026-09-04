@@ -15,6 +15,8 @@ class AudioEngine{
   cue(name,data={}){if(!this.enabled)return;const pan=clamp(data.pan??0,-1,1);switch(name){
     case'hover-job':if(this.allow(name,.09))this.tone({midi:69,volume:.025,duration:.045,type:'triangle',pan});break;
     case'hover-rider':if(this.allow(name,.09))this.tone({midi:this.riderNotes[data.riderIndex%6]??65,volume:.026,duration:.05,type:'sine',pan});break;
+    case'ui-hover':if(this.allow(name,.08))this.tone({midi:65,volume:.014,duration:.028,type:'triangle'});break;
+    case'ui-click':this.tone({midi:62,volume:.028,duration:.045,type:'triangle'});break;
     case'select-job':this.tone({midi:62,volume:.065,duration:.09,type:'triangle',when:this.beat(4),pan});break;
     case'select-rider':this.chord([this.riderNotes[data.riderIndex%6]??62,(this.riderNotes[data.riderIndex%6]??62)+7],{volume:.045,duration:.12,type:'sine'});break;
     case'call-open':this.chord([62,67],{volume:.055,duration:.14,type:'sine'});break;
@@ -22,6 +24,18 @@ class AudioEngine{
     case'call-local':this.chord([57,62,65],{volume:.05,duration:.13,type:'sine'});break;
     case'call-off':this.tone({midi:57,volume:.05,duration:.1,type:'triangle'});break;
     case'radio-denied':this.chord([53,54],{volume:.055,duration:.14,type:'square'});break;
+    case'tool-sweeten':this.chord([67,72],{volume:.045,duration:.11,type:'triangle',step:.02});break;
+    case'tool-extend':this.chord([57,62,65],{volume:.04,duration:.16,type:'sine',step:.035});break;
+    case'tool-rebroadcast':this.chord([62,62,69],{volume:.042,duration:.09,type:'triangle',step:.055});break;
+    case'control-pause':this.chord([62,57],{volume:.025,duration:.1,type:'sine'});break;
+    case'control-speed-1':this.tone({midi:57,volume:.028,duration:.055,type:'triangle'});break;
+    case'control-speed-2':this.chord([57,62],{volume:.026,duration:.07,type:'triangle',step:.02});break;
+    case'control-speed-4':this.chord([57,62,67],{volume:.027,duration:.075,type:'triangle',step:.018});break;
+    case'control-zoom-in':this.chord([62,67],{volume:.022,duration:.055,type:'sine',step:.02});break;
+    case'control-zoom-out':this.chord([67,62],{volume:.022,duration:.055,type:'sine',step:.02});break;
+    case'control-fit':this.chord([57,62,67],{volume:.022,duration:.08,type:'sine',step:.018});break;
+    case'control-help':this.chord([65,69],{volume:.026,duration:.09,type:'triangle'});break;
+    case'control-new':this.chord([50,57,62],{volume:.035,duration:.16,type:'triangle',step:.035});break;
     case'claim':this.chord([57,62,67],{volume:.05,duration:.12,type:'triangle'});break;
     case'pickup':this.chord([62,65],{volume:.045,duration:.1,type:'sine'});break;
     case'complete':this.chord([62,67,69],{volume:.055,duration:.2,type:'triangle'});break;
@@ -30,6 +44,8 @@ class AudioEngine{
     case'breach':this.chord([50,53,49],{volume:.075,duration:.38,type:'sine',step:.055});break;
     case'brief':this.chord([57,62,65,69],{volume:.05,duration:.24,type:'triangle',step:.035});break;
     case'event-forecast':this.chord([55,60],{volume:.04,duration:.24,type:'sine'});break;
+    case'event-route':this.chord([50,55,60],{volume:.05,duration:.25,type:'triangle',step:.045});break;
+    case'event-demand':this.chord([57,62,69],{volume:.052,duration:.19,type:'triangle',step:.03});break;
     case'event-start':this.chord([50,57,60],{volume:.055,duration:.28,type:'triangle'});break;
     case'event-end':this.chord([57,62,69],{volume:.04,duration:.22,type:'sine'});break;
     case'break':this.chord([62,57],{volume:.035,duration:.22,type:'sine',step:.06});break;

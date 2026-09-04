@@ -1,4 +1,5 @@
 import { Game } from './game-core.js';
+import { DELIVERY_TYPES,weightedPick } from './game-data.js';
 
 export const DEMAND_CYCLE=280;
 export const DEMAND_PHASES=[
@@ -12,3 +13,8 @@ export const DEMAND_PHASES=[
 Game.prototype.demandPhase=function(at=this.elapsed){const t=((at%DEMAND_CYCLE)+DEMAND_CYCLE)%DEMAND_CYCLE,phase=DEMAND_PHASES.find(p=>t>=p.start&&t<p.end)??DEMAND_PHASES[0];return{...phase,cycleTime:t,remaining:phase.end-t,next:DEMAND_PHASES[(DEMAND_PHASES.indexOf(phase)+1)%DEMAND_PHASES.length]};};
 Game.prototype.demandTempo=function(){return this.demandPhase().spawnRate;};
 Game.prototype.demandForecast=function(){const now=this.demandPhase();return{current:now,next:now.next,in:now.remaining};};
+
+Game.prototype.weightedDeliveryType=function(){const contract=this.runContract?.typeWeights??{},phase=this.demandPhase().typeWeights??{},items=Object.entries(DELIVERY_TYPES).filter(([,type])=>(type.unlockLevel??1)<=this.cityLevel);return weightedPick(this.rng,items,([id,type])=>type.weight*(contract[id]??1)*(phase[id]??1))[0];};
+
+const baseUpdate=Game.prototype.update;
+Game.prototype.update=function(dt){const original=this.modifiers.spawnRate;this.modifiers.spawnRate=original*this.demandTempo();try{return baseUpdate.call(this,dt);}finally{this.modifiers.spawnRate=original;}};

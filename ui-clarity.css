@@ -1,0 +1,10 @@
+.task-actions button{font-size:0;letter-spacing:.02em}.task-actions button::after{font-size:6.5px;font-weight:950}.task-actions button[data-channel="open"]::after{content:"OPEN"}.task-actions button[data-channel="priority"]::after{content:"PRI"}.task-actions button[data-channel="local"]::after{content:"LOCAL"}.task-actions button[data-channel="off"]::after{content:"OFF"}
+html[data-radio-state="full"] .task-summary .bandwidth{border-color:#d2a1a6;background:#fbf1f2}html[data-radio-state="full"] .task-summary .bandwidth strong{color:#b94453}
+html[data-queue-pressure="medium"] .task-summary{box-shadow:inset 3px 0 0 #d0a04b}html[data-queue-pressure="high"] .task-summary{box-shadow:inset 3px 0 0 #c74d5d}
+.task-card[data-risk="risk"] .task-time::before{content:"RISK · ";font-size:6px;letter-spacing:.08em;color:#b84050}.task-card[data-risk="tight"] .task-time::before{content:"TIGHT · ";font-size:6px;letter-spacing:.08em;color:#a97825}
+.task-card[data-claimed="true"]{opacity:.82}.task-card[data-claimed="true"] .task-select{cursor:default}.task-card[data-claimed="true"] .task-glyph{filter:saturate(.7)}
+.team-dock .rider-card[data-motion="fast"]{outline:1px solid color-mix(in srgb,var(--rider) 34%,transparent);outline-offset:-1px}.team-dock .rider-card[data-break="true"] .rider-status{background:#eceae4}
+#ui-density,#ui-map-focus{font-size:13px;line-height:1}.top-actions #sound-toggle,.top-actions #help-toggle{font-size:7px}.top-actions #new-run{font-size:7.5px}
+@media(max-width:1100px){.task-actions button::after{font-size:6px}.task-actions button[data-channel="priority"]::after{content:"!"}.task-actions button[data-channel="local"]::after{content:"LOC"}}
+@media(max-height:700px){.task-actions button::after{font-size:5.8px}.queue-status{display:none}.team-status{display:none}}
+@media(prefers-reduced-motion:reduce){html[data-queue-pressure="medium"] .task-summary,html[data-queue-pressure="high"] .task-summary{transition:none}}

@@ -17,6 +17,7 @@ import './game-strategic-upgrades.js';
 import './game-review.js';
 import './game-telemetry.js';
 import './game-insight.js';
+import './game-service-pressure.js';
 export class Game extends CoreGame{
   static lastInstance=null;
   constructor(options){super(options);Game.lastInstance=this;}

@@ -22,7 +22,7 @@ function loadGoogleMaps(key){
     const cleanup=()=>{try{delete window[callback];}catch{window[callback]=undefined;}};
     window[callback]=()=>{cleanup();resolve(window.google.maps);};
     const script=document.createElement('script');script.id='sendit-google-maps-loader';script.async=true;script.defer=true;
-    script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&callback=${callback}`;
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&language=en&region=DE&auth_referrer_policy=origin&callback=${callback}`;
     script.onerror=()=>{cleanup();loading=null;reject(new Error('Google Maps JavaScript API failed to load'));};
     document.head.append(script);
   });
@@ -38,7 +38,7 @@ const toggleButton=modeButton();
 
 function zoomBand(zoom){return zoom<12.7?'overview':zoom<14.5?'district':zoom<16.5?'street':'detail';}
 function updateModeUi(){
-  root.dataset.basemap=active?'google':'game';toggleButton?.setAttribute('aria-pressed',String(active));toggleButton?.classList.toggle('active',active);toggleButton.textContent=active?'G✓':'G';
+  root.dataset.basemap=active?'google':'game';toggleButton?.setAttribute('aria-pressed',String(active));toggleButton?.classList.toggle('active',active);if(toggleButton)toggleButton.textContent=active?'G✓':'G';
   if(mapHost)mapHost.hidden=!active;
   if(canvas)canvas.setAttribute('aria-hidden',active?'true':'false');
   if(!active)delete root.dataset.googleZoomBand;
@@ -46,7 +46,7 @@ function updateModeUi(){
 
 function gameEntityAt(x,y){
   const game=Game.lastInstance,r=Renderer.lastInstance;if(!game||!r)return null;
-  const threshold=Math.max(6,20/Math.max(.001,r.scale));let best=null,bestDistance=Infinity;
+  const threshold=Math.max(.8,Math.min(24,20/Math.max(.001,r.scale)));let best=null,bestDistance=Infinity;
   for(const rider of game.couriers){const d=Math.hypot(rider.x-x,rider.y-y);if(d<threshold&&d<bestDistance){best={type:'rider',id:rider.id};bestDistance=d;}}
   for(const delivery of game.activeDeliveries()){
     const node=game.nodeById(delivery.pickedUp?delivery.dropoffId:delivery.pickupId);if(!node)continue;const d=Math.hypot(node.x-x,node.y-y);if(d<threshold&&d<bestDistance){best={type:'delivery',id:delivery.id};bestDistance=d;}
@@ -82,13 +82,14 @@ async function createMap(key){
     disableDefaultUI:true,clickableIcons:false,gestureHandling:'greedy',keyboardShortcuts:false,
     heading:0,tilt:0,minZoom:11,maxZoom:19,
     restriction:{latLngBounds:{north:52.575,south:52.445,west:13.225,east:13.515},strictBounds:false},
+    styles:[{featureType:'poi.business',stylers:[{visibility:'off'}]}],
     backgroundColor:'#ece5d7',draggableCursor:'grab',draggingCursor:'grabbing'
   });
   map.addListener('bounds_changed',requestSync);
   map.addListener('click',event=>{if(!event.latLng)return;const p=latLngToGame(event.latLng.lat(),event.latLng.lng());applySelection(gameEntityAt(p.x,p.y));});
   map.addListener('mousemove',event=>{if(!event.latLng)return;const p=latLngToGame(event.latLng.lat(),event.latLng.lng());applyHover(gameEntityAt(p.x,p.y));});
   map.addListener('mouseout',()=>applyHover(null));
-  resizeObserver=new ResizeObserver(()=>requestSync());if(mapStage)resizeObserver.observe(mapStage);
+  if(typeof ResizeObserver!=='undefined'){resizeObserver=new ResizeObserver(()=>requestSync());if(mapStage)resizeObserver.observe(mapStage);}
   return map;
 }
 

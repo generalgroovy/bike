@@ -1,21 +1,37 @@
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
 
-if(!document.querySelector('link[href="ui-minimal-map-context.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='ui-minimal-map-context.css';document.head.append(link);}
-const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),deliveries=document.querySelector('#deliveries'),mapStage=document.querySelector('.map-stage');
+for(const href of ['ui-minimal-map-context.css','ui-map-overview.css']){
+  if(!document.querySelector(`link[href="${href}"]`)){const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);}
+}
+
+const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),deliveries=document.querySelector('#deliveries'),mapStage=document.querySelector('.map-stage'),workspace=document.querySelector('.workspace'),taskRail=document.querySelector('.task-rail'),teamDock=document.querySelector('.team-dock');
 const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
 const write=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
 
-let density=read('sendit.uiDensity.v8','comfortable');
+let density=read('sendit.uiDensity.v9',read('sendit.uiDensity.v8','comfortable'));
 if(!['comfortable','compact'].includes(density))density='comfortable';
 let mapFocus=false;
+let leftCollapsed=read('sendit.leftRail.v9','false')==='true';
+let rightCollapsed=read('sendit.rightRail.v9','false')==='true';
 
 function makeButton(id,label,tip){const button=document.createElement('button');button.id=id;button.type='button';button.className='ghost ui-icon-button';button.textContent=label;button.dataset.tip=tip;button.setAttribute('aria-label',tip);button.setAttribute('aria-pressed','false');return button;}
 const densityButton=makeButton('ui-density',density==='compact'?'▦':'▤','Toggle compact / comfortable information density (D)');
-const focusButton=makeButton('ui-map-focus','⌗','Toggle distraction-free map focus (M)');
+const focusButton=makeButton('ui-map-focus','⌗','Toggle full map focus (M)');
 if(actions){actions.insertBefore(focusButton,actions.firstChild);actions.insertBefore(densityButton,actions.firstChild);}
 
-const queueStatus=document.createElement('div');queueStatus.className='queue-status';queueStatus.innerHTML='<span><b data-risk-count>0</b> need attention</span><span><b data-live-count>0</b> live</span>';
+if(workspace&&taskRail&&taskRail.parentElement!==workspace)workspace.insertBefore(taskRail,mapStage);
+taskRail?.setAttribute('aria-label','Contract rail');
+teamDock?.setAttribute('aria-label','Rider rail');
+
+const leftToggle=makeButton('left-rail-toggle','‹','Collapse / expand contract rail (Q)');
+leftToggle.classList.add('rail-toggle','rail-toggle-left');
+taskRail?.append(leftToggle);
+const rightToggle=makeButton('right-rail-toggle','›','Collapse / expand rider rail (R)');
+rightToggle.classList.add('rail-toggle','rail-toggle-right');
+teamDock?.append(rightToggle);
+
+const queueStatus=document.createElement('div');queueStatus.className='queue-status';queueStatus.innerHTML='<span><b data-risk-count>0</b> attention</span><span><b data-live-count>0</b> live</span>';
 summary?.append(queueStatus);
 const riskCount=queueStatus.querySelector('[data-risk-count]'),liveCount=queueStatus.querySelector('[data-live-count]');
 
@@ -35,13 +51,16 @@ dockHead?.querySelector('div')?.append(teamStatus);
 const readyEl=teamStatus.querySelector('[data-ready]'),ridingEl=teamStatus.querySelector('[data-riding]'),restEl=teamStatus.querySelector('[data-rest]');
 
 function applyDensity(){root.dataset.density=density;densityButton.textContent=density==='compact'?'▦':'▤';densityButton.classList.toggle('active',density==='compact');densityButton.setAttribute('aria-pressed',String(density==='compact'));densityButton.dataset.tip=`Information density: ${density}. Press D to toggle.`;}
-function applyFocus(){root.dataset.mapFocus=String(mapFocus);focusButton.classList.toggle('active',mapFocus);focusButton.setAttribute('aria-pressed',String(mapFocus));focusButton.dataset.tip=mapFocus?'Map focus on · show rider dock (M)':'Map focus off · hide rider dock (M)';}
-function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v8',density);applyDensity();}
+function applyRails(){root.dataset.leftRail=leftCollapsed?'collapsed':'open';root.dataset.rightRail=rightCollapsed?'collapsed':'open';leftToggle.textContent=leftCollapsed?'›':'‹';rightToggle.textContent=rightCollapsed?'‹':'›';leftToggle.setAttribute('aria-pressed',String(leftCollapsed));rightToggle.setAttribute('aria-pressed',String(rightCollapsed));}
+function applyFocus(){root.dataset.mapFocus=String(mapFocus);focusButton.classList.toggle('active',mapFocus);focusButton.setAttribute('aria-pressed',String(mapFocus));focusButton.dataset.tip=mapFocus?'Map focus on · restore rails (M)':'Map focus off · hide both rails (M)';}
+function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v9',density);applyDensity();}
 function toggleFocus(){mapFocus=!mapFocus;applyFocus();}
-applyDensity();applyFocus();
+function toggleLeft(){leftCollapsed=!leftCollapsed;write('sendit.leftRail.v9',leftCollapsed);applyRails();}
+function toggleRight(){rightCollapsed=!rightCollapsed;write('sendit.rightRail.v9',rightCollapsed);applyRails();}
+applyDensity();applyRails();applyFocus();
 
-densityButton.addEventListener('click',toggleDensity);focusButton.addEventListener('click',toggleFocus);
-document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey||event.altKey)return;const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;if(event.key==='d'||event.key==='D'){toggleDensity();event.preventDefault();}else if(event.key==='m'||event.key==='M'){toggleFocus();event.preventDefault();}});
+densityButton.addEventListener('click',toggleDensity);focusButton.addEventListener('click',toggleFocus);leftToggle.addEventListener('click',toggleLeft);rightToggle.addEventListener('click',toggleRight);
+document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey||event.altKey)return;const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;if(event.key==='d'||event.key==='D'){toggleDensity();event.preventDefault();}else if(event.key==='m'||event.key==='M'){toggleFocus();event.preventDefault();}else if(event.key==='q'||event.key==='Q'){toggleLeft();event.preventDefault();}else if(event.key==='r'||event.key==='R'){toggleRight();event.preventDefault();}});
 
 let last='';
 function render(){const game=Game.lastInstance;if(!game)return;adoptContext();const jobs=game.activeDeliveries(),risk=document.querySelectorAll('.task-card[data-risk="risk"],.task-card[data-risk="tight"]').length,live=jobs.filter(d=>d.called).length,ready=game.couriers.filter(c=>c.radioOn&&c.phase==='idle').length,riding=game.couriers.filter(c=>c.phase==='pickup'||c.phase==='dropoff').length,rest=game.couriers.length-ready-riding,radioUsed=game.radioUsed(),key=[risk,live,ready,riding,rest,jobs.length,radioUsed,game.radioSlots].join('|');if(key===last)return;last=key;riskCount.textContent=String(risk);riskCount.dataset.level=risk?'danger':'good';liveCount.textContent=String(live);readyEl.textContent=String(ready);ridingEl.textContent=String(riding);restEl.textContent=String(rest);root.dataset.queuePressure=risk>=4?'high':risk>=2?'medium':'low';root.dataset.radioState=radioUsed>=game.radioSlots?'full':'available';}

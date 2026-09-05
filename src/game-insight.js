@@ -9,7 +9,8 @@ function channelRanking(game,delivery,channelId){
   return game.availableRiders().map(rider=>({rider,score:game.courierChoiceScore(rider,probe,false)})).filter(item=>Number.isFinite(item.score)).sort((a,b)=>b.score-a.score);
 }
 function riderStateKey(game){return game.couriers.map(r=>`${r.id}:${r.phase}:${r.radioOn?1:0}:${r.nodeId}:${r.pathIndex}:${Math.round(r.x/8)}:${Math.round(r.y/8)}:${Math.round((r.fatigue??0)*20)}:${r.deliveryId??''}:${r.deliberation?.deliveryId??''}`).join(';');}
-function insightKey(game,d){const ev=game.currentEvent;return`${Math.floor(game.elapsed*5)}|${game.cityLevel}|${game.dispatchFocus}|${game.cash}|${game.radioUsed()}|${ev?.id??''}:${ev?.state??''}:${ev?.advisory?1:0}|${d.id}:${d.status}:${d.called?1:0}:${d.channel??''}:${d.pickedUp?1:0}:${Math.round(d.deadlineAt*5)}:${d.reward}:${d.sweetened?1:0}:${d.extended?1:0}:${Math.round((d.rebroadcastUntil??0)*5)}|${riderStateKey(game)}`;}
+function modifierKey(game){const m=game.modifiers;return`${m.speed??1}:${m.teamSkill??1}:${m.cargoAssist??0}:${m.localRepeater??0}:${m.breakRelief??0}`;}
+function insightKey(game,d){const ev=game.currentEvent;return`${Math.floor(game.elapsed*5)}|${game.cityLevel}|${game.routingRevision??0}|${modifierKey(game)}|${game.dispatchFocus}|${game.cash}|${game.radioUsed()}/${game.radioSlots}|${ev?.id??''}:${ev?.state??''}:${ev?.advisory?1:0}|${d.id}:${d.status}:${d.called?1:0}:${d.channel??''}:${d.pickedUp?1:0}:${Math.round(d.deadlineAt*5)}:${d.reward}:${d.sweetened?1:0}:${d.extended?1:0}:${Math.round((d.rebroadcastUntil??0)*5)}|${riderStateKey(game)}`;}
 
 Game.prototype.deliveryDispatchInsight=function(delivery){
   if(!delivery)return null;

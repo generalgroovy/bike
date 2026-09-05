@@ -1,11 +1,11 @@
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
 
-const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),taskRail=document.querySelector('.task-rail'),deliveries=document.querySelector('#deliveries');
+const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),deliveries=document.querySelector('#deliveries'),mapStage=document.querySelector('.map-stage');
 const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
 const write=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
 
-let density=read('sendit.uiDensity.v6','comfortable');
+let density=read('sendit.uiDensity.v8','comfortable');
 if(!['comfortable','compact'].includes(density))density='comfortable';
 let mapFocus=false;
 
@@ -18,8 +18,8 @@ const queueStatus=document.createElement('div');queueStatus.className='queue-sta
 summary?.append(queueStatus);
 const riskCount=queueStatus.querySelector('[data-risk-count]'),liveCount=queueStatus.querySelector('[data-live-count]');
 
-const context=document.createElement('aside');context.className='queue-context';context.setAttribute('aria-label','Operating context');context.innerHTML='<span class="eyebrow">CONTEXT</span><div class="queue-context-items"></div>';
-if(taskRail&&deliveries)taskRail.insertBefore(context,deliveries);
+const context=document.createElement('aside');context.className='queue-context map-context';context.setAttribute('aria-label','Operating context');context.innerHTML='<div class="queue-context-items"></div>';
+mapStage?.append(context);
 const contextItems=context.querySelector('.queue-context-items');
 function adoptContext(){for(const selector of['.service-load','.demand-rhythm']){const node=document.querySelector(selector);if(node&&node.parentElement!==contextItems)contextItems.append(node);}}
 adoptContext();
@@ -29,13 +29,13 @@ function labelRadioControls(scope=document){for(const button of scope.querySelec
 labelRadioControls();
 if(deliveries&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)labelRadioControls(node);}).observe(deliveries,{childList:true,subtree:true});
 
-const teamStatus=document.createElement('div');teamStatus.className='team-status';teamStatus.innerHTML='<span><b data-ready>0</b> listening</span><span><b data-riding>0</b> riding</span><span><b data-rest>0</b> rest</span>';
+const teamStatus=document.createElement('div');teamStatus.className='team-status';teamStatus.innerHTML='<span><b data-ready>0</b> ready</span><span><b data-riding>0</b> ride</span><span><b data-rest>0</b> rest</span>';
 dockHead?.querySelector('div')?.append(teamStatus);
 const readyEl=teamStatus.querySelector('[data-ready]'),ridingEl=teamStatus.querySelector('[data-riding]'),restEl=teamStatus.querySelector('[data-rest]');
 
 function applyDensity(){root.dataset.density=density;densityButton.textContent=density==='compact'?'▦':'▤';densityButton.classList.toggle('active',density==='compact');densityButton.setAttribute('aria-pressed',String(density==='compact'));densityButton.dataset.tip=`Information density: ${density}. Press D to toggle.`;}
 function applyFocus(){root.dataset.mapFocus=String(mapFocus);focusButton.classList.toggle('active',mapFocus);focusButton.setAttribute('aria-pressed',String(mapFocus));focusButton.dataset.tip=mapFocus?'Map focus on · show rider dock (M)':'Map focus off · hide rider dock (M)';}
-function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v6',density);applyDensity();}
+function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v8',density);applyDensity();}
 function toggleFocus(){mapFocus=!mapFocus;applyFocus();}
 applyDensity();applyFocus();
 

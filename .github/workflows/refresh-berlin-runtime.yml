@@ -1,0 +1,54 @@
+name: Refresh Berlin Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/send-it-v13-native-berlin]
+    paths:
+      - tools/berlin-import-lib.mjs
+      - tools/berlin-runtime-lib.mjs
+      - tools/import-berlin.mjs
+      - tools/import-ringbahn.mjs
+      - tools/build-berlin-runtime.mjs
+      - src/berlin-projection.js
+      - .github/workflows/refresh-berlin-runtime.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+        with:
+          ref: feature/send-it-v13-native-berlin
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Import Ringbahn clip boundary
+        run: node tools/import-ringbahn.mjs --output=generated/ringbahn-boundary.geojson
+      - name: Import official Berlin streets and addresses
+        run: node tools/import-berlin.mjs --ring-polygon=generated/ringbahn-boundary.geojson --output=generated/berlin-official.json
+      - name: Build compact static runtime asset
+        run: node tools/build-berlin-runtime.mjs --input=generated/berlin-official.json --output=generated/berlin-runtime-v2.json
+      - name: Build and validate routing candidate
+        run: node tools/build-berlin-candidate.mjs --input=generated/berlin-official.json --output=generated/berlin-candidate-graph.json
+      - name: Record generated asset size
+        run: |
+          ls -lh generated/berlin-runtime-v2.json
+          gzip -9 -c generated/berlin-runtime-v2.json | wc -c
+      - name: Commit static runtime asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add generated/berlin-runtime-v2.json
+          if git diff --cached --quiet; then
+            echo "Berlin runtime asset already current"
+            exit 0
+          fi
+          git commit -m "data: refresh Berlin runtime v2"
+          git push origin HEAD:feature/send-it-v13-native-berlin

@@ -86,3 +86,16 @@ test('Google mode keeps native game fallback and supports overview district stre
   assert.match(css,/data-google-zoom-band=overview/);
   assert.match(css,/data-google-zoom-band=detail/);
 });
+
+test('game overlays progressively disclose detail instead of cluttering every Google zoom level',()=>{
+  const entities=read('../src/render-entities.js');
+  assert.match(entities,/function googleBand\(/);
+  assert.match(entities,/googleBand\(\)==='overview'/);
+  assert.match(entities,/band==='overview'/);
+  assert.match(entities,/band==='district'/);
+  assert.match(entities,/band==='street'/);
+  assert.match(entities,/band==='detail'/);
+  assert.match(entities,/showLabel/);
+  assert.match(entities,/showName/);
+  assert.match(entities,/googleDetailAtLeast\('street'\)/);
+});

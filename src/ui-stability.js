@@ -2,6 +2,13 @@
    Main UI owns state; this layer only prevents redundant DOM moves that can
    cancel click sequences and produce visual flicker under frequent refresh. */
 
+if(!document.querySelector('link[href="ui-v10-stable-map.css"]')){
+  const link=document.createElement('link');
+  link.rel='stylesheet';
+  link.href='ui-v10-stable-map.css';
+  document.head.append(link);
+}
+
 const deliveries=document.querySelector('#deliveries');
 const couriers=document.querySelector('#couriers');
 
@@ -14,8 +21,8 @@ function stabilizeAppend(container){
       const fresh=[];
       for(const node of nodes){
         if(!(node instanceof Node)){fresh.push(node);continue;}
-        // Existing keyed children are already in the correct DOM container.
-        // Queue presentation uses CSS order, and rider roster order is stable.
+        // Existing keyed children are already mounted. Re-appending them at
+        // every UI tick moves the live click target and causes flicker.
         if(node.parentNode===container)continue;
         fresh.push(node);
       }
@@ -38,10 +45,10 @@ document.addEventListener('pointerdown',event=>{
   target.dataset.pressed='true';
 },{passive:true});
 
-const clearPressed=event=>{
-  const target=event.target.closest?.('[data-pressed="true"]');
+function clearPressed(event){
+  const target=event?.target?.closest?.('[data-pressed="true"]');
   if(target)delete target.dataset.pressed;
-};
+}
 document.addEventListener('pointerup',clearPressed,{passive:true});
 document.addEventListener('pointercancel',clearPressed,{passive:true});
 window.addEventListener('blur',()=>document.querySelectorAll('[data-pressed="true"]').forEach(el=>delete el.dataset.pressed));

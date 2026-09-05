@@ -27,7 +27,7 @@ html[data-basemap=google][data-google-zoom-band=street] .map-city{opacity:.78}
 html[data-basemap=google][data-google-zoom-band=detail] .map-city{opacity:.58}
 html[data-basemap=google][data-google-zoom-band=detail] .map-context{opacity:.72}
 
-.google-map-badge{position:absolute;left:8px;bottom:30px;z-index:4;pointer-events:none;padding:3px 6px;border-radius:5px;background:rgba(17,23,28,.76);color:#fff;font-size:6px;font-weight:900;letter-spacing:.09em}
+.google-map-badge{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:4;pointer-events:none;padding:3px 6px;border-radius:5px;background:rgba(17,23,28,.76);color:#fff;font-size:6px;font-weight:900;letter-spacing:.09em}
 html[data-basemap=game] .google-map-badge{display:none}
 
 @media(max-height:700px){html[data-basemap=google] .job-inspector{bottom:32px!important}html[data-basemap=google] .time-tools{bottom:30px!important}}

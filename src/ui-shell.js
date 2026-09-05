@@ -1,6 +1,7 @@
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
 
+if(!document.querySelector('link[href="ui-minimal-map-context.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='ui-minimal-map-context.css';document.head.append(link);}
 const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),deliveries=document.querySelector('#deliveries'),mapStage=document.querySelector('.map-stage');
 const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
 const write=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};

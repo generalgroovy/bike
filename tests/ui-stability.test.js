@@ -21,7 +21,6 @@ test('stability layer supplies immediate pointer feedback without changing simul
   assert.match(js,/pointerup/);
   assert.match(js,/pointercancel/);
   assert.match(js,/data-pressed|dataset\.pressed/);
-  assert.match(js,/ui-v10-stable-map\.css/);
 });
 
 test('map polish makes the map larger and keeps decorative layers pointer-transparent',()=>{
@@ -43,10 +42,13 @@ test('interactive map overlays explicitly retain pointer input',()=>{
   assert.match(css,/button\[data-pressed=true\]/);
 });
 
-test('operator shell imports the stability layer before registering its refresh task',()=>{
+test('operator shell loads stability logic and v10 stylesheet before registering refresh task',()=>{
   const shell=read('../src/ui-shell.js');
   const importAt=shell.indexOf("import './ui-stability.js'");
+  const styleAt=shell.indexOf("'ui-v10-stable-map.css'");
   const registerAt=shell.indexOf("registerUiTask('operator-shell'");
   assert.ok(importAt>=0);
-  assert.ok(registerAt>importAt);
+  assert.ok(styleAt>importAt);
+  assert.ok(registerAt>styleAt);
+  assert.match(shell,/\['ui-minimal-map-context\.css','ui-map-overview\.css','ui-v10-stable-map\.css'\]/);
 });

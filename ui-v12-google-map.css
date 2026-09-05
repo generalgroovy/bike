@@ -1,0 +1,35 @@
+/* v12 Google Maps presentation bridge. Google owns geography/camera when active;
+   the deterministic Send It canvas becomes a transparent game overlay. */
+.map-stage{isolation:isolate}
+.google-map{position:absolute;inset:0;z-index:0;background:#ece5d7}
+.google-map[hidden]{display:none!important}
+#game-canvas{position:absolute;inset:0;z-index:1}
+.map-stage>*:not(.google-map):not(canvas){z-index:4}
+#basemap-toggle{min-width:28px!important;font-weight:950!important}
+#basemap-toggle[aria-pressed=true]{background:#53d8c8!important;color:#10191d!important;border-color:#53d8c8!important;box-shadow:0 0 0 1px #10191d33 inset,0 0 18px #53d8c84a!important}
+
+html[data-basemap=google] .map-stage{background:#ece5d7!important}
+html[data-basemap=google] .map-stage::before,html[data-basemap=google] .map-stage::after{display:none!important}
+html[data-basemap=google] #game-canvas{background:transparent!important;pointer-events:none!important;filter:none!important}
+html[data-basemap=google] .job-inspector{bottom:36px!important}
+html[data-basemap=google] .time-tools{bottom:34px!important}
+html[data-basemap=google] .map-city{background:rgba(17,23,28,.86)!important;color:#f8f3e8!important;border-color:#ffffff22!important;box-shadow:0 6px 20px #11182026!important}
+html[data-basemap=google] .map-city small{color:#d8d3c8!important}
+html[data-basemap=google] .map-context{background:rgba(17,23,28,.82)!important;color:#f8f3e8!important;border-color:#ffffff20!important;backdrop-filter:blur(6px)!important}
+html[data-basemap=google] .event-chip{backdrop-filter:blur(8px)!important}
+
+/* Progressive UI disclosure follows Google fractional zoom. The map itself keeps
+   Google's native label/road hierarchy; only Send It chrome changes density. */
+html[data-basemap=google][data-google-zoom-band=overview] .map-city{opacity:.9}
+html[data-basemap=google][data-google-zoom-band=overview] .map-context{transform:scale(.92);transform-origin:top center;opacity:.9}
+html[data-basemap=google][data-google-zoom-band=district] .map-context{opacity:.96}
+html[data-basemap=google][data-google-zoom-band=street] .map-city{opacity:.78}
+html[data-basemap=google][data-google-zoom-band=detail] .map-city{opacity:.58}
+html[data-basemap=google][data-google-zoom-band=detail] .map-context{opacity:.72}
+
+.google-map-badge{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:4;pointer-events:none;padding:3px 6px;border-radius:5px;background:rgba(17,23,28,.76);color:#fff;font-size:6px;font-weight:900;letter-spacing:.09em}
+html[data-basemap=game] .google-map-badge{display:none}
+
+@media(max-height:700px){html[data-basemap=google] .job-inspector{bottom:32px!important}html[data-basemap=google] .time-tools{bottom:30px!important}}
+@media(prefers-reduced-motion:reduce){#basemap-toggle[aria-pressed=true]{box-shadow:none!important}}
+@media(prefers-contrast:more){html[data-basemap=google] .map-city,html[data-basemap=google] .map-context{background:#111!important;border-color:#fff!important;color:#fff!important;opacity:1!important}}

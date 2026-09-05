@@ -33,7 +33,7 @@ test('main delegated click wiring remains present for contracts riders and map e
   assert.match(main,/inspectDelivery\(entity\.id\)/);
 });
 
-test('map polish makes the map larger and keeps decorative layers pointer-transparent',()=>{
+test('v10 map stability contracts remain available under v11',()=>{
   const css=read('../ui-v10-stable-map.css');
   assert.match(css,/--left-rail:156px/);
   assert.match(css,/--right-rail:168px/);
@@ -42,7 +42,6 @@ test('map polish makes the map larger and keeps decorative layers pointer-transp
   assert.match(css,/\.map-stage::after[^}]*pointer-events:none/s);
   assert.match(css,/\.hover-tip\{pointer-events:none/);
   assert.match(css,/#game-canvas[^}]*touch-action:none/);
-  assert.match(css,/filter:saturate\(1\.12\) contrast\(1\.045\)/);
 });
 
 test('interactive map overlays explicitly retain pointer input',()=>{
@@ -52,13 +51,15 @@ test('interactive map overlays explicitly retain pointer input',()=>{
   assert.match(css,/button\[data-pressed=true\]/);
 });
 
-test('operator shell loads stability logic and v10 stylesheet before registering refresh task',()=>{
-  const shell=read('../src/ui-shell.js');
-  const importAt=shell.indexOf("import './ui-stability.js'");
-  const styleAt=shell.indexOf("'ui-v10-stable-map.css'");
+test('operator shell loads stability before v11 observer and no longer injects stylesheets',()=>{
+  const shell=read('../src/ui-shell.js'),html=read('../index.html');
+  const stabilityAt=shell.indexOf("import './ui-stability.js'");
+  const vibeAt=shell.indexOf("import './ui-vibe.js'");
   const registerAt=shell.indexOf("registerUiTask('operator-shell'");
-  assert.ok(importAt>=0);
-  assert.ok(styleAt>importAt);
-  assert.ok(registerAt>styleAt);
-  assert.match(shell,/\['ui-minimal-map-context\.css','ui-map-overview\.css','ui-v10-stable-map\.css'\]/);
+  assert.ok(stabilityAt>=0);
+  assert.ok(vibeAt>stabilityAt);
+  assert.ok(registerAt>vibeAt);
+  assert.doesNotMatch(shell,/createElement\(['"]link['"]\)/);
+  assert.match(html,/ui-v10-stable-map\.css/);
+  assert.match(html,/ui-v11-kinetic\.css/);
 });

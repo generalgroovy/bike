@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BERLIN_GEO_BOUNDS,BERLIN_PROJECTION_ID,lonLatToGame,gameToLonLat,projectionRoundTripError,projectionMetadata } from '../src/berlin-projection.js';
+import { BERLIN_GEO_BOUNDS,BERLIN_PROJECTION_ID,lonLatToGame,gameToLonLat,projectionRoundTripError,projectionMetadata,projectionFrame } from '../src/berlin-projection.js';
 import { MAP_ZOOM_BANDS,mapZoomBand,mapZoomAtLeast,roadVisibleAtBand } from '../src/map-zoom.js';
 import { OFFICIAL_ADDRESS_ALIASES,validateOfficialAddressProperties,normalizeAddressFeature,normalizeStreetFeature } from '../tools/berlin-import-lib.mjs';
 import { buildBerlinRuntime,classifyRuntimeStreet,runtimeAssetStats } from '../tools/berlin-runtime-lib.mjs';
@@ -20,9 +20,20 @@ test('v13 Berlin projection round-trips across the operating bounds with negligi
   assert.deepEqual(metadata.bbox,[...BERLIN_GEO_BOUNDS]);
 });
 
-test('v13 projection preserves the established 1600x1120 game-plane boundary contract',()=>{
-  assert.deepEqual(lonLatToGame(BERLIN_GEO_BOUNDS[0],BERLIN_GEO_BOUNDS[1]).map(Math.round),[0,1120]);
-  assert.deepEqual(lonLatToGame(BERLIN_GEO_BOUNDS[2],BERLIN_GEO_BOUNDS[3]).map(Math.round),[1600,0]);
+test('v13 projection fits 1600x1120 with one uniform metric scale and centered spare axis',()=>{
+  const frame=projectionFrame();
+  assert.equal(frame.scale>0,true);
+  assert.ok(Math.abs(frame.usedWidth/frame.usedHeight-(frame.bounds.x2-frame.bounds.x1)/(frame.bounds.y2-frame.bounds.y1))<1e-12);
+  assert.ok(frame.usedWidth<=1600+1e-9&&frame.usedHeight<=1120+1e-9);
+  assert.ok(frame.offsetX>=-1e-9&&frame.offsetY>=-1e-9);
+  const center=lonLatToGame((BERLIN_GEO_BOUNDS[0]+BERLIN_GEO_BOUNDS[2])/2,(BERLIN_GEO_BOUNDS[1]+BERLIN_GEO_BOUNDS[3])/2);
+  assert.ok(Math.abs(center[0]-800)<1e-8);
+  assert.ok(Math.abs(center[1]-560)<1e-8);
+  const sw=lonLatToGame(BERLIN_GEO_BOUNDS[0],BERLIN_GEO_BOUNDS[1]),ne=lonLatToGame(BERLIN_GEO_BOUNDS[2],BERLIN_GEO_BOUNDS[3]);
+  assert.ok(Math.abs((sw[0]-frame.offsetX))<1e-8);
+  assert.ok(Math.abs(sw[1]-(frame.offsetY+frame.usedHeight))<1e-8);
+  assert.ok(Math.abs(ne[0]-(frame.offsetX+frame.usedWidth))<1e-8);
+  assert.ok(Math.abs(ne[1]-frame.offsetY)<1e-8);
 });
 
 test('native zoom bands are renderer semantics and do not require Google data attributes',()=>{

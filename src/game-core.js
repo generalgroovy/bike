@@ -11,7 +11,7 @@ constructor({seed=createSeed(),width=BERLIN.width,height=BERLIN.height}={}){
   this.modifiers={speed:1,deadline:1,reward:1,teamSkill:1,spawnRate:1,fatigue:1};
   this.runStats={peakActive:0,peakRadio:0,distance:0,riderChoices:0,radioDenied:0,eventExposure:0,breaks:0,toolsUsed:0,expansions:0,routeCacheHits:0,routeCacheMisses:0};this.dispatchLog=[];
   this.routingRevision=0;this.routeCache=new Map();this.playableAddressCacheLevel=0;this.playableAddressCache=null;this.deliveryMap=new Map();this.courierMap=new Map();
-  this.generateBerlin();this.deliveries=[];this.couriers=[];this.runTrait=this.rng.pick(RUN_TRAITS);this.runContract=this.rng.pick(RUN_CONTRACTS);this.runTrait.apply(this);this.applyContract(this.runContract);for(let i=0;i<3;i++)this.addCourier();this.goals=this.generateGoals();this.currentEvent=null;this.nextEventAt=58+this.rng.float(0,20);for(let i=0;i<5;i++)this.spawnDelivery();
+  this.generateBerlin();this.deliveries=[];this.couriers=[];this._deliveryArrayRef=this.deliveries;this._courierArrayRef=this.couriers;this.runTrait=this.rng.pick(RUN_TRAITS);this.runContract=this.rng.pick(RUN_CONTRACTS);this.runTrait.apply(this);this.applyContract(this.runContract);for(let i=0;i<3;i++)this.addCourier();this.goals=this.generateGoals();this.currentEvent=null;this.nextEventAt=58+this.rng.float(0,20);for(let i=0;i<5;i++)this.spawnDelivery();
 }
 
 generateBerlin(){
@@ -25,8 +25,8 @@ generateBerlin(){
 applyContract(contract){this.modifiers.reward*=contract.reward??1;this.modifiers.deadline*=contract.deadline??1;this.modifiers.spawnRate*=contract.spawnRate??1;}
 edgeKey(a,b){return a<b?`${a}|${b}`:`${b}|${a}`;}
 nodeById(id){return this.nodeMap.get(id);}
-deliveryById(id){if(id==null)return undefined;const cached=this.deliveryMap.get(id);if(cached)return cached;const found=this.deliveries.find(d=>d.id===id);if(found)this.deliveryMap.set(id,found);return found;}
-courierById(id){if(id==null)return undefined;const cached=this.courierMap.get(id);if(cached)return cached;const found=this.couriers.find(c=>c.id===id);if(found)this.courierMap.set(id,found);return found;}
+deliveryById(id){if(id==null)return undefined;if(this._deliveryArrayRef!==this.deliveries||this.deliveryMap.size>this.deliveries.length){this.deliveryMap.clear();this._deliveryArrayRef=this.deliveries;}const cached=this.deliveryMap.get(id);if(cached)return cached;const found=this.deliveries.find(d=>d.id===id);if(found)this.deliveryMap.set(id,found);return found;}
+courierById(id){if(id==null)return undefined;if(this._courierArrayRef!==this.couriers||this.courierMap.size>this.couriers.length){this.courierMap.clear();this._courierArrayRef=this.couriers;}const cached=this.courierMap.get(id);if(cached)return cached;const found=this.couriers.find(c=>c.id===id);if(found)this.courierMap.set(id,found);return found;}
 edgeById(id){return this.edgeIdMap.get(id);}
 edgeByIds(a,b){return this.edgeMap.get(this.edgeKey(a,b));}
 currentStage(){return this.unlockStages.find(s=>s.level===this.cityLevel)??this.unlockStages.at(-1);}
@@ -35,7 +35,7 @@ isDistrictUnlocked(id){return this.currentStage().districts.includes(id);}
 playableAddressNodes(){if(this.playableAddressCache&&this.playableAddressCacheLevel===this.cityLevel)return this.playableAddressCache;this.playableAddressCacheLevel=this.cityLevel;this.playableAddressCache=this.addressNodes.filter(n=>(n.unlockLevel??1)<=this.cityLevel);return this.playableAddressCache;}
 edgePlayable(e){const a=this.nodeById(e.a),b=this.nodeById(e.b);return(a?.unlockLevel??1)<=this.cityLevel&&(b?.unlockLevel??1)<=this.cityLevel;}
 invalidateRouting(){this.routingRevision+=1;this.routeCache.clear();}
-routeBetween(startId,goalId){if(startId===goalId)return[startId];const key=`${this.routingRevision}:${startId}>${goalId}`,cached=this.routeCache.get(key);if(cached){this.runStats.routeCacheHits=(this.runStats.routeCacheHits??0)+1;return cached.slice();}this.runStats.routeCacheMisses=(this.runStats.routeCacheMisses??0)+1;const path=shortestPathIndexed(this.graph,startId,goalId,this.edgeCost.bind(this));if(path.length){this.routeCache.set(key,path);this.routeCache.set(`${this.routingRevision}:${goalId}>${startId}`,[...path].reverse());if(this.routeCache.size>ROUTE_CACHE_LIMIT){const first=this.routeCache.keys().next().value;if(first)this.routeCache.delete(first);}}return path.slice();}
+routeBetween(startId,goalId){if(startId===goalId)return[startId];const prefix=`${this.routingRevision}:${this.cityLevel}:`,key=`${prefix}${startId}>${goalId}`,cached=this.routeCache.get(key);if(cached){this.runStats.routeCacheHits=(this.runStats.routeCacheHits??0)+1;return cached.slice();}this.runStats.routeCacheMisses=(this.runStats.routeCacheMisses??0)+1;const path=shortestPathIndexed(this.graph,startId,goalId,this.edgeCost.bind(this));if(path.length){this.routeCache.set(key,path);this.routeCache.set(`${prefix}${goalId}>${startId}`,[...path].reverse());if(this.routeCache.size>ROUTE_CACHE_LIMIT){const first=this.routeCache.keys().next().value;if(first)this.routeCache.delete(first);}}return path.slice();}
 routeDistance(path){let total=0;for(let i=1;i<(path?.length??0);i++)total+=this.edgeByIds(path[i-1],path[i])?.distance??0;return total;}
 routeStreets(path){const result=[];for(let i=1;i<(path?.length??0);i++){const name=this.edgeByIds(path[i-1],path[i])?.streetName;if(name&&name!=='connector'&&result.at(-1)!==name)result.push(name);}return result;}
 routeTravelCost(startId,goalId){const path=this.routeBetween(startId,goalId);if(!path.length)return Infinity;let total=0;for(let i=1;i<path.length;i++){const e=this.edgeByIds(path[i-1],path[i]);if(e)total+=this.edgeCost(e);}return total;}

@@ -1,3 +1,4 @@
+import './ui-stability.js';
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
 

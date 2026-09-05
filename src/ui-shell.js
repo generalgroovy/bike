@@ -1,7 +1,8 @@
+import './ui-stability.js';
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
 
-for(const href of ['ui-minimal-map-context.css','ui-map-overview.css']){
+for(const href of ['ui-minimal-map-context.css','ui-map-overview.css','ui-v10-stable-map.css']){
   if(!document.querySelector(`link[href="${href}"]`)){const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);}
 }
 

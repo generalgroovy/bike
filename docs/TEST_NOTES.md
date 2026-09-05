@@ -4,7 +4,7 @@ Current merge-candidate validation is automated through GitHub Actions with `npm
 
 The gate includes browser/controller syntax checks for the main renderer/UI/audio modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
 
-Current green implementation suite: **154 tests / 154 pass / 0 fail**.
+Current green implementation suite: **157 tests / 157 pass / 0 fail**.
 
 Coverage includes:
 
@@ -45,7 +45,14 @@ Coverage includes:
 - causal critical timeline,
 - deterministic run telemetry,
 - six-rider high-load finite-state simulation,
-- Send It task-rail/map/rider-dock information architecture,
+- map-first task-rail / operating-context / rider-dock information architecture,
+- persistent comfortable/compact information-density preference,
+- browser-only map-focus mode that removes the rider dock without touching simulation state,
+- queue attention/live summary and rider availability summary derived from already-rendered/current state,
+- dedicated CITY LOAD + DEMAND context column instead of mixing systemic context with queue controls,
+- responsive width/height fallbacks for dense desktop layouts,
+- explicit OPEN / PRIORITY / LOCAL / OFF visual labels plus accessible radio-control names,
+- prefers-contrast and prefers-reduced-motion UI fallbacks,
 - stable keyed live-DOM rules,
 - visual-street unlock state consistent with routing subdivisions,
 - rider travel heading propagated through the effective cargo-aware movement path,
@@ -73,6 +80,6 @@ Coverage includes:
 - candidate graph connectivity/address coverage gates,
 - shadow comparison of official candidate vs curated runtime for recognizable street overlap, route-scale distortion and import quality.
 
-CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic. The sensory layer is browser-only and observes deterministic state/logs; it is not part of simulation authority.
+CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic. The sensory and operator-shell layers are browser-only observers/presenters and are not part of simulation authority.
 
-A real browser acceptance pass remains valuable for rendered spacing, hover feel, task-rail scanning, audio mix/cue density, trail visibility, mobile/desktop aspect ratios and different device speakers/headphones. Automated checks cover source parsing, UI structure/read-only boundaries, deterministic simulation, sensory state boundaries, visual-feedback state and data-pipeline invariants.
+A real browser acceptance pass remains valuable for rendered spacing, hover feel, 10–20-card scanning, comfortable vs compact density, map-focus transitions, audio mix/cue density, trail visibility, desktop aspect ratios and different device speakers/headphones. Automated checks cover source parsing, UI structure/read-only boundaries, deterministic simulation, sensory state boundaries, responsive/accessibility source contracts, visual-feedback state and data-pipeline invariants.

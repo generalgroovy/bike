@@ -37,6 +37,13 @@ Prioritize depth, precision, readability and measured play quality over feature 
 - [x] Metric and static-control micro-feedback for REP, cash, score, Focus, radio saturation, zoom, speed, help and new shift.
 - [x] Recurring client-class visual/audio identities for kitchens, clinics, offices, markets, studios and workshops.
 - [x] Reduced-motion-safe rendering/UI behavior; audio remains optional and never the sole carrier of state.
+- [x] Complete map-first operator UI overhaul with stronger contrast, hierarchy and whitespace discipline.
+- [x] Dedicated operating-context column for CITY LOAD + DEMAND instead of mixing context into queue controls.
+- [x] Comfortable/compact density modes with persistent preference and keyboard toggle (`D`).
+- [x] Distraction-free map-focus mode with keyboard toggle (`M`).
+- [x] Queue attention/live summary and rider listening/riding/rest summary.
+- [x] Explicit radio-action labels plus accessible control names.
+- [x] Responsive width/height fallbacks, prefers-contrast and prefers-reduced-motion UI contracts.
 - [x] Official Berlin WFS importer foundation with Ring polygon clipping and deterministic normalization.
 - [x] Official street-number-first address joining, canonical-name fallback, explicit geometric fallback accounting and Detailnetz node-ID topology.
 - [x] Candidate quality gate for connectivity, address match and fallback share.
@@ -44,14 +51,16 @@ Prioritize depth, precision, readability and measured play quality over feature 
 
 ## Next quality work
 
-1. **Real browser acceptance / sensory mix tuning**
-   - play complete shifts with sound on headphones and laptop speakers,
+1. **Real browser acceptance / operator + sensory tuning**
+   - play complete shifts in comfortable and compact density,
+   - verify map-focus mode during high-pressure sequences,
+   - scan 10–20 simultaneous task cards at common desktop resolutions,
+   - verify context-column legibility and queue/rider summary usefulness,
+   - test keyboard-only navigation and high-contrast/reduced-motion paths,
    - tune sonar cadence, rider-note density and pressure ambience by actual fatigue rather than source inspection,
    - verify no cue masks critical radio/event feedback,
    - inspect trail contrast at 1×/2×/4×,
-   - verify reduced-motion and sound-off paths,
-   - test desktop aspect ratios and narrower layouts,
-   - scan 10–20 simultaneous task cards without sensory overload.
+   - test headphones and laptop speakers.
 
 2. **Run the official static Berlin pipeline on current source snapshots**
    - import Detailnetz + Adressen using the documented Ringbahn polygon,

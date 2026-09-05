@@ -6,13 +6,13 @@ import { Game } from '../src/game.js';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 
 test('routing cache reuses deterministic paths and explicit invalidation forces recompute',()=>{
-  const game=new Game({seed:'OPT-ROUTE'}),nodes=game.playableAddressNodes();
-  const a=nodes[0],b=nodes.find(n=>n.id!==a.id);assert.ok(a&&b);
+  const game=new Game({seed:'OPT-ROUTE'}),delivery=game.activeDeliveries()[0];assert.ok(delivery?.plannedPath?.length>1);
+  const a=delivery.pickupId,b=delivery.dropoffId;
   game.routeCache.clear();const hits0=game.runStats.routeCacheHits,miss0=game.runStats.routeCacheMisses;
-  const first=game.routeBetween(a.id,b.id),miss1=game.runStats.routeCacheMisses;assert.ok(first.length>1);assert.equal(miss1,miss0+1);
-  const second=game.routeBetween(a.id,b.id);assert.deepEqual(second,first);assert.equal(game.runStats.routeCacheHits,hits0+1);
+  const first=game.routeBetween(a,b),miss1=game.runStats.routeCacheMisses;assert.ok(first.length>1);assert.equal(miss1,miss0+1);
+  const second=game.routeBetween(a,b);assert.deepEqual(second,first);assert.equal(game.runStats.routeCacheHits,hits0+1);
   const revision=game.routingRevision;game.invalidateRouting();assert.equal(game.routingRevision,revision+1);assert.equal(game.routeCache.size,0);
-  game.routeBetween(a.id,b.id);assert.equal(game.runStats.routeCacheMisses,miss1+1);
+  game.routeBetween(a,b);assert.equal(game.runStats.routeCacheMisses,miss1+1);
 });
 
 test('entity lookup maps remain O(1) fast paths with safe fallback for fixture pushes',()=>{

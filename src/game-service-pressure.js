@@ -9,6 +9,14 @@ function districtForCourier(game,courier){
   const delivery=courier.deliveryId?game.deliveryById(courier.deliveryId):null;
   return delivery?.pickupDistrict??delivery?.dropoffDistrict??null;
 }
+function emptyLoad(){return{waiting:0,called:0,claimed:0,urgent:0,nearby:0,capacity:2.4,demand:0};}
+function aggregateDistrictLoads(game){
+  const loads=new Map();for(const district of game.districts)loads.set(district.id,emptyLoad());
+  for(const d of game.activeDeliveries()){const load=loads.get(d.pickupDistrict);if(!load)continue;if(d.status==='waiting'){if(d.called)load.called+=1;else load.waiting+=1;}else if(d.status==='claimed')load.claimed+=1;if(game.urgency(d)<.42)load.urgent+=1;}
+  for(const rider of game.couriers){if(rider.phase==='break')continue;const load=loads.get(districtForCourier(game,rider));if(load)load.nearby+=rider.phase==='idle'?1:.55;}
+  for(const load of loads.values()){load.capacity=2.4+load.nearby*.9;load.demand=load.waiting*1.15+load.called*.82+load.claimed*.28+load.urgent*.9;}
+  return loads;
+}
 
 Game.prototype.ensureServicePressure=function(){
   if(this.servicePressure)return this.servicePressure;
@@ -18,25 +26,15 @@ Game.prototype.ensureServicePressure=function(){
   return this.servicePressure;
 };
 
-Game.prototype.serviceLoadForDistrict=function(id){
-  const jobs=this.activeDeliveries().filter(d=>d.pickupDistrict===id),waiting=jobs.filter(d=>d.status==='waiting'&&!d.called).length,called=jobs.filter(d=>d.status==='waiting'&&d.called).length,claimed=jobs.filter(d=>d.status==='claimed').length,urgent=jobs.filter(d=>this.urgency(d)<.42).length;
-  let nearby=0;
-  for(const rider of this.couriers){
-    const district=districtForCourier(this,rider);
-    if(district===id&&rider.phase!=='break')nearby+=rider.phase==='idle'?1:.55;
-  }
-  const capacity=2.4+nearby*.9;
-  const demand=waiting*1.15+called*.82+claimed*.28+urgent*.9;
-  return{waiting,called,claimed,urgent,capacity,demand};
-};
+Game.prototype.serviceLoadForDistrict=function(id){const load=aggregateDistrictLoads(this).get(id)??emptyLoad();return{waiting:load.waiting,called:load.called,claimed:load.claimed,urgent:load.urgent,capacity:load.capacity,demand:load.demand};};
 
 Game.prototype.updateServicePressure=function(dt){
   if(!(dt>0))return;
-  const states=this.ensureServicePressure();
+  const states=this.ensureServicePressure(),loads=aggregateDistrictLoads(this);
   for(const district of this.districts){
     const state=states.get(district.id),unlocked=(district.unlockLevel??1)<=this.cityLevel;
     if(!unlocked){state.target=0;state.pressure=Math.max(0,state.pressure-dt*8);state.overload=0;continue;}
-    const load=this.serviceLoadForDistrict(district.id);Object.assign(state,load);
+    const load=loads.get(district.id)??emptyLoad();Object.assign(state,{waiting:load.waiting,called:load.called,claimed:load.claimed,urgent:load.urgent,capacity:load.capacity,demand:load.demand});
     state.target=clamp((load.demand-load.capacity)*17+load.urgent*7,0,100);
     const rate=state.target>state.pressure?.46:.2;
     state.pressure=clamp(state.pressure+(state.target-state.pressure)*Math.min(1,dt*rate),0,100);state.peak=Math.max(state.peak??0,state.pressure);
@@ -51,11 +49,9 @@ Game.prototype.updateServicePressure=function(dt){
 };
 
 Game.prototype.districtPressure=function(id){const state=this.ensureServicePressure().get(id);return state?{...state}:null;};
-Game.prototype.servicePressureSnapshot=function(){
-  return this.districts.filter(d=>(d.unlockLevel??1)<=this.cityLevel).map(d=>({district:d, ...this.districtPressure(d.id)})).sort((a,b)=>b.pressure-a.pressure||a.district.name.localeCompare(b.district.name));
-};
-Game.prototype.cityPressure=function(){const list=this.servicePressureSnapshot();return list.length?Math.max(...list.map(x=>x.pressure)):0;};
-Game.prototype.mostPressuredDistrict=function(){return this.servicePressureSnapshot()[0]??null;};
+Game.prototype.servicePressureSnapshot=function(){return this.districts.filter(d=>(d.unlockLevel??1)<=this.cityLevel).map(d=>({district:d,...this.districtPressure(d.id)})).sort((a,b)=>b.pressure-a.pressure||a.district.name.localeCompare(b.district.name));};
+Game.prototype.cityPressure=function(){let max=0;for(const district of this.districts){if((district.unlockLevel??1)>this.cityLevel)continue;const value=this.ensureServicePressure().get(district.id)?.pressure??0;if(value>max)max=value;}return max;};
+Game.prototype.mostPressuredDistrict=function(){let best=null;for(const district of this.districts){if((district.unlockLevel??1)>this.cityLevel)continue;const state=this.ensureServicePressure().get(district.id);if(!state)continue;if(!best||state.pressure>best.pressure||(state.pressure===best.pressure&&district.name.localeCompare(best.district.name)<0))best={district,...state};}return best;};
 Game.prototype.districtOperatingSnapshot=function(id){
   const district=this.districts.find(d=>d.id===id);if(!district||(district.unlockLevel??1)>this.cityLevel)return null;
   const pressure=this.districtPressure(id)??{},jobs=this.activeDeliveries().filter(d=>d.pickupDistrict===id),riders=this.couriers.filter(c=>districtForCourier(this,c)===id),hubs=typeof this.activeClientHubs==='function'?this.activeClientHubs().filter(h=>h.districtId===id):[],brief=typeof this.districtBriefRemaining==='function'?this.districtBriefRemaining(id):0,forecast=typeof this.demandForecast==='function'?this.demandForecast():null,event=this.currentEvent?.districtId===id?{id:this.currentEvent.id,title:this.currentEvent.title,state:this.currentEvent.state,kind:this.currentEvent.kind}:null;
@@ -63,9 +59,7 @@ Game.prototype.districtOperatingSnapshot=function(id){
 };
 
 const baseUpdate=Game.prototype.update;
-Game.prototype.update=function(dt){
-  const before=this.elapsed;baseUpdate.call(this,dt);const advanced=this.elapsed-before;if(advanced>0)this.updateServicePressure(advanced);return undefined;
-};
+Game.prototype.update=function(dt){const before=this.elapsed;baseUpdate.call(this,dt);const advanced=this.elapsed-before;if(advanced>0)this.updateServicePressure(advanced);return undefined;};
 
 const baseComplete=Game.prototype.completeDelivery;
 Game.prototype.completeDelivery=function(c,d){const districtId=d?.pickupDistrict;const result=baseComplete.call(this,c,d);if(districtId){const state=this.ensureServicePressure().get(districtId);if(state){state.pressure=Math.max(0,state.pressure-7);state.overload=Math.max(0,state.overload-3);}}return result;};

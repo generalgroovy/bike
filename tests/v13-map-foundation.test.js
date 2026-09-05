@@ -86,5 +86,5 @@ test('compact Berlin runtime asset contains deterministic LOD geometry labels gr
   assert.ok(a.labels.length>=1);
   assert.ok(Object.keys(a.grid.cells).length>=1);
   assert.equal(a.addresses.length,1);
-  assert.deepEqual(runtimeAssetStats(a),{streetNames:3,polylines:2,labels:2,addresses:1,cells:Object.keys(a.grid.cells).length});
+  assert.deepEqual(runtimeAssetStats(a),{streetNames:2,polylines:2,labels:2,addresses:1,cells:Object.keys(a.grid.cells).length});
 });

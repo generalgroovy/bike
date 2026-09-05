@@ -1,20 +1,17 @@
 import './ui-stability.js';
+import './ui-vibe.js';
 import { Game } from './game.js';
 import { registerUiTask } from './ui-runtime.js';
-
-for(const href of ['ui-minimal-map-context.css','ui-map-overview.css','ui-v10-stable-map.css']){
-  if(!document.querySelector(`link[href="${href}"]`)){const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);}
-}
 
 const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),deliveries=document.querySelector('#deliveries'),mapStage=document.querySelector('.map-stage'),workspace=document.querySelector('.workspace'),taskRail=document.querySelector('.task-rail'),teamDock=document.querySelector('.team-dock');
 const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
 const write=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
 
-let density=read('sendit.uiDensity.v9',read('sendit.uiDensity.v8','comfortable'));
+let density=read('sendit.uiDensity.v11',read('sendit.uiDensity.v9',read('sendit.uiDensity.v8','comfortable')));
 if(!['comfortable','compact'].includes(density))density='comfortable';
 let mapFocus=false;
-let leftCollapsed=read('sendit.leftRail.v9','false')==='true';
-let rightCollapsed=read('sendit.rightRail.v9','false')==='true';
+let leftCollapsed=read('sendit.leftRail.v11',read('sendit.leftRail.v9','false'))==='true';
+let rightCollapsed=read('sendit.rightRail.v11',read('sendit.rightRail.v9','false'))==='true';
 
 function makeButton(id,label,tip){const button=document.createElement('button');button.id=id;button.type='button';button.className='ghost ui-icon-button';button.textContent=label;button.dataset.tip=tip;button.setAttribute('aria-label',tip);button.setAttribute('aria-pressed','false');return button;}
 const densityButton=makeButton('ui-density',density==='compact'?'▦':'▤','Toggle compact / comfortable information density (D)');
@@ -54,10 +51,10 @@ const readyEl=teamStatus.querySelector('[data-ready]'),ridingEl=teamStatus.query
 function applyDensity(){root.dataset.density=density;densityButton.textContent=density==='compact'?'▦':'▤';densityButton.classList.toggle('active',density==='compact');densityButton.setAttribute('aria-pressed',String(density==='compact'));densityButton.dataset.tip=`Information density: ${density}. Press D to toggle.`;}
 function applyRails(){root.dataset.leftRail=leftCollapsed?'collapsed':'open';root.dataset.rightRail=rightCollapsed?'collapsed':'open';leftToggle.textContent=leftCollapsed?'›':'‹';rightToggle.textContent=rightCollapsed?'‹':'›';leftToggle.setAttribute('aria-pressed',String(leftCollapsed));rightToggle.setAttribute('aria-pressed',String(rightCollapsed));}
 function applyFocus(){root.dataset.mapFocus=String(mapFocus);focusButton.classList.toggle('active',mapFocus);focusButton.setAttribute('aria-pressed',String(mapFocus));focusButton.dataset.tip=mapFocus?'Map focus on · restore rails (M)':'Map focus off · hide both rails (M)';}
-function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v9',density);applyDensity();}
+function toggleDensity(){density=density==='compact'?'comfortable':'compact';write('sendit.uiDensity.v11',density);applyDensity();}
 function toggleFocus(){mapFocus=!mapFocus;applyFocus();}
-function toggleLeft(){leftCollapsed=!leftCollapsed;write('sendit.leftRail.v9',leftCollapsed);applyRails();}
-function toggleRight(){rightCollapsed=!rightCollapsed;write('sendit.rightRail.v9',rightCollapsed);applyRails();}
+function toggleLeft(){leftCollapsed=!leftCollapsed;write('sendit.leftRail.v11',leftCollapsed);applyRails();}
+function toggleRight(){rightCollapsed=!rightCollapsed;write('sendit.rightRail.v11',rightCollapsed);applyRails();}
 applyDensity();applyRails();applyFocus();
 
 densityButton.addEventListener('click',toggleDensity);focusButton.addEventListener('click',toggleFocus);leftToggle.addEventListener('click',toggleLeft);rightToggle.addEventListener('click',toggleRight);

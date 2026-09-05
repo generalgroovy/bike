@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#ece8df">
-<meta name="description" content="Send It — a Berlin bicycle courier dispatch simulation roguelike.">
+<meta name="theme-color" content="#151a20">
+<meta name="description" content="Send It — a fast, autonomous Berlin bicycle courier dispatch roguelike.">
 <title>Send It // Berlin Dispatch</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="review.css">
@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="ui-overhaul.css">
 <link rel="stylesheet" href="ui-clarity.css">
 <link rel="stylesheet" href="ui-minimal.css">
+<link rel="stylesheet" href="ui-minimal-map-context.css">
+<link rel="stylesheet" href="ui-map-overview.css">
+<link rel="stylesheet" href="ui-v10-stable-map.css">
+<link rel="stylesheet" href="ui-v11-kinetic.css">
 </head>
 <body>
 <main class="app-shell">
@@ -92,13 +96,13 @@
     <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p></section>
     <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>
     <section><h3>Riders</h3><p>Task bar = completion.<br>Energy bar = fatigue reserve.<br>Grey = break / radio off.<br>Personality affects what they volunteer for.<br><b>Rider Outlook</b> shows who can hear now and who may become available soon.</p></section>
-    <section><h3>Progression</h3><p>Start in Mitte + Kreuzberg. Complete work to unlock west/east inner city, then the full interior of the S41/S42 Ringbahn. New cargo and special contracts unlock with territory.</p></section>
+    <section><h3>Momentum</h3><p><b>FLOW</b> rises with clean deliveries and breaks on misses or service breaches.<br><b>CITY</b> shows the highest district load.<br><b>PHASE</b> shows the current predictable demand rhythm.</p></section>
     <section><h3>Sensory language</h3><p>Delivery sonar = waiting work.<br>Faster rider trails burn brighter and play higher notes.<br>Pressure adds low pulses.<br>Radio, goals, events and FLOW each have a distinct motif in the same musical key.</p></section>
-    <section><h3>Operator UI</h3><p><b>D</b> toggles compact/comfortable density.<br><b>M</b> toggles map focus and hides the rider dock.<br>The queue defaults to attention-first sorting; ◆ marks the diagnostic view.</p></section>
+    <section><h3>Operator UI</h3><p><b>Q</b> contracts rail · <b>R</b> rider rail · <b>D</b> density · <b>M</b> full map focus.<br>The queue defaults to attention-first sorting; all UI controls shape information, never rider authority.</p></section>
   </div>
   <div class="legend-grid">
     <div><strong>CARGO</strong><span>▲ Food</span><span>● Parcel</span><span>■ Docs</span><span>⬢ Grocery</span><span>◆ Fragile</span><span>✿ Flowers</span><span>⌑ Keys</span><span>✚ Medical</span><span>♨ Catering</span><span>❄ Cold</span></div>
-    <div><strong>INPUT</strong><span>Wheel · zoom</span><span>Drag · pan</span><span>Space · pause</span><span>1 / 2 / 3 · speed</span><span>0 · fit area</span><span>D · density</span><span>M · map focus</span><span>H / ? · help</span></div>
+    <div><strong>INPUT</strong><span>Wheel · zoom</span><span>Drag · pan</span><span>Space · pause</span><span>1 / 2 / 3 · speed</span><span>0 · fit area</span><span>Q / R · rails</span><span>D · density</span><span>M · map focus</span><span>H / ? · help</span></div>
   </div>
   <button id="help-done">BACK TO DISPATCH</button>
 </aside>

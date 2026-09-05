@@ -8,7 +8,7 @@ Object.assign(Game.prototype,{
   respondToCityEvent(){
     const ev=this.currentEvent;if(!ev||!['forecast','active'].includes(ev.state)||ev.prepared||!this.spendFocus(1))return false;ev.prepared=true;this.runStats.eventsPrepared=(this.runStats.eventsPrepared??0)+1;
     if(ev.kind==='route'){
-      ev.advisory=true;if(ev.state==='active'){const factor=ev.factor+(1-ev.factor)*.35;ev.appliedFactor=factor;for(const e of this.edges)if(ev.edgeIds.includes(e.id))e.eventMultiplier=factor;}for(const c of this.couriers)if(c.phase==='pickup'||c.phase==='dropoff')this.rerouteCourier(c);this.logDispatch('event-response',null,{event:ev.title,place:ev.place,kind:ev.kind,state:ev.state});this.flash(ev.state==='forecast'?`PRE-BRIEF · riders plan around ${ev.place}`:`DETOUR · riders re-route around ${ev.place}`,5);return true;
+      ev.advisory=true;if(ev.state==='active'){const factor=ev.factor+(1-ev.factor)*.35;ev.appliedFactor=factor;for(const e of this.edges)if(ev.edgeIds.includes(e.id))e.eventMultiplier=factor;}this.invalidateRouting();for(const c of this.couriers)if(c.phase==='pickup'||c.phase==='dropoff')this.rerouteCourier(c);this.logDispatch('event-response',null,{event:ev.title,place:ev.place,kind:ev.kind,state:ev.state});this.flash(ev.state==='forecast'?`PRE-BRIEF · riders plan around ${ev.place}`:`DETOUR · riders re-route around ${ev.place}`,5);return true;
     }
     if(ev.kind==='demand'&&ev.state==='active')for(const d of this.activeDeliveries())if(d.eventId===ev.id&&d.status==='waiting')d.deadlineAt+=14;
     this.logDispatch('event-response',null,{event:ev.title,place:ev.place,kind:ev.kind,state:ev.state});this.flash(ev.state==='forecast'?`CAPACITY PLAN · ${ev.place} surge softened`:`CLIENT STAGGER · ${ev.place} event jobs +14s`,5);return true;

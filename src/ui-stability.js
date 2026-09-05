@@ -2,13 +2,6 @@
    Main UI owns state; this layer only prevents redundant DOM moves that can
    cancel click sequences and produce visual flicker under frequent refresh. */
 
-if(!document.querySelector('link[href="ui-v10-stable-map.css"]')){
-  const link=document.createElement('link');
-  link.rel='stylesheet';
-  link.href='ui-v10-stable-map.css';
-  document.head.append(link);
-}
-
 const deliveries=document.querySelector('#deliveries');
 const couriers=document.querySelector('#couriers');
 

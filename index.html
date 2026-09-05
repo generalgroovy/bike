@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#eee9df">
+<meta name="theme-color" content="#ece8df">
 <meta name="description" content="Send It — a Berlin bicycle courier dispatch simulation roguelike.">
 <title>Send It // Berlin Dispatch</title>
 <link rel="stylesheet" href="styles.css">
@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="event-options.css">
 <link rel="stylesheet" href="ui-overhaul.css">
 <link rel="stylesheet" href="ui-clarity.css">
+<link rel="stylesheet" href="ui-minimal.css">
 </head>
 <body>
 <main class="app-shell">
@@ -33,12 +34,12 @@
     <div><span>SCORE</span><strong id="score">0</strong></div>
     <div data-tip="Dispatch focus powers client calls, rebroadcasts and event responses."><span>FOCUS</span><strong><b id="focus">2</b>/<b id="focus-max">3</b></strong></div>
   </div>
-  <div class="top-actions"><button id="sound-toggle" class="ghost" data-tip="Musical UI and city cues. Audio begins after your first interaction.">♫ SOUND</button><button id="help-toggle" class="ghost">? HELP</button><button id="new-run">NEW SHIFT</button></div>
+  <div class="top-actions"><button id="sound-toggle" class="ghost" aria-label="Toggle sound" data-tip="Musical UI and city cues. Audio begins after your first interaction.">♫ SOUND</button><button id="help-toggle" class="ghost" aria-label="Help">? HELP</button><button id="new-run" aria-label="New shift">NEW SHIFT</button></div>
 </header>
 
 <section class="task-rail" aria-label="Delivery contracts">
   <div class="task-summary">
-    <span class="eyebrow">WORK QUEUE</span>
+    <span class="eyebrow">WORK</span>
     <div><strong id="active-count">0</strong><small>ACTIVE</small></div>
     <div class="bandwidth" data-tip="Live radio bandwidth. OPEN and LOCAL cost 1; PRIORITY costs 2."><strong><span id="called-count">0</span>/<span id="radio-slots">4</span></strong><small>RADIO</small></div>
   </div>
@@ -74,8 +75,8 @@
   <aside class="team-dock">
     <div class="dock-head"><div><span class="eyebrow">TEAM</span><strong>Riders</strong></div><small>click / hover to inspect</small></div>
     <div id="couriers" class="rider-list"></div>
-    <details class="goals-drawer" open>
-      <summary><span>SHIFT GOALS</span><b id="goal-count">0</b></summary>
+    <details class="goals-drawer">
+      <summary><span>GOALS</span><b id="goal-count">0</b></summary>
       <div id="goals" class="goals"></div>
     </details>
   </aside>

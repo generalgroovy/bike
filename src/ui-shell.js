@@ -23,6 +23,11 @@ const contextItems=context.querySelector('.queue-context-items');
 function adoptContext(){for(const selector of['.service-load','.demand-rhythm']){const node=document.querySelector(selector);if(node&&node.parentElement!==contextItems)contextItems.append(node);}}
 adoptContext();
 
+const channelLabels={open:'OPEN radio · 1 bandwidth · neutral broadcast',priority:'PRIORITY radio · 2 bandwidth · stronger rider attention',local:'LOCAL radio · 1 bandwidth · favors nearby riders',off:'OFF radio · remove this contract from broadcast'};
+function labelRadioControls(scope=document){for(const button of scope.querySelectorAll?.('.task-actions [data-channel]')??[]){const label=channelLabels[button.dataset.channel];if(label)button.setAttribute('aria-label',label);}}
+labelRadioControls();
+if(deliveries&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)labelRadioControls(node.matches?.('.task-card')?node:node);}).observe(deliveries,{childList:true,subtree:true});
+
 const teamStatus=document.createElement('div');teamStatus.className='team-status';teamStatus.innerHTML='<span><b data-ready>0</b> listening</span><span><b data-riding>0</b> riding</span><span><b data-rest>0</b> rest</span>';
 dockHead?.querySelector('div')?.append(teamStatus);
 const readyEl=teamStatus.querySelector('[data-ready]'),ridingEl=teamStatus.querySelector('[data-riding]'),restEl=teamStatus.querySelector('[data-rest]');

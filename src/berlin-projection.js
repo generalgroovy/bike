@@ -1,11 +1,10 @@
 // Send It v13 canonical Berlin projection.
 //
 // Official data arrives in WGS84. Runtime simulation/rendering remains in the
-// established 1600×1120 game plane, but the transform is now derived from a
-// documented Berlin-local metric plane rather than presentation anchors.
-// The local plane uses an equirectangular tangent approximation around central
-// Berlin. At Ringbahn scale its distortion is small, deterministic and easy to
-// round-trip without a projection library or runtime network dependency.
+// established 1600×1120 game plane, but the transform is derived from one
+// Berlin-local metric plane rather than presentation anchors. A single uniform
+// meters→game scale is used on both axes, so street angles, lengths and spacing
+// are not stretched merely to fill the frame.
 
 export const BERLIN_GEO_BOUNDS=Object.freeze([13.27,52.45,13.51,52.57]);
 export const BERLIN_GAME_SIZE=Object.freeze({width:1600,height:1120});
@@ -36,24 +35,30 @@ function metricBounds(bbox=BERLIN_GEO_BOUNDS){
   return{x1:sw.x,y1:sw.y,x2:ne.x,y2:ne.y};
 }
 
-export function lonLatToGame(lon,lat,{bbox=BERLIN_GEO_BOUNDS,width=BERLIN_GAME_SIZE.width,height=BERLIN_GAME_SIZE.height}={}){
-  const p=lonLatToLocalMeters(lon,lat),b=metricBounds(bbox);
-  const x=(p.x-b.x1)/(b.x2-b.x1)*width;
-  const y=height-(p.y-b.y1)/(b.y2-b.y1)*height;
-  return[x,y];
+export function projectionFrame({bbox=BERLIN_GEO_BOUNDS,width=BERLIN_GAME_SIZE.width,height=BERLIN_GAME_SIZE.height}={}){
+  const b=metricBounds(bbox),metricWidth=b.x2-b.x1,metricHeight=b.y2-b.y1;
+  const gameUnitsPerMeter=Math.min(width/metricWidth,height/metricHeight);
+  const usedWidth=metricWidth*gameUnitsPerMeter,usedHeight=metricHeight*gameUnitsPerMeter;
+  return{bounds:b,scale:gameUnitsPerMeter,offsetX:(width-usedWidth)/2,offsetY:(height-usedHeight)/2,width,height,usedWidth,usedHeight};
 }
 
-export function gameToLonLat(x,y,{bbox=BERLIN_GEO_BOUNDS,width=BERLIN_GAME_SIZE.width,height=BERLIN_GAME_SIZE.height}={}){
-  const b=metricBounds(bbox);
-  const mx=b.x1+(x/width)*(b.x2-b.x1);
-  const my=b.y1+((height-y)/height)*(b.y2-b.y1);
+export function lonLatToGame(lon,lat,options={}){
+  const p=lonLatToLocalMeters(lon,lat),f=projectionFrame(options);
+  return[
+    f.offsetX+(p.x-f.bounds.x1)*f.scale,
+    f.offsetY+f.usedHeight-(p.y-f.bounds.y1)*f.scale
+  ];
+}
+
+export function gameToLonLat(x,y,options={}){
+  const f=projectionFrame(options);
+  const mx=f.bounds.x1+(x-f.offsetX)/f.scale;
+  const my=f.bounds.y1+(f.offsetY+f.usedHeight-y)/f.scale;
   return localMetersToLonLat(mx,my);
 }
 
-export function gameUnitsPerMeter({bbox=BERLIN_GEO_BOUNDS,width=BERLIN_GAME_SIZE.width,height=BERLIN_GAME_SIZE.height}={}){
-  const b=metricBounds(bbox);
-  return{x:width/(b.x2-b.x1),y:height/(b.y2-b.y1)};
-}
+export function gameUnitsPerMeter(options={}){return projectionFrame(options).scale;}
+export function metersPerGameUnit(options={}){return 1/projectionFrame(options).scale;}
 
 export function projectionRoundTripError(lon,lat,options){
   const[x,y]=lonLatToGame(lon,lat,options),p=gameToLonLat(x,y,options);
@@ -62,13 +67,15 @@ export function projectionRoundTripError(lon,lat,options){
 }
 
 export function projectionMetadata(){
-  const units=gameUnitsPerMeter();
+  const frame=projectionFrame();
   return{
     id:BERLIN_PROJECTION_ID,
     reference:{...BERLIN_REFERENCE},
     bbox:[...BERLIN_GEO_BOUNDS],
     gameSize:{...BERLIN_GAME_SIZE},
-    gameUnitsPerMeter:{x:units.x,y:units.y},
+    gameUnitsPerMeter:frame.scale,
+    metersPerGameUnit:1/frame.scale,
+    frame:{offsetX:frame.offsetX,offsetY:frame.offsetY,usedWidth:frame.usedWidth,usedHeight:frame.usedHeight},
     runtimeNetworkRequired:false
   };
 }

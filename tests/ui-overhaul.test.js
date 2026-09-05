@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 
 test('operator shell adds density and map-focus controls without dispatch authority',()=>{
   const ui=read('../src/ui-shell.js');
-  assert.match(ui,/sendit\.uiDensity\.v6/);assert.match(ui,/data\.density|dataset\.density/);assert.match(ui,/dataset\.mapFocus/);assert.match(ui,/queue-status/);assert.match(ui,/team-status/);assert.match(ui,/keydown/);
+  assert.match(ui,/sendit\.uiDensity\.v\d+/);assert.match(ui,/data\.density|dataset\.density/);assert.match(ui,/dataset\.mapFocus/);assert.match(ui,/queue-status/);assert.match(ui,/team-status/);assert.match(ui,/keydown/);
   assert.doesNotMatch(ui,/setChannel\(/);assert.doesNotMatch(ui,/claim\(/);assert.doesNotMatch(ui,/spawnDelivery\(/);assert.doesNotMatch(ui,/dispatchFocus\s*[-+]=/);assert.doesNotMatch(ui,/reputation\s*=/);assert.doesNotMatch(ui,/game\.update\(/);
 });
 

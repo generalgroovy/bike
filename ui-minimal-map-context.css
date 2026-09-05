@@ -1,0 +1,9 @@
+.map-context{position:absolute;z-index:4;top:6px;left:50%;transform:translateX(-50%);display:block!important;width:auto;min-width:180px;max-width:280px;padding:2px;border:1px solid #c9c3b8;border-radius:6px;background:#fffef9df;box-shadow:0 4px 12px #342f2514;backdrop-filter:blur(4px)}
+.map-context .queue-context-items{display:flex;align-items:stretch;gap:2px;min-height:0}
+.map-context .service-load,.map-context .demand-rhythm{transform:none;min-width:86px;width:auto;padding:3px 5px!important;border:0!important;border-radius:4px!important;background:#f4f1e9!important;box-shadow:none!important;display:grid;align-content:center}
+.map-context .service-load{grid-template-columns:auto auto;grid-template-rows:auto 2px auto}
+.map-context .service-load>span,.map-context .demand-rhythm>span{font-size:4.8px!important;letter-spacing:.08em}
+.map-context .service-load>strong{font-size:8px!important}.map-context .service-load>small,.map-context .demand-rhythm>small{font-size:4.8px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}.map-context .demand-rhythm>strong{font-size:6.5px!important}
+.map-context .service-load i{height:2px!important}.map-context .service-load i b{height:2px!important}
+@media(max-width:850px){.map-context{left:auto;right:44px;transform:none;min-width:0}.map-context .service-load,.map-context .demand-rhythm{min-width:74px}.map-context .service-load>small{display:none}}
+@media(max-height:620px){.map-context{display:none!important}}

@@ -23,6 +23,16 @@ test('stability layer supplies immediate pointer feedback without changing simul
   assert.match(js,/data-pressed|dataset\.pressed/);
 });
 
+test('main delegated click wiring remains present for contracts riders and map entities',()=>{
+  const main=read('../src/main.js');
+  assert.match(main,/deliveriesEl\.addEventListener\('click'/);
+  assert.match(main,/game\.setChannel\(d\.id,channel\.dataset\.channel\)/);
+  assert.match(main,/couriersEl\.addEventListener\('click'/);
+  assert.match(main,/game\.selectCourier\(card\.dataset\.courier\)/);
+  assert.match(main,/canvas\.addEventListener\('click'/);
+  assert.match(main,/inspectDelivery\(entity\.id\)/);
+});
+
 test('map polish makes the map larger and keeps decorative layers pointer-transparent',()=>{
   const css=read('../ui-v10-stable-map.css');
   assert.match(css,/--left-rail:156px/);

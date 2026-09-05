@@ -1,6 +1,7 @@
 import { mapZoomBand } from './map-zoom.js';
 
 export const BERLIN_RUNTIME_URL='./generated/berlin-runtime-v2.json';
+const LABEL_PRIORITY=Object.freeze({arterial:0,bridge:0,primary:1,secondary:2,local:3});
 
 function decodeLine(packed,q){
   const points=new Float32Array(packed.length);
@@ -21,7 +22,9 @@ export function decodeBerlinRuntime(raw){
   }));
   const lod={};
   for(const band of ['overview','district','street','detail'])lod[band]=new Set(raw.lod?.[band]??[]);
-  const labels=(raw.labels??[]).map(item=>({nameId:item[0],roadClass:raw.classes?.[item[1]]??'secondary',x:item[2]/q,y:item[3]/q,angle:item[4]/10000,length:item[5]/q}));
+  const labels=(raw.labels??[])
+    .map(item=>({nameId:item[0],roadClass:raw.classes?.[item[1]]??'secondary',x:item[2]/q,y:item[3]/q,angle:item[4]/10000,length:item[5]/q}))
+    .sort((a,b)=>(LABEL_PRIORITY[a.roadClass]??9)-(LABEL_PRIORITY[b.roadClass]??9)||b.length-a.length||a.nameId-b.nameId);
   const grid=new Map(Object.entries(raw.grid?.cells??{}).map(([key,value])=>[key,Uint32Array.from(value)]));
   const asset={
     version:2,
@@ -50,12 +53,16 @@ export function queryVisibleStreets(asset,bounds,bandOrZoom,out=[]){
   const band=typeof bandOrZoom==='string'?bandOrZoom:mapZoomBand(bandOrZoom);
   const allowed=asset.lod[band]??asset.lod.detail;
   const size=asset.cellSize,ix1=Math.floor(bounds.x1/size),iy1=Math.floor(bounds.y1/size),ix2=Math.floor(bounds.x2/size),iy2=Math.floor(bounds.y2/size);
-  let token=(asset.queryToken+1)>>>0;if(token===0){asset.querySeen.fill(0);token=1;}asset.queryToken=token;
+  let token=(asset.queryToken+1)>>>0;
+  if(token===0){asset.querySeen.fill(0);token=1;}
+  asset.queryToken=token;
   for(let y=iy1;y<=iy2;y++)for(let x=ix1;x<=ix2;x++){
     const ids=asset.grid.get(`${x}:${y}`);if(!ids)continue;
     for(const id of ids){
-      if(asset.querySeen[id]===token||!allowed.has(id))continue;asset.querySeen[id]=token;
-      const road=asset.geometry[id],b=road.bounds;if(b.x2<bounds.x1||b.x1>bounds.x2||b.y2<bounds.y1||b.y1>bounds.y2)continue;
+      if(asset.querySeen[id]===token||!allowed.has(id))continue;
+      asset.querySeen[id]=token;
+      const road=asset.geometry[id],b=road.bounds;
+      if(b.x2<bounds.x1||b.x1>bounds.x2||b.y2<bounds.y1||b.y1>bounds.y2)continue;
       out.push(road);
     }
   }
@@ -63,5 +70,4 @@ export function queryVisibleStreets(asset,bounds,bandOrZoom,out=[]){
 }
 
 export function runtimeStreetName(asset,road){return asset?.names?.[road?.nameId]??'';}
-
 export function runtimeMapReady(asset){return Boolean(asset?.metadata?.runtimeNetworkRequired===false&&asset?.geometry?.length);}

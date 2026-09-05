@@ -1,4 +1,5 @@
 import { Game } from './game.js';
+import { registerUiTask } from './ui-runtime.js';
 import './ui-telemetry.js';
 import './ui-scheduled.js';
 import './ui-queue.js';
@@ -25,4 +26,4 @@ function render(){
   if(!outlook.length){const empty=document.createElement('strong');empty.textContent='No rider within 90s';root.append(empty);return;}
   for(const item of outlook){const chip=document.createElement('span');chip.className='outlook-chip';chip.dataset.state=item.state;const name=document.createElement('b'),state=document.createElement('em');name.textContent=item.rider.name;state.textContent=item.availableNow?'NOW':`${item.state.toUpperCase()} · ${formatTime(item.arrivalIn)}`;chip.append(name,state);root.append(chip);}
 }
-setInterval(render,180);render();
+registerUiTask('rider-outlook',render,{interval:180,hiddenInterval:1400});

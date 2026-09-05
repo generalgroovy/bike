@@ -2,7 +2,7 @@
 
 Prioritize depth, precision, readability and measured play quality over feature count.
 
-## Completed in the current v6 overhaul
+## Completed through the current v7 overhaul
 
 - [x] Spatial district service pressure with visible strain, overload and explicit service breaches.
 - [x] Read-only district hover lens combining load, work, riders, clients, events, briefs and demand rhythm.
@@ -44,6 +44,15 @@ Prioritize depth, precision, readability and measured play quality over feature 
 - [x] Queue attention/live summary and rider listening/riding/rest summary.
 - [x] Explicit radio-action labels plus accessible control names.
 - [x] Responsive width/height fallbacks, prefers-contrast and prefers-reduced-motion UI contracts.
+- [x] Bounded route memoization with explicit invalidation for city expansion, bike-lane changes and route events.
+- [x] O(1) entity/edge lookup maps and city-stage playable-address cache.
+- [x] Shared memoized Dispatch Insight projection across queue, feasibility and inspector surfaces.
+- [x] Visibility-aware shared browser UI scheduler replacing independent polling timers.
+- [x] Hidden-tab sensory/UI downshifting and throttled district hover diagnostics.
+- [x] Preindexed Berlin visual geometry and street-label candidates.
+- [x] Viewport culling for off-screen streets, stations, landmarks, clients and labels.
+- [x] Paused-frame throttling plus render drawn/culled diagnostics.
+- [x] One-pass district service-load aggregation instead of per-district job/rider rescans at fixed-step frequency.
 - [x] Official Berlin WFS importer foundation with Ring polygon clipping and deterministic normalization.
 - [x] Official street-number-first address joining, canonical-name fallback, explicit geometric fallback accounting and Detailnetz node-ID topology.
 - [x] Candidate quality gate for connectivity, address match and fallback share.
@@ -51,16 +60,14 @@ Prioritize depth, precision, readability and measured play quality over feature 
 
 ## Next quality work
 
-1. **Real browser acceptance / operator + sensory tuning**
-   - play complete shifts in comfortable and compact density,
-   - verify map-focus mode during high-pressure sequences,
-   - scan 10–20 simultaneous task cards at common desktop resolutions,
-   - verify context-column legibility and queue/rider summary usefulness,
+1. **Real browser performance + operator acceptance**
+   - measure actual frame time at 1×/2×/4× with 10–20 simultaneous contracts,
+   - compare comfortable/compact/map-focus modes at common desktop resolutions,
+   - verify viewport culling behavior while zooming/panning rapidly,
+   - inspect route-cache hit rates and drawn/culled-edge counts in representative shifts,
+   - verify background-tab recovery and sound resume behavior,
    - test keyboard-only navigation and high-contrast/reduced-motion paths,
-   - tune sonar cadence, rider-note density and pressure ambience by actual fatigue rather than source inspection,
-   - verify no cue masks critical radio/event feedback,
-   - inspect trail contrast at 1×/2×/4×,
-   - test headphones and laptop speakers.
+   - tune sonar cadence, rider-note density and pressure ambience by actual fatigue rather than source inspection.
 
 2. **Run the official static Berlin pipeline on current source snapshots**
    - import Detailnetz + Adressen using the documented Ringbahn polygon,
@@ -96,4 +103,4 @@ Prioritize depth, precision, readability and measured play quality over feature 
    - sensory cue frequency per minute.
 
 6. **No second city yet**
-   - Berlin remains the benchmark until geography, interaction, learning, sensory clarity and the single-run dispatch loop are excellent.
+   - Berlin remains the benchmark until geography, interaction, learning, sensory clarity, performance and the single-run dispatch loop are excellent.

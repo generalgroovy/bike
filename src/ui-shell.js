@@ -1,4 +1,5 @@
 import { Game } from './game.js';
+import { registerUiTask } from './ui-runtime.js';
 
 const root=document.documentElement,actions=document.querySelector('.top-actions'),summary=document.querySelector('.task-summary'),dockHead=document.querySelector('.dock-head'),taskRail=document.querySelector('.task-rail'),deliveries=document.querySelector('#deliveries');
 const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
@@ -26,7 +27,7 @@ adoptContext();
 const channelLabels={open:'OPEN radio · 1 bandwidth · neutral broadcast',priority:'PRIORITY radio · 2 bandwidth · stronger rider attention',local:'LOCAL radio · 1 bandwidth · favors nearby riders',off:'OFF radio · remove this contract from broadcast'};
 function labelRadioControls(scope=document){for(const button of scope.querySelectorAll?.('.task-actions [data-channel]')??[]){const label=channelLabels[button.dataset.channel];if(label)button.setAttribute('aria-label',label);}}
 labelRadioControls();
-if(deliveries&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)labelRadioControls(node.matches?.('.task-card')?node:node);}).observe(deliveries,{childList:true,subtree:true});
+if(deliveries&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)labelRadioControls(node);}).observe(deliveries,{childList:true,subtree:true});
 
 const teamStatus=document.createElement('div');teamStatus.className='team-status';teamStatus.innerHTML='<span><b data-ready>0</b> listening</span><span><b data-riding>0</b> riding</span><span><b data-rest>0</b> rest</span>';
 dockHead?.querySelector('div')?.append(teamStatus);
@@ -39,9 +40,8 @@ function toggleFocus(){mapFocus=!mapFocus;applyFocus();}
 applyDensity();applyFocus();
 
 densityButton.addEventListener('click',toggleDensity);focusButton.addEventListener('click',toggleFocus);
-
 document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey||event.altKey)return;const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;if(event.key==='d'||event.key==='D'){toggleDensity();event.preventDefault();}else if(event.key==='m'||event.key==='M'){toggleFocus();event.preventDefault();}});
 
 let last='';
-function render(){const game=Game.lastInstance;if(!game)return;adoptContext();const jobs=game.activeDeliveries(),risk=document.querySelectorAll('.task-card[data-risk="risk"],.task-card[data-risk="tight"]').length,live=jobs.filter(d=>d.called).length,ready=game.couriers.filter(c=>c.radioOn&&c.phase==='idle').length,riding=game.couriers.filter(c=>c.phase==='pickup'||c.phase==='dropoff').length,rest=game.couriers.length-ready-riding,key=[risk,live,ready,riding,rest,jobs.length,game.radioUsed(),game.radioSlots].join('|');if(key===last)return;last=key;riskCount.textContent=String(risk);riskCount.dataset.level=risk?'danger':'good';liveCount.textContent=String(live);readyEl.textContent=String(ready);ridingEl.textContent=String(riding);restEl.textContent=String(rest);root.dataset.queuePressure=risk>=4?'high':risk>=2?'medium':'low';root.dataset.radioState=game.radioUsed()>=game.radioSlots?'full':'available';}
-setInterval(render,180);render();
+function render(){const game=Game.lastInstance;if(!game)return;adoptContext();const jobs=game.activeDeliveries(),risk=document.querySelectorAll('.task-card[data-risk="risk"],.task-card[data-risk="tight"]').length,live=jobs.filter(d=>d.called).length,ready=game.couriers.filter(c=>c.radioOn&&c.phase==='idle').length,riding=game.couriers.filter(c=>c.phase==='pickup'||c.phase==='dropoff').length,rest=game.couriers.length-ready-riding,radioUsed=game.radioUsed(),key=[risk,live,ready,riding,rest,jobs.length,radioUsed,game.radioSlots].join('|');if(key===last)return;last=key;riskCount.textContent=String(risk);riskCount.dataset.level=risk?'danger':'good';liveCount.textContent=String(live);readyEl.textContent=String(ready);ridingEl.textContent=String(riding);restEl.textContent=String(rest);root.dataset.queuePressure=risk>=4?'high':risk>=2?'medium':'low';root.dataset.radioState=radioUsed>=game.radioSlots?'full':'available';}
+registerUiTask('operator-shell',render,{interval:180,hiddenInterval:1200});

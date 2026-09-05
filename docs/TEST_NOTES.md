@@ -1,10 +1,10 @@
-# Send It v6 — validation notes
+# Send It v7 — validation notes
 
 Current merge-candidate validation is automated through GitHub Actions with `npm test`.
 
-The gate includes browser/controller syntax checks for the main renderer/UI/audio modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
+The gate includes browser/controller syntax checks for the main renderer/UI/audio/runtime modules, the Ringbahn/Berlin import and candidate-build CLIs, the candidate shadow-comparison CLI, then the complete Node test corpus.
 
-Current green implementation suite: **157 tests / 157 pass / 0 fail**.
+Current green implementation suite: **162 tests / 162 pass / 0 fail**.
 
 Coverage includes:
 
@@ -29,11 +29,10 @@ Coverage includes:
 - positive FLOW mastery streak, score reward, local pressure relief and failure/breach reset,
 - adaptive RUN FIT upgrade diagnosis while retaining normal roguelike choice rolls,
 - expansion operating doctrine choices and distinct existing-system effects,
-- browser-only doctrine pause plus compact AREA-chip doctrine memory,
 - cargo handling speed/fatigue differences,
 - RUSH/RETURN and scheduled-window contract behavior,
 - bonus/client-call/rebroadcast interventions,
-- route/rain/demand event generation,
+- route/rain/demand event generation and route-cost invalidation,
 - route preparation vs client buffering,
 - capacity planning vs surge pay,
 - demand-surge district map feedback,
@@ -42,14 +41,25 @@ Coverage includes:
 - read-only Dispatch Insight and qualitative channel comparison,
 - attention-first queue sorting with persistent keyed cards,
 - strategic Cargo Racks / Local Repeater / Event Feed / Relief Roster effects,
-- causal critical timeline,
-- deterministic run telemetry,
+- causal critical timeline and deterministic run telemetry,
 - six-rider high-load finite-state simulation,
+- bounded deterministic route-cache reuse and explicit invalidation on city/network/event changes,
+- route-cache stage isolation for direct test-fixture city-level changes,
+- O(1) node/edge/delivery/courier lookup fast paths with fixture-safe fallback behavior,
+- cached playable-address pools by city stage,
+- memoized Dispatch Insight shared by queue/feasibility/inspector callers and invalidated by job/rider/routing/modifier state,
+- one-pass district pressure load aggregation instead of district-by-district job/rider rescans,
+- visibility-aware shared UI scheduler replacing timer-per-widget polling,
+- hidden-tab downshifting and suppression of live sensory work,
+- district hover snapshot throttling without delaying pointer positioning,
+- pre-resolved Berlin render geometry and street-label candidate groups,
+- visible-world bounds and off-screen street/station/landmark/client-label rejection,
+- paused-map redraw throttling and render drawn/culled counters,
 - map-first task-rail / operating-context / rider-dock information architecture,
 - persistent comfortable/compact information-density preference,
 - browser-only map-focus mode that removes the rider dock without touching simulation state,
-- queue attention/live summary and rider availability summary derived from already-rendered/current state,
-- dedicated CITY LOAD + DEMAND context column instead of mixing systemic context with queue controls,
+- queue attention/live summary and rider availability summary derived from current state,
+- dedicated CITY LOAD + DEMAND context column,
 - responsive width/height fallbacks for dense desktop layouts,
 - explicit OPEN / PRIORITY / LOCAL / OFF visual labels plus accessible radio-control names,
 - prefers-contrast and prefers-reduced-motion UI fallbacks,
@@ -57,7 +67,6 @@ Coverage includes:
 - visual-street unlock state consistent with routing subdivisions,
 - rider travel heading propagated through the effective cargo-aware movement path,
 - pickup/dropoff milestone state and restrained map feedback,
-- reduced-motion-safe entity feedback and frozen decorative radio motion,
 - browser-only WebAudio sensory observer that cannot mutate simulation state,
 - shared D-minor-pentatonic / 102 BPM cue language,
 - cargo-specific periodic delivery sonar and urgency escalation,
@@ -67,7 +76,6 @@ Coverage includes:
 - district-pressure breathing/ping feedback and Kiez Brief broadcast bloom,
 - demand-phase transition motifs and sparse state-reactive city ambience,
 - event, goal, upgrade, FLOW and expansion harmonic cues,
-- metric change reactions for cash, reputation, focus, score and radio saturation,
 - recurring client-class visual/audio identities,
 - explicit persistent sound toggle and reduced-motion handling,
 - Ringbahn polygon import/stitch validation,
@@ -80,6 +88,6 @@ Coverage includes:
 - candidate graph connectivity/address coverage gates,
 - shadow comparison of official candidate vs curated runtime for recognizable street overlap, route-scale distortion and import quality.
 
-CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic. The sensory and operator-shell layers are browser-only observers/presenters and are not part of simulation authority.
+CI does **not** call Berlin WFS or OSM endpoints; geographic importer tests use local fixture data so network availability cannot make the game build flaky. Runtime remains static/offline/deterministic. UI, sensory, scheduling and render optimizations remain observers/presenters around the authoritative fixed-step simulation.
 
-A real browser acceptance pass remains valuable for rendered spacing, hover feel, 10–20-card scanning, comfortable vs compact density, map-focus transitions, audio mix/cue density, trail visibility, desktop aspect ratios and different device speakers/headphones. Automated checks cover source parsing, UI structure/read-only boundaries, deterministic simulation, sensory state boundaries, responsive/accessibility source contracts, visual-feedback state and data-pipeline invariants.
+A real browser acceptance pass remains valuable for rendered spacing, hover feel, 10–20-card scanning, comfortable vs compact density, map-focus transitions, audio mix/cue density, trail visibility and actual frame-time behavior at common desktop resolutions. Automated checks cover source parsing, deterministic simulation, optimization-cache invalidation, no-direct-assignment boundaries, UI scheduler isolation, render-culling contracts, responsive/accessibility behavior, sensory boundaries and data-pipeline invariants.

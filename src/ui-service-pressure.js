@@ -1,4 +1,5 @@
 import { Game } from './game.js';
+import { registerUiTask } from './ui-runtime.js';
 
 if(!document.querySelector('link[href="pressure.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='pressure.css';document.head.append(link);}
 
@@ -16,4 +17,4 @@ function render(){
   root.dataset.tip=`Local service load. Unheard and urgent pickups raise pressure in their district. Sustained overload causes a service breach. Highest now: ${district} ${value}/100.`;
   for(const card of document.querySelectorAll('[data-delivery]')){const delivery=game.deliveryById(card.dataset.delivery);if(!delivery)continue;const pressure=game.districtPressure(delivery.pickupDistrict);card.dataset.pickupLoad=String(Math.round(pressure?.pressure??0));}
 }
-setInterval(render,180);render();
+registerUiTask('service-pressure',render,{interval:180,hiddenInterval:1400});

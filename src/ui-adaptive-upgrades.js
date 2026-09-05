@@ -1,5 +1,6 @@
 import { Game } from './game.js';
+import { registerUiTask } from './ui-runtime.js';
 if(!document.querySelector('link[href="briefing.css"]')){const link=document.createElement('link');link.rel='stylesheet';link.href='briefing.css';document.head.append(link);}
 const modal=document.querySelector('#upgrade-modal'),choices=document.querySelector('#upgrade-choices'),diagnosis=document.createElement('p');diagnosis.className='upgrade-diagnosis';if(choices)choices.before(diagnosis);let last='';
 function render(){const game=Game.lastInstance;if(!game||!choices||modal?.hidden)return;const need=game.upgradeDiagnosis?.();if(!need)return;const key=`${need.id}:${need.reason}:${choices.children.length}`;if(key===last)return;last=key;diagnosis.textContent=`DESK READ · ${need.reason}`;for(const button of choices.querySelectorAll('[data-upgrade]')){const id=button.dataset.upgrade,recommended=id===need.id;button.dataset.recommended=String(recommended);let why=button.querySelector('.upgrade-why');if(!why){why=document.createElement('small');why.className='upgrade-why';button.append(why);}why.textContent=game.upgradeReasonFor?.(id)??'';let fit=button.querySelector('.upgrade-fit');if(recommended&&!fit){fit=document.createElement('em');fit.className='upgrade-fit';fit.textContent='RUN FIT';button.prepend(fit);}else if(!recommended&&fit)fit.remove();}}
-setInterval(render,120);render();
+registerUiTask('adaptive-upgrades',render,{interval:180,hiddenInterval:1600});

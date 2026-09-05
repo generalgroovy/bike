@@ -8,9 +8,13 @@ function channelRanking(game,delivery,channelId){
   const probe={...delivery,called:true,channel:channelId};
   return game.availableRiders().map(rider=>({rider,score:game.courierChoiceScore(rider,probe,false)})).filter(item=>Number.isFinite(item.score)).sort((a,b)=>b.score-a.score);
 }
+function riderStateKey(game){return game.couriers.map(r=>`${r.id}:${r.phase}:${r.radioOn?1:0}:${r.nodeId}:${r.pathIndex}:${Math.round(r.x/8)}:${Math.round(r.y/8)}:${Math.round((r.fatigue??0)*20)}:${r.deliveryId??''}:${r.deliberation?.deliveryId??''}`).join(';');}
+function modifierKey(game){const m=game.modifiers;return`${m.speed??1}:${m.teamSkill??1}:${m.cargoAssist??0}:${m.localRepeater??0}:${m.breakRelief??0}`;}
+function insightKey(game,d){const ev=game.currentEvent;return`${Math.floor(game.elapsed*5)}|${game.cityLevel}|${game.routingRevision??0}|${modifierKey(game)}|${game.dispatchFocus}|${game.cash}|${game.radioUsed()}/${game.radioSlots}|${ev?.id??''}:${ev?.state??''}:${ev?.advisory?1:0}|${d.id}:${d.status}:${d.called?1:0}:${d.channel??''}:${d.pickedUp?1:0}:${Math.round(d.deadlineAt*5)}:${d.reward}:${d.sweetened?1:0}:${d.extended?1:0}:${Math.round((d.rebroadcastUntil??0)*5)}|${riderStateKey(game)}`;}
 
 Game.prototype.deliveryDispatchInsight=function(delivery){
   if(!delivery)return null;
+  const cache=this._dispatchInsightCache??(this._dispatchInsightCache=new Map()),key=insightKey(this,delivery),cached=cache.get(delivery.id);if(cached?.key===key)return cached.value;
   const feasibility=delivery.status==='waiting'?this.deliveryFeasibility?.(delivery,{horizon:240}):null;
   const channels={};
   for(const id of Object.keys(RADIO_CHANNELS)){
@@ -31,26 +35,12 @@ Game.prototype.deliveryDispatchInsight=function(delivery){
       else recommendation={action:'OPEN',reason:open.bestRider?`${open.bestRider.name} already has a workable neutral fit.`:'No free rider is listening yet; preserve options.'};
     }else if(delivery.called&&current?.bestRider)recommendation={action:delivery.channel.toUpperCase(),reason:`${current.bestRider.name} is the strongest current listener.`};
   }
-  const best=feasibility?.best??null;
-  return{
-    state:feasibility?.state??(delivery.status==='claimed'?'claimed':'unknown'),
-    label:feasibility?.label??(delivery.status==='claimed'?'COMMITTED':'—'),
-    margin:feasibility?.margin??null,
-    slack:slackLabel(feasibility?.margin),
-    bestFinisher:best?.rider??null,
-    channels,
-    recommendation,
-    deliberating
-  };
+  const best=feasibility?.best??null,value={state:feasibility?.state??(delivery.status==='claimed'?'claimed':'unknown'),label:feasibility?.label??(delivery.status==='claimed'?'COMMITTED':'—'),margin:feasibility?.margin??null,slack:slackLabel(feasibility?.margin),bestFinisher:best?.rider??null,channels,recommendation,deliberating};
+  cache.set(delivery.id,{key,value});if(cache.size>64)for(const id of cache.keys())if(!this.deliveryById(id)||!this.activeDeliveries().some(d=>d.id===id))cache.delete(id);return value;
 };
 
 Game.prototype.riderDispatchInsight=function(rider,{limit=3}={}){
   if(!rider)return null;
   const calls=this.calledDeliveries().map(delivery=>({delivery,score:this.courierChoiceScore(rider,delivery,false)})).filter(item=>Number.isFinite(item.score)).sort((a,b)=>b.score-a.score).slice(0,limit);
-  return{
-    available:rider.phase==='idle'&&rider.radioOn,
-    energy:Math.max(0,Math.min(1,1-rider.fatigue)),
-    calls:calls.map(item=>({delivery:item.delivery,fit:fitLabel(item.score),reason:this.choiceReason(rider,item.delivery)})),
-    current:rider.deliveryId?this.deliveryById(rider.deliveryId):null
-  };
+  return{available:rider.phase==='idle'&&rider.radioOn,energy:Math.max(0,Math.min(1,1-rider.fatigue)),calls:calls.map(item=>({delivery:item.delivery,fit:fitLabel(item.score),reason:this.choiceReason(rider,item.delivery)})),current:rider.deliveryId?this.deliveryById(rider.deliveryId):null};
 };

@@ -1,4 +1,5 @@
 import { Game } from './game.js';
+import { registerUiTask } from './ui-runtime.js';
 
 const formatTime=seconds=>{const value=Math.max(0,Math.round(seconds));return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
 let renderedFor=null;
@@ -6,4 +7,4 @@ let renderedFor=null;
 function ensureSection(){let section=document.querySelector('#telemetry-review');if(section)return section;const anchor=document.querySelector('.dispatch-review');if(!anchor)return null;section=document.createElement('section');section.id='telemetry-review';section.className='dispatch-review telemetry-review';section.innerHTML='<h3>Shift telemetry</h3><div id="telemetry-metrics" class="review-metrics"></div><p id="telemetry-expansions" class="telemetry-expansions"></p>';anchor.after(section);return section;}
 function metric(root,value,label){const box=document.createElement('div'),strong=document.createElement('strong'),span=document.createElement('span');strong.textContent=String(value);span.textContent=label;box.append(strong,span);root.append(box);}
 function render(){const game=Game.lastInstance;if(!game||!game.gameOver)return;const key=`${game.seed}:${game.elapsed}:${game.completed}:${game.failed}`;if(key===renderedFor)return;const section=ensureSection();if(!section)return;const root=section.querySelector('#telemetry-metrics'),expansion=section.querySelector('#telemetry-expansions'),t=game.runTelemetry();root.replaceChildren();metric(root,t.throughputPerMinute.toFixed(1),'Delivered / min');metric(root,`${t.averageCallDelay.toFixed(1)}s`,'Avg call delay');metric(root,`${t.averageAcceptanceDelay.toFixed(1)}s`,'Avg take delay');metric(root,t.peakQueue,'Peak queue');metric(root,`${t.peakRadio}/${t.radioCapacity}`,'Peak radio');metric(root,t.eventsPrepared,'Events prepared');expansion.textContent=t.expansions.length?`Area timing · ${t.expansions.map(item=>`${item.stage} ${formatTime(item.at)}`).join(' · ')}`:'Area timing · no expansion';renderedFor=key;}
-setInterval(render,240);render();
+registerUiTask('post-shift-telemetry',render,{interval:300,hiddenInterval:1800});

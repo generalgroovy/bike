@@ -87,15 +87,17 @@ test('Google mode keeps native game fallback and supports overview district stre
   assert.match(css,/data-google-zoom-band=detail/);
 });
 
-test('game overlays progressively disclose detail instead of cluttering every Google zoom level',()=>{
-  const entities=read('../src/render-entities.js');
-  assert.match(entities,/function googleBand\(/);
-  assert.match(entities,/googleBand\(\)==='overview'/);
-  assert.match(entities,/band==='overview'/);
-  assert.match(entities,/band==='district'/);
-  assert.match(entities,/band==='street'/);
-  assert.match(entities,/band==='detail'/);
+test('game overlays progressively disclose detail from renderer zoom semantics without Google authority',()=>{
+  const entities=read('../src/render-entities.js'),zoom=read('../src/map-zoom.js');
+  assert.match(entities,/function band\(r\)/);
+  assert.match(entities,/r\.mapBand\?\?mapZoomBand\(r\.zoom\)/);
+  assert.doesNotMatch(entities,/data-google-zoom-band|googleZoomBand/);
+  assert.match(entities,/zoomBand==='overview'/);
+  assert.match(entities,/zoomBand==='district'/);
+  assert.match(entities,/zoomBand==='street'/);
+  assert.match(entities,/zoomBand==='detail'/);
   assert.match(entities,/showLabel/);
   assert.match(entities,/showName/);
-  assert.match(entities,/googleDetailAtLeast\('street'\)/);
+  assert.match(entities,/mapZoomAtLeast\(band\(r\),'street'\)/);
+  assert.match(zoom,/overview.*district.*street.*detail/s);
 });

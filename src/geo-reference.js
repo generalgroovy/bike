@@ -6,8 +6,8 @@
 export const GEO_ANCHORS=Object.freeze([
   {id:'westkreuz',game:{x:150,y:575},geo:{lat:52.5011111,lng:13.2838889}},
   {id:'gesundbrunnen',game:{x:760,y:95},geo:{lat:52.5486111,lng:13.3894444}},
-  {id:'ostkreuz',game:{x:1390,y:585},geo:{lat:52.5031111,lng:13.4688889}},
-  {id:'suedkreuz',game:{x:760,y:995},geo:{lat:52.4756111,lng:13.3643889}}
+  {id:'ostkreuz',game:{x:1390,y:585},geo:{lat:52.5030556,lng:13.4688889}},
+  {id:'suedkreuz',game:{x:760,y:995},geo:{lat:52.4755556,lng:13.3644444}}
 ]);
 
 function solveLinear(matrix,rhs){

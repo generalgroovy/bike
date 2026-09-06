@@ -4,31 +4,87 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
+    branches: [feature/berlin-playtest]
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
+  build:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout released site and deployment tooling
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: released
+          persist-credentials: false
+      - name: Checkout the Berlin playtest
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || 'feature/berlin-playtest' }}
+          path: playtest
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      # A successful Test workflow already checked this exact SHA. Manual and
+      # main deployments validate their branch checkout before publishing it.
+      - name: Test preview rules
+        if: github.event_name != 'workflow_run'
+        working-directory: playtest
+        run: npm test
+      - name: Install preview browser tooling
+        if: github.event_name != 'workflow_run'
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Test preview in Chromium
+        if: github.event_name != 'workflow_run'
+        working-directory: playtest
+        run: |
+          python e2e/browser_smoke.py
+          python e2e/playtest_smoke.py
+      - name: Compose released site and isolated preview
+        run: node released/tools/build-pages.mjs released playtest "$RUNNER_TEMP/send-it-pages"
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/send-it-pages
+      - name: Retain validation evidence
+        if: always() && github.event_name != 'workflow_run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-preview-browser-evidence
+          path: playtest/reports/browser/
+          retention-days: 7
+          if-no-files-found: ignore
   deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
       - name: Configure Pages
         uses: actions/configure-pages@v6
-      - name: Upload static site
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: .
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5

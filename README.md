@@ -6,6 +6,8 @@
 
 Play: `https://generalgroovy.github.io/bike/`
 
+Test the current Berlin concept: **[Open the GitHub Pages preview](https://generalgroovy.github.io/bike/preview/)**. See [preview deployment details](docs/PAGES_PREVIEW.md).
+
 Current release line: **v0.12 — Google Maps basemap + progressive map detail**.
 
 ---

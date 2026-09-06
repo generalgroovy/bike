@@ -42,10 +42,22 @@ export class Renderer extends Camera{
     this.berlinRuntime=null;
     this.berlinRuntimeState='loading';
     this.berlinVisible=[];
-    loadBerlinRuntime()
-      .then(asset=>{this.berlinRuntime=asset;this.berlinRuntimeState='ready';this.draw(true);})
-      .catch(()=>{this.berlinRuntimeState='fallback';});
+    this.disposed=false;
+    this.runtimeAbort=new AbortController();
     Renderer.lastInstance=this;
+    this.updateMapSource();
+    loadBerlinRuntime(undefined,{signal:this.runtimeAbort.signal})
+      .then(asset=>{if(this.disposed)return;this.berlinRuntime=asset;this.berlinRuntimeState='ready';this.updateMapSource();this.draw(true);})
+      .catch(()=>{if(this.disposed)return;this.berlinRuntimeState='fallback';this.updateMapSource();});
+  }
+  dispose(){this.disposed=true;this.runtimeAbort?.abort();}
+  updateMapSource(){
+    if(this.disposed)return;
+    const label=typeof document!=='undefined'?document.getElementById('map-source'):null;
+    if(!label)return;
+    label.dataset.state=this.berlinRuntimeState;
+    label.textContent=this.berlinRuntimeState==='ready'?'NATIVE · LOCAL DATA':this.berlinRuntimeState==='loading'?'NATIVE · LOADING DETAIL':'NATIVE · CURATED MAP';
+    label.title=this.berlinRuntimeState==='ready'?'Local street detail. Rider routes still use the curated deterministic game graph.':'The detailed Berlin asset is unavailable or loading. The bundled curated map remains fully playable without an API key.';
   }
   resize(reset=false){
     super.resize(reset);
@@ -64,6 +76,7 @@ export class Renderer extends Camera{
     for(const id of this.riderTrails.keys())if(!active.has(id))this.riderTrails.delete(id);
   }
   draw(force=false){
+    if(this.disposed)return false;
     const t=typeof performance!=='undefined'?performance.now():Date.now(),minInterval=this.game.paused?50:0;
     if(!force&&t-this.lastDrawAt<minInterval)return false;
     this.lastDrawAt=t;

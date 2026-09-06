@@ -56,15 +56,12 @@ test('API key remains browser-local and no production key is committed',()=>{
   assert.match(js,/Restrict it in Google Cloud/);
 });
 
-test('Google mode statically layers exact basemap below transparent game canvas',()=>{
-  const html=read('../index.html'),css=read('../ui-v12-google-map.css'),map=read('../src/render-map.js');
-  assert.ok(html.indexOf('id="google-map"')<html.indexOf('id="game-canvas"'));
-  assert.match(html,/ui-v12-google-map\.css/);
-  assert.match(html,/src\/google-basemap\.js/);
-  assert.match(css,/\.google-map\{position:absolute;inset:0;z-index:0/);
-  assert.match(css,/html\[data-basemap=google\] #game-canvas[^}]*pointer-events:none/s);
-  assert.match(map,/if\(googleBasemapActive\(\)\)return/);
-  assert.match(map,/drawOperationalDisruptions/);
+test('native v13 entry point does not load the historical Google bridge or key prompt',()=>{
+  const html=read('../index.html');
+  assert.doesNotMatch(html,/<script[^>]*src=["']src\/google-basemap\.js/);
+  assert.doesNotMatch(html,/ui-v12-google-map\.css|id="google-map"|Google vector basemap/);
+  assert.match(html,/id="map-source"/);
+  assert.match(html,/ui-v13-native\.css/);
 });
 
 test('Google mode reserves attribution space and exposes public privacy and terms',()=>{

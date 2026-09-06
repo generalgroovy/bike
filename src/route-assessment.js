@@ -30,7 +30,8 @@ function edgesForDelivery(game,delivery){
 
 function averageRiderSpeed(game){
   const riders=game?.couriers??[];if(!riders.length)return 66;
-  return riders.reduce((sum,rider)=>sum+(Number(rider.baseSpeed)||66),0)/riders.length;
+  const modifier=Number(game?.modifiers?.speed)||1;
+  return riders.reduce((sum,rider)=>sum+(Number(rider.baseSpeed)||66)*(Number(rider.experience?.speed)||1)*modifier,0)/riders.length;
 }
 
 function turnComplexity(game,path){
@@ -56,7 +57,7 @@ export function assessRoute(game,delivery){
   const distanceUnits=Math.max(0,Number(delivery.plannedDistance)||0),distanceMeters=distanceUnits*metersPerUnit,distanceBand=distanceBandForMeters(distanceMeters);
   const edges=edgesForDelivery(game,delivery),path=delivery.plannedPath??[];
   let routeCost=0,totalEdgeDistance=0,eventDistance=0,bikeLaneDistance=0;
-  const event=game?.currentEvent,affected=event?.kind==='route'?event.edgeIds??[]:[];
+  const event=game?.currentEvent,affected=event?.kind==='route'&&event.state==='active'?event.edgeIds??[]:[];
   for(const edge of edges){
     const distance=Math.max(0,Number(edge.distance)||0);totalEdgeDistance+=distance;
     const speed=Math.max(.16,(Number(edge.speed)||1)*(Number(edge.eventMultiplier)||1));routeCost+=distance/speed;
@@ -65,7 +66,7 @@ export function assessRoute(game,delivery){
   }
   if(!edges.length)routeCost=distanceUnits;
   const handling=CARGO_FALLBACK[delivery.type]??{speed:1},cargoSpeed=Math.max(.5,Number(delivery.cargoSpeed??handling.speed)||1),estimatedRideSeconds=routeCost/Math.max(1,averageRiderSpeed(game))/cargoSpeed;
-  const remainingSeconds=Math.max(0,(Number(delivery.deadlineAt)||0)-(Number(game?.elapsed)||0)),slackSeconds=remainingSeconds-estimatedRideSeconds;
+  const remainingSeconds=(Number(delivery.deadlineAt)||0)-(Number(game?.elapsed)||0),slackSeconds=remainingSeconds-estimatedRideSeconds;
   const deadlinePressure=remainingSeconds<=0?1:clamp(1-slackSeconds/Math.max(18,estimatedRideSeconds*1.65));
   const eventExposure=totalEdgeDistance?clamp(eventDistance/totalEdgeDistance):0;
   const bikeLaneShare=totalEdgeDistance?clamp(bikeLaneDistance/totalEdgeDistance):0;
@@ -99,4 +100,13 @@ export function assessRoute(game,delivery){
     routeComplexity,
     bikeLaneShare
   };
+}
+
+// This is a loaded-ride estimate, not a promise that a rider can finish the job.
+// Unlike a countdown, a margin must retain its sign when the route is late.
+export function formatRouteMargin(seconds){
+  if(!Number.isFinite(seconds))return 'ride margin unknown';
+  const value=Math.ceil(Math.abs(seconds));
+  const clock=`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;
+  return `${seconds<0?'−':'+'}${clock} ride margin`;
 }

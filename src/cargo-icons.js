@@ -19,7 +19,7 @@ export function cargoVisual(type){return CARGO_VISUALS[type]??CARGO_VISUALS.parc
 export function createCargoIconElement(type,{className='cargo-icon',title=null}={}){
   if(typeof document==='undefined')return null;
   const visual=cargoVisual(type),svg=document.createElementNS(SVG_NS,'svg');
-  svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden',title?'false':'true');svg.setAttribute('focusable','false');svg.classList.add(className);svg.style.color=visual.color;
+  svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden',title?'false':'true');svg.setAttribute('focusable','false');svg.setAttribute('class',String(className).trim());svg.setAttribute('width','24');svg.setAttribute('height','24');if(title){svg.setAttribute('role','img');svg.setAttribute('aria-label',title);}svg.style.color=visual.color;
   if(title){const titleEl=document.createElementNS(SVG_NS,'title');titleEl.textContent=title;svg.append(titleEl);}
   const path=document.createElementNS(SVG_NS,'path');path.setAttribute('d',visual.path);path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.8');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.append(path);return svg;
 }

@@ -6,6 +6,9 @@ This is a playable experiment for deciding what Send It should become. Automated
 
 ## Run it
 
+Hosted preview: <https://generalgroovy.github.io/bike/preview/berlin/playtest.html>.
+Successful push-triggered CI on this branch refreshes the isolated GitHub Pages preview.
+
 From the repository root, run `python -m http.server 8080` and open `http://localhost:8080/playtest.html`. A local HTTP server is required for browser modules. No build step or API key is needed. The playtest requests only files from its own origin. The full game remains at `index.html`.
 
 Choose **Play your first shift**, select a contract, broadcast OPEN, and press **Start shift**. Couriers choose jobs themselves. The tutorial starts paused so reading does not consume its opening deadline.

@@ -45,12 +45,21 @@ export class Renderer extends Camera{
     this.disposed=false;
     this.runtimeAbort=new AbortController();
     Renderer.lastInstance=this;
+    // Rails are reparented after main starts; CSS layout changes need not emit
+    // a window resize. Keep the backing store aligned with the actual canvas.
+    this.layoutObserver=typeof ResizeObserver==='undefined'?null:new ResizeObserver(()=>{
+      if(this.disposed)return;
+      const rect=this.canvas.getBoundingClientRect();
+      if(Math.abs(Math.max(320,rect.width)-this.viewWidth)<.5&&Math.abs(Math.max(360,rect.height)-this.viewHeight)<.5)return;
+      this.resize();this.draw(true);
+    });
+    this.layoutObserver?.observe(canvas);
     this.updateMapSource();
     loadBerlinRuntime(undefined,{signal:this.runtimeAbort.signal})
       .then(asset=>{if(this.disposed)return;this.berlinRuntime=asset;this.berlinRuntimeState='ready';this.updateMapSource();this.draw(true);})
       .catch(()=>{if(this.disposed)return;this.berlinRuntimeState='fallback';this.updateMapSource();});
   }
-  dispose(){this.disposed=true;this.runtimeAbort?.abort();}
+  dispose(){this.disposed=true;this.runtimeAbort?.abort();this.layoutObserver?.disconnect();}
   updateMapSource(){
     if(this.disposed)return;
     const label=typeof document!=='undefined'?document.getElementById('map-source'):null;

@@ -8,6 +8,8 @@ This is a **draft development branch**, not the deployed v0.12 release. The inva
 - The native source badge distinguishes loading, validated local detail and the bundled curated fallback. The **official generated Berlin asset is still absent** at this checkpoint. Do not describe the visible fallback as an official street network.
 - Runtime decoding rejects malformed quantization, geometry, names/classes, bounds, LOD indices and spatial bins before drawing. Queries handle invalid/extreme viewports without an unbounded grid walk. Loading is cancelable and has an eight-second request timeout.
 - New shifts dispose the old renderer. Late asynchronous responses cannot paint the old game or overwrite the new map-source badge.
+- Card selection is no longer mistaken for a radio action: only actual radio buttons match the delegated channel selector.
+- Canvas layout observation keeps the backing store in sync when rails move, collapse or change density, and disconnects on disposal. Hidden status labels obey the HTML hidden state rather than leaking through older display rules.
 - The contract inspector accepts multiple cargo-icon CSS classes without the previous DOM token exception. Cargo icons and rider portraits have bounded dimensions in comfortable and compact layouts.
 - Distance, difficulty and cargo have separate visual labels. Signed **ride margin** retains negative deficits. It is an estimate for the loaded ride only, not end-to-end rider feasibility: pickup travel, pickup waits and breaks are excluded. Dispatch Insight remains the rider-specific projection.
 - Forecast events no longer count as active road exposure in route assessment. Estimated ride time observes existing speed/experience modifiers; overdue margins retain elapsed lateness.
@@ -15,9 +17,9 @@ This is a **draft development branch**, not the deployed v0.12 release. The inva
 
 ## Validation
 
-The imported baseline passed **204 Node tests**. This continuation passes **233 Node tests locally** (Node 22.16.0); CI uses Node 24. New tests exercise decoder failures, query safety, load cancellation/timeouts, retired-renderer responses, cargo DOM class handling, signed margins and presentation-only assessment changes.
+The imported baseline passed **204 Node tests**. This continuation passes **234 Node tests locally** (Node 22.16.0); CI uses Node 24. New tests exercise canvas reflow/disposal, decoder failures, query safety, load cancellation/timeouts, retired-renderer responses, cargo DOM class handling, signed margins and presentation-only assessment changes.
 
-`e2e/browser_smoke.py` supplies eight real Chromium acceptance scenarios: native startup with stale Google preferences, the inspector and all ten cargo types, radio pointer actions without forced claims, keyboard zoom/focus, map wheel/drag, responsive rails/density/focus, new-shift disposal and corrupt-asset fallback. It records screenshots and browser error/network evidence. It blocks third-party requests instead of relying on Google or another service.
+`e2e/browser_smoke.py` supplies nine real Chromium acceptance scenarios: native startup with stale Google preferences, the inspector and all ten cargo types, radio pointer actions without forced claims, keyboard zoom/focus, map wheel/drag, responsive rails/density/focus, canvas reflow/hidden-state correctness, new-shift disposal and corrupt-asset fallback. It records screenshots and browser error/network evidence. It blocks third-party requests instead of relying on Google or another service.
 
 The CI preview artifact is gated on **both** Node tests and browser acceptance. A failed browser job must not be mistaken for release acceptance, even when source-contract tests pass.
 

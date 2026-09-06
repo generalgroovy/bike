@@ -165,6 +165,25 @@ class BrowserAcceptance(unittest.TestCase):
         self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), 1024)
         expect(self.page.locator('#zoom-reset')).to_be_visible()
 
+    def test_layout_reflow_keeps_canvas_sharp_and_hidden_statuses_hidden(self):
+        def check_size():
+            self.page.wait_for_function("""() => {
+                const canvas=document.querySelector('#game-canvas');
+                const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);
+                return Math.abs(canvas.width-rect.width*dpr)<=1 && Math.abs(canvas.height-rect.height*dpr)<=1;
+            }""")
+            self.assertAlmostEqual(self.camera('r.viewWidth'), self.page.locator('#game-canvas').bounding_box()['width'], delta=1)
+        check_size()
+        self.assertIsNone(self.game('g.currentEvent'))
+        expect(self.page.locator('#event-chip')).to_be_hidden()
+        expect(self.page.locator('.task-claimed').first).to_be_hidden()
+        expect(self.page.locator('.task-route.drop').first).to_be_visible()
+        for key in ['q', 'r', 'm', 'm', 'd']:
+            self.page.keyboard.press(key)
+            check_size()
+        self.page.set_viewport_size({'width': 1024, 'height': 768})
+        check_size()
+
     def test_new_shift_disposes_previous_renderer(self):
         self.page.evaluate("async()=>{window.__previousRenderer=(await import('/src/render.js')).Renderer.lastInstance;}")
         self.page.locator('#new-run').click()

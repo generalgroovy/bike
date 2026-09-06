@@ -93,3 +93,21 @@ test('retired renderer ignores a late asset response and cannot overwrite the ne
   assert.equal(Renderer.prototype.draw.call(old),false);
   assert.equal(badge.dataset.state,'ready');current.dispose();
 });
+
+
+test('canvas layout observer resizes the backing store and disconnects on disposal',async t=>{
+  const saved={window:globalThis.window,document:globalThis.document,fetch:globalThis.fetch,ResizeObserver:globalThis.ResizeObserver,last:Renderer.lastInstance};
+  t.after(()=>{for(const key of ['window','document','fetch','ResizeObserver'])if(saved[key]===undefined)delete globalThis[key];else globalThis[key]=saved[key];Renderer.lastInstance=saved.last;});
+  let callback,width=900,disconnected=false;
+  globalThis.window={devicePixelRatio:1};globalThis.document={getElementById:()=>null};
+  globalThis.fetch=async()=>new Response('',{status:404});
+  globalThis.ResizeObserver=class{constructor(fn){callback=fn;}observe(){}disconnect(){disconnected=true;}};
+  const canvas={getBoundingClientRect:()=>({width,height:600}),getContext:()=>({setTransform(){}})};
+  const game={cityLevel:1,width:1600,height:1120,visualEdges:[]},before=JSON.stringify(game);
+  class ProbeRenderer extends Renderer{draw(){this.draws=(this.draws??0)+1;}}
+  const renderer=new ProbeRenderer(canvas,game);callback();assert.equal(renderer.draws,undefined);
+  width=1200;callback();assert.equal(renderer.viewWidth,1200);assert.equal(canvas.width,1200);assert.equal(renderer.draws,1);
+  callback();assert.equal(renderer.draws,1);assert.equal(JSON.stringify(game),before);
+  renderer.dispose();width=1300;callback();assert.equal(renderer.viewWidth,1200);assert.equal(disconnected,true);
+  await new Promise(setImmediate);
+});

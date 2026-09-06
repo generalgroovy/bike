@@ -20,3 +20,15 @@ jobs:
           node-version: 24
       - name: Test
         run: npm test
+      - name: Package tested source and offline preview
+        run: |
+          mkdir -p "$RUNNER_TEMP/send-it-preview"
+          git archive --format=tar HEAD > "$RUNNER_TEMP/send-it-preview/source.tar"
+          git rev-parse HEAD > "$RUNNER_TEMP/send-it-preview/COMMIT.txt"
+      - name: Upload tested preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: send-it-tested-preview
+          path: ${{ runner.temp }}/send-it-preview/
+          retention-days: 7
+          if-no-files-found: error

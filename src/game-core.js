@@ -6,12 +6,14 @@ import { COURIER_COLORS,COURIER_NAMES,DELIVERY_TYPES,EXPERIENCE,PERSONALITIES,RA
 const ROUTE_CACHE_LIMIT=2048;
 
 export class Game{
-constructor({seed=createSeed(),width=BERLIN.width,height=BERLIN.height}={}){
+constructor({seed=createSeed(),width=BERLIN.width,height=BERLIN.height,initialize=true}={}){
   this.seed=seed;this.rng=new RNG(seed);this.width=width;this.height=height;this.elapsed=0;this.score=0;this.cash=0;this.reputation=100;this.completed=0;this.failed=0;this.wave=1;this.speed=1;this.paused=false;this.gameOver=false;this.upgradePending=false;this.nextUpgradeAt=8;this.deliverySerial=0;this.courierSerial=0;this.spawnAccumulator=0;this.selectedDeliveryId=null;this.selectedCourierId=null;this.hoveredDeliveryId=null;this.hoveredCourierId=null;this.radioSlots=4;this.cityLevel=1;this.cityChangedAt=0;this.dispatchFocusMax=3;this.dispatchFocus=2;this.notice='Read the city. Shape the radio. Riders decide.';this.noticeUntil=10;
   this.modifiers={speed:1,deadline:1,reward:1,teamSkill:1,spawnRate:1,fatigue:1};
   this.runStats={peakActive:0,peakRadio:0,distance:0,riderChoices:0,radioDenied:0,eventExposure:0,breaks:0,toolsUsed:0,expansions:0,routeCacheHits:0,routeCacheMisses:0};this.dispatchLog=[];
   this.routingRevision=0;this.routeCache=new Map();this.playableAddressCacheLevel=0;this.playableAddressCache=null;this.deliveryMap=new Map();this.courierMap=new Map();
-  this.generateBerlin();this.deliveries=[];this.couriers=[];this._deliveryArrayRef=this.deliveries;this._courierArrayRef=this.couriers;this.runTrait=this.rng.pick(RUN_TRAITS);this.runContract=this.rng.pick(RUN_CONTRACTS);this.runTrait.apply(this);this.applyContract(this.runContract);for(let i=0;i<3;i++)this.addCourier();this.goals=this.generateGoals();this.currentEvent=null;this.nextEventAt=58+this.rng.float(0,20);for(let i=0;i<5;i++)this.spawnDelivery();
+  this.generateBerlin();this.deliveries=[];this.couriers=[];this._deliveryArrayRef=this.deliveries;this._courierArrayRef=this.couriers;
+  if(!initialize)return;
+  this.runTrait=this.rng.pick(RUN_TRAITS);this.runContract=this.rng.pick(RUN_CONTRACTS);this.runTrait.apply(this);this.applyContract(this.runContract);for(let i=0;i<3;i++)this.addCourier();this.goals=this.generateGoals();this.currentEvent=null;this.nextEventAt=58+this.rng.float(0,20);for(let i=0;i<5;i++)this.spawnDelivery();
 }
 
 generateBerlin(){
@@ -74,3 +76,9 @@ spawnReturnLeg(d){if(!d||d.returnSpawned)return false;d.returnSpawned=true;const
 maybeAdvanceCity(){let next=this.cityLevel;for(const stage of this.unlockStages)if(this.completed>=stage.threshold)next=Math.max(next,stage.level);if(next<=this.cityLevel)return false;this.cityLevel=next;this.cityChangedAt=this.elapsed;this.playableAddressCache=null;this.invalidateRouting();this.radioSlots+=1;this.dispatchFocusMax+=1;this.dispatchFocus=Math.min(this.dispatchFocusMax,this.dispatchFocus+1);this.runStats.expansions+=1;const stage=this.currentStage();this.logDispatch('city-expand',null,{stage:stage.name,level:stage.level});this.flash(`CITY EXPANDED · ${stage.name} · ${stage.desc}`,7);return true;}
 recoverFocus(){if(this.completed>0&&this.completed%4===0)this.dispatchFocus=Math.min(this.dispatchFocusMax,this.dispatchFocus+1);}
 }
+
+// Explicit primitives for alternate rulesets, captured before optional systems wrap them.
+export const BASE_GAME_METHODS=Object.freeze({
+  spawnDelivery:Game.prototype.spawnDelivery,
+  addCourier:Game.prototype.addCourier
+});

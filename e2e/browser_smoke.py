@@ -181,6 +181,8 @@ class BrowserAcceptance(unittest.TestCase):
         for key in ['q', 'r', 'm', 'm', 'd']:
             self.page.keyboard.press(key)
             check_size()
+            if self.page.locator('html').get_attribute('data-map-focus') == 'true':
+                self.assertGreaterEqual(self.page.locator('#game-canvas').bounding_box()['width'], 1438)
         self.page.set_viewport_size({'width': 1024, 'height': 768})
         check_size()
 

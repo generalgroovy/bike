@@ -44,3 +44,6 @@ html[data-density=compact] .rider-card{min-height:68px!important}
 .inspect-facts span{font-size:10px!important;line-height:1.4}
 .inspect-advice{font-size:10px!important;line-height:1.4}
 .dispatch-tools button{font-size:9px!important;min-height:30px!important}
+
+/* Collapsed-rail templates can win the cascade; map focus must span them all. */
+html[data-map-focus=true] .map-stage{grid-column:1/-1}

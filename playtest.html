@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#172a2d">
+  <meta name="description" content="A short shift on the Berlin courier desk. Shape the radio, read the city, and let your riders choose.">
+  <title>Send It — The Berlin desk</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="playtest.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="playtest.html" aria-label="Send It Berlin desk"><span>↗</span> SEND IT<span class="edition">THE BERLIN DESK</span></a>
+    <div class="desk-stats" aria-label="Shift status">
+      <div><small>REPUTATION</small><strong id="reputation">100</strong><meter id="rep-meter" min="0" max="100" value="100">100</meter></div>
+      <div><small>CASH</small><strong id="cash">€10</strong></div>
+      <div><small>RADIO</small><strong id="radio-count">0 / 3</strong></div>
+    </div>
+    <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><button id="help">How to play</button><button id="new-shift">New shift</button></nav>
+  </header>
+
+  <div class="shift-bar">
+    <div><span class="live-dot"></span><strong id="phase-name">Find your rhythm</strong><span id="phase-detail">A small desk. A city full of possibilities.</span></div>
+    <div class="shift-target"><span id="delivery-target">0 / 5 delivered</span><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock">3:00</strong></div>
+  </div>
+
+  <main class="desk-layout">
+    <section class="work-panel" aria-labelledby="work-title">
+      <div class="panel-heading"><div><span class="eyebrow">YOUR NEXT DECISION</span><h1 id="work-title">On the desk <span id="work-count">1</span></h1></div></div>
+      <p class="queue-explainer">Choose what the team hears.</p>
+      <div id="work-list"></div>
+      <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
+      <div class="work-footer"><span>⌁ MITTE + KREUZBERG</span><small id="seed-label"></small><a href="index.html">Explore the full game ↗</a></div>
+    </section>
+
+    <section class="city-panel" aria-label="Berlin dispatch map">
+      <canvas id="game-canvas" aria-label="Couriers and contracts on the Berlin map. All contracts are also available in the work queue."></canvas>
+      <div class="map-caption"><span class="eyebrow">BERLIN</span><strong>A city in motion.</strong><small>Curated streets · autonomous couriers</small></div>
+      <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
+      <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
+      <div id="coach" role="status"></div>
+      <div class="map-bottom"><span id="notice" role="status"></span><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
+    </section>
+
+    <aside class="details-panel">
+      <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><div><span class="eyebrow">THE PEOPLE ON THE RADIO</span><h2 id="team-title">Your three riders</h2></div></div><div id="team-list"></div></section>
+      <section class="contract-section" aria-labelledby="contract-title">
+        <div class="panel-heading"><div><span class="eyebrow">SELECTED CONTRACT</span><h2 id="contract-title">Make the call.</h2></div></div>
+        <p id="selection-empty" class="empty">Tap a job or a pickup on the map.</p>
+        <div id="contract-detail" hidden>
+          <div class="contract-top"><span id="selected-cargo"></span><strong id="selected-reward"></strong></div>
+          <div class="addresses"><span>PICKUP</span><strong id="selected-pickup"></strong><span>DROP-OFF</span><strong id="selected-drop"></strong></div>
+          <div class="contract-facts"><strong id="selected-time"></strong><span id="selected-distance"></span></div>
+          <p id="selected-handling"></p><p id="selected-state" class="explanation"></p>
+          <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open"><strong>OPEN</strong><small>1 slot · everyone</small></button><button data-radio="local"><strong>LOCAL</strong><small>1 slot · nearby</small></button><button data-radio="priority"><strong>PRIORITY</strong><small>2 slots · attention</small></button></div>
+          <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
+          <button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="intro" class="welcome">
+    <span class="eyebrow">SEND IT / BERLIN</span><h2>Good work starts<br>with a good call.</h2>
+    <p>Three couriers. A shared radio. You choose which jobs they hear.<br><strong>They choose which jobs to take.</strong></p>
+    <div class="welcome-steps"><span><b>01</b> Read a contract</span><span><b>02</b> Put it on the radio</span><span><b>03</b> Watch the team respond</span></div>
+    <div class="mode-choices"><button data-start="training" class="primary"><strong>Play your first shift ↗</strong><small>3 minutes · guided opening · 5 deliveries</small></button><button data-start="standard"><strong>Take the Berlin desk</strong><small>9 minutes · 24 deliveries · a busier city</small></button></div>
+    <p class="fine-print">Finish with reputation left and reach the delivery target. At closing, new work stops; unfinished jobs count as misses when the timer ends. Pause whenever you need.</p>
+    <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
+  </dialog>
+
+  <dialog id="help-dialog">
+    <span class="eyebrow">A LITTLE RADIO ETIQUETTE</span><h2>You broadcast. Riders decide.</h2>
+    <p><strong>OPEN</strong> lets all listening couriers consider a job. <strong>LOCAL</strong> favors nearby riders. <strong>PRIORITY</strong> attracts more attention and uses two slots. None of them assigns a rider.</p>
+    <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
+    <p>Watch rider energy and roadworks. A job may look close but still need time to reach the pickup.</p>
+    <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
+    <p class="muted">Space: pause · + / −: zoom · 0: fit map · Escape: clear selection. Drag to pan. Contracts can always be selected from the queue.</p>
+    <button id="close-help" class="primary">Back to the desk</button>
+  </dialog>
+
+  <dialog id="upgrade-dialog"><span class="eyebrow">HALFWAY THROUGH</span><h2>A little help for the team.</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>
+  <dialog id="review-dialog" class="review">
+    <span class="eyebrow" id="result-label">SHIFT REVIEW</span><h2 id="result-title"></h2><p id="result-description"></p>
+    <div class="review-stats" id="result-stats"></div><div class="review-note"><strong id="result-rider"></strong><p id="result-lesson"></p></div>
+    <details><summary>What happened on the radio?</summary><ol id="result-timeline"></ol></details>
+    <div class="review-actions"><button id="retry" class="primary">Retry this shift</button><button id="next-shift">Try a new shift</button><button id="export-run">Download shift record</button></div>
+    <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
+  </dialog>
+  <div id="fatal-error" role="alert" hidden>The desk paused because something went wrong. Reload to start again. <button id="reload">Reload</button></div>
+  <script type="module" src="src/playtest-main.js"></script>
+</body>
+</html>

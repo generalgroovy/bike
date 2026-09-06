@@ -8,6 +8,10 @@ Play: `https://generalgroovy.github.io/bike/`
 
 Current release line: **v0.12 — Google Maps basemap + progressive map detail**.
 
+## Berlin concept playtest
+
+This branch also includes [the Berlin desk](playtest.html), a separate small ruleset for testing simplicity, decisions, and replay appeal. Serve this directory over HTTP and open `playtest.html`. Read [the playtest guide and approval gates](docs/BERLIN_PLAYTEST.md). The three-minute training shift and nine-minute standard shift use the bundled curated graph; full mobile adaptation and another city follow tested Berlin concept approval.
+
 ---
 
 ## What the game is

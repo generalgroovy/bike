@@ -2,7 +2,7 @@ import { Camera } from './camera.js';
 import { drawBackdrop,drawMap } from './render-map.js';
 import { drawEntities } from './render-entities.js';
 import { loadBerlinRuntime } from './berlin-runtime.js';
-import { mapZoomBand } from './map-zoom.js';
+import { mapZoomBand,mapZoomRank } from './map-zoom.js';
 
 function prepareEdges(game){
   const edges=[];
@@ -28,7 +28,7 @@ function prepareLabelGroups(edges){
 
 export class Renderer extends Camera{
   static lastInstance=null;
-  constructor(canvas,game){
+  constructor(canvas,game,{nativeMap=true,minimumMapBand='overview'}={}){
     super(canvas,game);
     this.ctx=canvas.getContext('2d');
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
@@ -38,9 +38,10 @@ export class Renderer extends Camera{
     this.frameWorldBounds=this.visibleWorldBounds(80);
     this.lastDrawAt=-Infinity;
     this.renderStats={frames:0,culledEdges:0,drawnEdges:0};
-    this.mapBand=mapZoomBand(this.zoom);
+    this.minimumMapBand=minimumMapBand;
+    this.mapBand=this.detailBand();
     this.berlinRuntime=null;
-    this.berlinRuntimeState='loading';
+    this.berlinRuntimeState=nativeMap?'loading':'curated';
     this.berlinVisible=[];
     this.disposed=false;
     this.runtimeAbort=new AbortController();
@@ -55,11 +56,12 @@ export class Renderer extends Camera{
     });
     this.layoutObserver?.observe(canvas);
     this.updateMapSource();
-    loadBerlinRuntime(undefined,{signal:this.runtimeAbort.signal})
+    if(nativeMap)loadBerlinRuntime(undefined,{signal:this.runtimeAbort.signal})
       .then(asset=>{if(this.disposed)return;this.berlinRuntime=asset;this.berlinRuntimeState='ready';this.updateMapSource();this.draw(true);})
       .catch(()=>{if(this.disposed)return;this.berlinRuntimeState='fallback';this.updateMapSource();});
   }
   dispose(){this.disposed=true;this.runtimeAbort?.abort();this.layoutObserver?.disconnect();}
+  detailBand(){const band=mapZoomBand(this.zoom);return mapZoomRank(this.minimumMapBand??'overview')>mapZoomRank(band)?this.minimumMapBand:band;}
   updateMapSource(){
     if(this.disposed)return;
     const label=typeof document!=='undefined'?document.getElementById('map-source'):null;
@@ -71,7 +73,7 @@ export class Renderer extends Camera{
   resize(reset=false){
     super.resize(reset);
     if(this.ctx)this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-    this.mapBand=mapZoomBand(this.zoom);
+    this.mapBand=this.detailBand();
   }
   sampleRiderTrails(){
     const t=typeof performance!=='undefined'?performance.now()/1000:0,active=new Set(this.game.couriers.map(c=>c.id));
@@ -90,7 +92,7 @@ export class Renderer extends Camera{
     if(!force&&t-this.lastDrawAt<minInterval)return false;
     this.lastDrawAt=t;
     this.sampleRiderTrails();
-    this.mapBand=mapZoomBand(this.zoom);
+    this.mapBand=this.detailBand();
     this.frameWorldBounds=this.visibleWorldBounds(90);
     this.renderStats.frames+=1;
     this.renderStats.culledEdges=0;

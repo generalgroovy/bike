@@ -44,3 +44,6 @@ html[data-density=compact] .rider-card{min-height:68px!important}
 .inspect-facts span{font-size:10px!important;line-height:1.4}
 .inspect-advice{font-size:10px!important;line-height:1.4}
 .dispatch-tools button{font-size:9px!important;min-height:30px!important}
+
+/* Focus must outrank the two-rail collapsed selector, not inherit its 20px track. */
+html[data-map-focus=true][data-left-rail][data-right-rail] .workspace{grid-template-columns:minmax(0,1fr)!important}

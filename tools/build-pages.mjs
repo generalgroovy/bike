@@ -37,7 +37,8 @@ const previewFiles = copyApplication(preview, previewTarget);
 writeFileSync(resolve(output, '.nojekyll'), '');
 writeFileSync(resolve(previewTarget, 'build.json'), JSON.stringify({
   branch: 'feature/berlin-playtest', commit: previewSha, releasedCommit: releasedSha,
-  playtest: 'index.html', legacy: 'legacy.html', mapData: 'map-data.html'
+  playtest: 'index.html', legacy: 'legacy.html', mapData: 'map-data.html',
+  scope: 'full-city', innerRing: 'index.html?city=inner-ring'
 }, null, 2) + '\n');
 writeFileSync(resolve(output, 'preview/index.html'), `<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -45,8 +46,8 @@ writeFileSync(resolve(output, 'preview/index.html'), `<!doctype html>
 <style>body{font:18px/1.6 system-ui;margin:0;background:#f6f3e9;color:#172a2d}main{max-width:680px;margin:8vh auto;padding:28px}h1{line-height:1.15;font-size:40px}a{color:inherit}nav{display:grid;gap:14px;margin:30px 0}nav a{display:block;padding:18px 22px;border:1px solid #b9cbbf;border-radius:10px;text-decoration:none}nav a:first-child{background:#172a2d;color:#fffdf4}small{font-size:13px;overflow-wrap:anywhere}</style>
 <main><small>SEND IT / BERLIN / PLAYABLE PREVIEW</small><h1>Try the Berlin desk.</h1>
 <p>Three couriers. A shared radio. You choose which jobs they hear; they choose which jobs to take.</p>
-<nav><a href="berlin/">Play Send It: Berlin Inner Ring<br><small>One desk · real city geography · 3-minute first shift or 9-minute challenge</small></a></nav>
-<p>Read the city, choose the calls, and watch three independent riders respond. Streets, routes, addresses, waterways and official locality boundaries share one geographic map inside the S41 / S42 Ringbahn.</p>
-<p><a href="berlin/map-data.html">Map sources, accuracy and downloads</a>. Mobile refinement and city expansion follow Berlin playtesting and concept approval.</p>
+<nav><a href="berlin/?city=berlin&amp;mode=standard&amp;district=citywide">Play Send It: Full Berlin<br><small>97 localities · real street routes · saved shifts</small></a></nav>
+<p>Read the city, choose the calls, and watch three independent riders respond. Start across Berlin or together in any locality. Streets, routes, addresses, waterways and all 12 boroughs share the full official city boundary.</p>
+<p><a href="berlin/?city=inner-ring">Original Inner Ring scenario</a> · <a href="berlin/map-data.html">Map sources, accuracy and downloads</a>. Physical-phone validation and further expansion follow playtesting.</p>
 <small>Build <a href="https://github.com/generalgroovy/bike/commit/${previewSha}">${previewSha.slice(0, 7)}</a> · <a href="../">Released game</a> · <a href="berlin/build.json">Build details</a></small></main></html>\n`);
 console.log(JSON.stringify({ releasedSha, previewSha, releasedFiles, previewFiles, output }));

@@ -59,6 +59,7 @@ jobs:
         run: |
           python e2e/browser_smoke.py
           python e2e/playtest_smoke.py
+          python e2e/city_smoke.py
       - name: Compose released site and isolated preview
         run: node released/tools/build-pages.mjs released playtest "$RUNNER_TEMP/send-it-pages"
       - name: Upload static site

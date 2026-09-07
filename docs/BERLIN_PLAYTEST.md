@@ -1,6 +1,6 @@
 # Send It: one Berlin desk, one geographic city
 
-Implementation snapshot: 7 September 2026. Ruleset `berlin-dispatch-v2`; city `berlin-inner-ring-v1-9016596dc03b`.
+Implementation snapshot: 7 September 2026. Ruleset `berlin-dispatch-v3`; city `berlin-inner-ring-v1-9016596dc03b`. See [the refinement report](BERLIN_REFINEMENT.md) for the latest pacing and clarity changes.
 
 [Play the current Berlin Inner Ring concept](https://generalgroovy.github.io/bike/preview/berlin/).
 
@@ -12,7 +12,7 @@ This is ready for concept playtesting. Automated correctness and geographic proc
 
 Run `python -m http.server 8080` from the repository and open `http://localhost:8080/`. `index.html` and `playtest.html` open the same desk. The historical full prototype is retained at `legacy.html` for regression checks. No runtime build, map API key or third-party tile service is needed.
 
-Choose **Play your first shift**, broadcast the first contract on OPEN, then start the clock. Riders volunteer; no assignment command exists. **Map view** zooms to a locality while keeping the whole Inner Ring in operation. **Find route** frames the selected contract. Mouse wheel, drag, touch pinch, zoom buttons and keyboard controls operate the map. Narrow screens have Map / Jobs / Contract navigation.
+Choose **Play your first shift**, broadcast the first contract on OPEN, then start the clock. The map starts close to that route; the guide can be collapsed. Riders volunteer; no assignment command exists. **Map view** zooms to a locality while keeping the whole Inner Ring in operation. **Find route** frames the current street route and the accepting courier's remaining path. Mouse wheel, drag, touch pinch, zoom buttons and keyboard controls operate the map. Narrow screens have Map / Jobs / Contract navigation.
 
 Share a starting situation using `?mode=standard&seed=BERLIN-1`. The seed recreates the opening; reproducing the played outcome also requires the recorded actions and ticks.
 
@@ -26,6 +26,8 @@ Share a starting situation using `?mode=standard&seed=BERLIN-1`. The seed recrea
 | Mobile transfer | Shared JavaScript simulation, fixed steps, validated action vocabulary, pointer input, touch pinch, explicit pause, small-screen panel navigation and no essential hover-only controls. |
 
 Kira favors short urgent jobs, Mauro worthwhile fees, and Brian local work. Light documents travel at normal pace. Delicate and heavy cargo slow loaded travel by 10%; heavy cargo is more tiring. OPEN and LOCAL consume one slot, PRIORITY two; a courier's acceptance releases the slot. A €5 bonus costs desk cash without increasing the client fee.
+
+The queue now shows time to finish including pickup, with text labels for available time, a tight window, dependence on current work, or too little time. In v3, couriers decline offers whose current route estimate leaves less than 1.5 seconds to consider the call. They recheck that the trip still fits before accepting. Traffic can subsequently change; the estimate is not a guarantee. Priority and bonuses cannot extend the deadline. Withdraw an unpromising call to free the radio, while the waiting contract's deadline continues.
 
 The first shift has two minutes of arrivals, up to one minute to close and a five-delivery target. The standard shift has eight minutes of arrivals, up to one minute to close and a 24-delivery target. Success also requires reputation above zero. Jobs left at final closing count as misses. The halfway upgrade pauses the simulation and offers one extra radio slot, lower fatigue or faster bikes.
 
@@ -63,8 +65,8 @@ Berlin source datasets use dl-de-zero-2.0. The Ringbahn source and combined geog
 
 ## Validation and limits
 
-- `npm test`: 250 tests pass, including seven geographic tests and the preserved historical regressions.
-- `python e2e/playtest_smoke.py`: 11 Chromium tests pass. They cover a real-time first delivery, a complete standard shift, radio/bonus actions, keyboard use, region and route focus, touch-pinch event handling, small-screen navigation, failure to load map data, background pause, cached map drawing, review download and retry.
+- `npm test`: 253 tests pass, including ten geographic tests and the preserved historical regressions.
+- `python e2e/playtest_smoke.py`: 13 Chromium tests pass. They cover a real-time first delivery, a complete standard shift, radio/bonus actions, keyboard use, region and route focus, timing advice, full-radio feedback, collapsible guidance, touch-pinch event handling, small-screen navigation, failure to load map data, background pause, cached map drawing, review download and retry.
 - `python e2e/browser_smoke.py`: nine tests pass for the retained historical prototype.
 - Responsive checks cover 1440, 1280, 1024, 850, 390, 360 and 320 CSS pixels: no horizontal document overflow; canvas CSS/backing sizes agree.
 - A source-to-pack geographic audit checks every playable address and every street section. Maximum observed address-coordinate deviation is **0.071 m**. Maximum observed street-geometry deviation is **1.027 m**, sampled at no more than 5 m along each displayed line. These are processing errors relative to the downloaded sources, not certified survey accuracy.
@@ -72,7 +74,7 @@ Berlin source datasets use dl-de-zero-2.0. The Ringbahn source and combined geog
 - Motion conserves elapsed time when crossing multiple short geometry segments. A courier whose contract expires finishes the current street segment before listening again. Busy-rider ETA includes the remaining pickup leg, loaded delivery leg and current edge slowdowns.
 - Same-implementation replays reproduce completed training and standard shifts, including radio-capacity rejections. Records reject a mismatched city version.
 
-Automated OPEN-only baseline: training won all three tested seeds (BERLIN-1 to BERLIN-3). Standard won three of five (BERLIN-1 to BERLIN-5), with 24, 24 and 26 deliveries; the other two collapsed. This identifies standard-shift difficulty as a playtest topic. It is not evidence of human enjoyment, balance across all seeds or superiority of a particular strategy.
+Automated OPEN-only baseline: training won all three tested seeds (BERLIN-1 to BERLIN-3). Standard v3 won all five tested seeds (BERLIN-1 to BERLIN-5), with 28, 29, 28, 30 and 31 deliveries. Under v2 the same policy won three of five, with 19–26 deliveries; all 60 misses were already estimated late at acceptance. In v3 there were no already-late acceptances, and 5–8 jobs per seed expired unclaimed. Run `node tools/audit-playtest.mjs` to reproduce the comparison. This is evidence of a corrected decision defect, not human enjoyment, balance across all seeds or superiority of a particular strategy.
 
 The browser checks are Chromium tests and viewport emulation, not certification on physical phones. Full mobile work still includes durable save/resume, offline caching, operating-system interruption tests, iOS Safari/Android testing, performance and battery measurement, and a more compact portrait interaction flow. Reload currently loses the in-memory shift.
 
@@ -96,7 +98,7 @@ Download a completed shift record in the review and run:
 node tools/replay-playtest.mjs path/to/shift.json
 ```
 
-This verifies reconstruction with the matching source implementation and city pack. It is not durable save/resume, a replay viewer or a cross-engine determinism guarantee. Records stay local; the game uploads no player telemetry.
+This verifies reconstruction with the matching ruleset and city pack. The current source supports the historical v1 curated-map, v2 geographic-map and current v3 records. A saved pre-refinement v2 fixture is checked for exact replay in the test suite. This is not durable save/resume, a replay viewer or a cross-engine determinism guarantee. Records stay local; the game uploads no player telemetry.
 
 ## Implementation plan from here
 

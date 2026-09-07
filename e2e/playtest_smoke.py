@@ -197,7 +197,7 @@ class PlaytestAcceptance(unittest.TestCase):
     def test_unified_entry_region_views_and_route_focus_use_one_geographic_map(self):
         self.start('standard')
         self.assertEqual(self.game('g.nodes.length'), 30656)
-        self.assertEqual(self.game('g.ruleset'), 'berlin-dispatch-v2')
+        self.assertEqual(self.game('g.ruleset'), 'berlin-dispatch-v3')
         before = self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])')
         self.page.locator('#region-view').select_option('kreuzberg')
         self.assertGreater(self.camera('r.zoom'), 1)
@@ -247,6 +247,37 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.wait_for_timeout(250)
         self.assertGreater(self.camera('r.renderStats.frames'), frames)
         self.assertEqual(self.camera('r.renderStats.mapRepaints'), paints)
+
+    def test_timing_advice_and_full_radio_explain_the_next_decision(self):
+        self.start('standard')
+        expect(self.page.locator('.job-timing').first).to_contain_text('to finish')
+        self.page.locator('.quick-call').nth(0).click()
+        self.page.locator('.quick-call').nth(1).click()
+        self.page.locator('.quick-call').nth(2).click()
+        expect(self.page.locator('#radio-hint')).to_contain_text('Radio full')
+        self.game('(g.spawnDelivery(),true)')
+        expect(self.page.locator('.quick-call').last).to_have_text('Radio full')
+        expect(self.page.locator('.quick-call').last).to_be_disabled()
+        self.page.locator('.quick-call').first.click()
+        expect(self.page.locator('.quick-call').last).to_be_enabled()
+        self.game('(g.deliveries[0].deadlineAt=g.elapsed+.5,true)')
+        self.page.locator('.job-select').first.click()
+        expect(self.page.locator('.job-timing').first).to_contain_text('Too little time')
+        expect(self.page.locator('#selected-state')).to_contain_text('cannot extend the deadline')
+        self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
+        self.assertTrue(self.game('g.paused'))
+
+    def test_first_route_starts_close_and_guide_can_be_collapsed(self):
+        self.start()
+        self.assertGreater(self.camera('r.zoom'), 2)
+        self.assertEqual(self.page.locator('#region-view').input_value(), 'route')
+        expect(self.page.locator('#coach')).to_be_visible()
+        self.page.locator('#coach-panel summary').click()
+        expect(self.page.locator('#coach')).to_be_hidden()
+        self.page.locator('#coach-panel summary').click()
+        expect(self.page.locator('#coach')).to_be_visible()
+        self.page.locator('#fit-map').click()
+        self.assertEqual(self.camera('r.zoom'), 1)
 
 
 if __name__ == '__main__':

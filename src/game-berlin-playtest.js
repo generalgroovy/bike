@@ -4,6 +4,8 @@ import { RIDER_SYSTEM } from './game-riders.js';
 import { installGeographicMotion } from './game-geographic-motion.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
+export const GEOGRAPHIC_RULESET = 'berlin-dispatch-v3';
+export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET]);
 export const PLAYTEST_CITY = 'berlin-curated-v12';
 export const FIXED_STEP = 1 / 60;
 export const SHIFT_MODES = Object.freeze({
@@ -25,11 +27,12 @@ export const CARGO_FAMILIES = Object.freeze({
  * Optional full-game update/complete/spawn wrappers are deliberately not invoked.
  */
 export class BerlinPlaytest extends Game {
-  constructor({ seed = 'FIRST-BERLIN', mode = 'training', city } = {}) {
+  constructor({ seed = 'FIRST-BERLIN', mode = 'training', city, ruleset } = {}) {
     super({ seed, initialize: false, city });
     if (!Object.hasOwn(SHIFT_MODES, mode)) throw new Error('Unknown shift mode');
     this.mode = mode;
-    this.ruleset = this.cityData ? 'berlin-dispatch-v2' : PLAYTEST_RULESET;
+    this.ruleset = ruleset ?? (this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
+    if (!(this.cityData ? GEOGRAPHIC_RULESETS : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
     this.config = SHIFT_MODES[mode];
     this.tick = 0;
     this.actions = [];
@@ -77,6 +80,45 @@ export class BerlinPlaytest extends Game {
 
   weightedDeliveryType() {
     return this.rng.pick(this.completed < 1 && this.mode === 'training' ? ['document'] : Object.keys(CARGO_FAMILIES));
+  }
+
+  /** A courier can decline an impossible offer without reserving another job.
+   * The estimate uses the same directed streets, cargo pace and current traffic
+   * as movement. Older recordings keep their original choice behavior.
+   */
+  offerMargin(c, d) {
+    const base = c.baseSpeed * c.experience.speed * this.modifiers.speed;
+    const pickup = this.routeTravelCost(c.nodeId, d.pickupId) / base;
+    const loaded = this.routeTravelCost(d.pickupId, d.dropoffId) / (base * this.cargoHandlingFor(d).speed);
+    return d.deadlineAt - this.elapsed - pickup - loaded;
+  }
+
+  courierChoiceScore(c, d, withNoise = true) {
+    if (this.ruleset === GEOGRAPHIC_RULESET && c?.phase === 'idle' && this.offerMargin(c, d) < 1.5) return -Infinity;
+    return super.courierChoiceScore(c, d, withNoise);
+  }
+
+  claim(c, d, score = 0) {
+    if (this.ruleset === GEOGRAPHIC_RULESET && c?.radioOn && c.phase === 'idle' && d?.called && d.status === 'waiting' && this.offerMargin(c, d) < 0) {
+      c.deliberation = null;
+      c.decisionAt = this.elapsed + this.decisionDelay(c);
+      c.lastDecision = `Passed ${d.id.toUpperCase()} · too little time to finish`;
+      return false;
+    }
+    return super.claim(c, d, score);
+  }
+
+  beginDeliberation(c) {
+    const result = super.beginDeliberation(c);
+    const calls = this.ruleset === GEOGRAPHIC_RULESET ? this.calledDeliveries() : [];
+    if (!result && c.radioOn && c.phase === 'idle' && calls.length && calls.every(d => this.offerMargin(c, d) < 1.5))
+      c.lastDecision = 'Waiting for a call with time to finish';
+    return result;
+  }
+
+  predictCall(c) {
+    const prediction = super.predictCall(c);
+    return this.ruleset === GEOGRAPHIC_RULESET && prediction?.score === -Infinity ? null : prediction;
   }
 
   playableAddressNodes() {
@@ -326,7 +368,7 @@ export class BerlinPlaytest extends Game {
     const misses = this.deliveries.filter(d => d.status === 'failed');
     const causes = [
       { id: 'never-called', label: 'Work left off the radio', tip: 'A deadline keeps running while a job waits off-air.' },
-      { id: 'called-unclaimed', label: 'Calls with no taker', tip: 'Try LOCAL near a free courier, or reserve two slots for PRIORITY.' },
+      { id: 'called-unclaimed', label: 'Calls with no taker', tip: this.ruleset === GEOGRAPHIC_RULESET ? 'Call earlier and compare time to finish. Withdraw calls that cannot fit to free the radio; priority and bonuses cannot buy time.' : 'Try LOCAL near a free courier, or reserve two slots for PRIORITY.' },
       { id: 'claimed-late', label: 'Trips that ran out of time', tip: 'Leave room for travel to pickup, heavy cargo and tired riders.' }
     ].map(cause => ({ ...cause, count: misses.filter(d => d.failureKind === cause.id).length }))
       .sort((a, b) => b.count - a.count);
@@ -355,11 +397,11 @@ export class BerlinPlaytest extends Game {
 installGeographicMotion(BerlinPlaytest);
 
 export function replayRun(record, {city}={}) {
-  const ruleset = city?'berlin-dispatch-v2':PLAYTEST_RULESET, cityId = city?.metadata.id??PLAYTEST_CITY;
-  if (record?.version !== 1 || record.ruleset !== ruleset || record.city !== cityId ||
+  const rulesets = city?GEOGRAPHIC_RULESETS:[PLAYTEST_RULESET], cityId = city?.metadata.id??PLAYTEST_CITY;
+  if (record?.version !== 1 || !rulesets.includes(record.ruleset) || record.city !== cityId ||
       record.fixedStep !== FIXED_STEP || !Number.isInteger(record.ticks) || record.ticks < 0 || record.ticks > 40000 ||
       !Array.isArray(record.actions) || record.actions.length > 10000) throw new Error('Unsupported replay');
-  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode, city });
+  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode, city, ruleset: record.ruleset });
   let index = 0;
   while (game.tick <= record.ticks) {
     while (index < record.actions.length && record.actions[index].tick === game.tick) {

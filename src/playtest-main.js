@@ -5,10 +5,12 @@ import { createCargoIconElement } from './cargo-icons.js';
 import { createRiderPortraitElement } from './rider-identity.js';
 import { audio } from './audio-engine.js';
 import { loadInnerRing } from './inner-ring-city.js';
+import { timingAdvice } from './playtest-advice.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
 const cards = new Map(), riderCards = new Map();
+const estimates = new Map();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
 const dialogs = ['#intro', '#help-dialog', '#upgrade-dialog', '#review-dialog'];
@@ -25,11 +27,14 @@ function begin(mode, seed = createSeed()) {
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
   $('#region-view').value = '';
   cards.clear(); riderCards.clear();
+  estimates.clear();
+  $('#coach-panel').open = true;
   $('#work-list').replaceChildren(); $('#team-list').replaceChildren();
   lastLog = accumulator = 0; lastTime = performance.now(); faulted = false;
   const url = new URL(location.href);
   url.searchParams.set('seed', seed); url.searchParams.set('mode', mode);
   history.replaceState({}, '', url);
+  if (mode === 'training') focusContract(game.deliveries[0]);
   render(true);
   renderer.draw(true);
 }
@@ -49,7 +54,7 @@ function act(action) {
 function newCard(d) {
   const card = document.createElement('article');
   card.className = 'job-card'; card.dataset.job = d.id;
-  card.innerHTML = '<button class="job-select"><span class="job-top"><span class="job-family"></span><strong class="job-fee"></strong></span><span class="job-address"><small>P</small><span class="job-pickup"></span></span><span class="job-address"><small>D</small><span class="job-drop"></span></span><span class="job-meta"><span class="job-distance"></span><span class="job-time"></span></span></button><div class="job-action-row"><span class="job-status"></span><button class="quick-call">Broadcast OPEN</button></div>';
+  card.innerHTML = '<button class="job-select"><span class="job-top"><span class="job-family"></span><strong class="job-fee"></strong></span><span class="job-address"><small>P</small><span class="job-pickup"></span></span><span class="job-address"><small>D</small><span class="job-drop"></span></span><span class="job-meta"><span class="job-distance"></span><span class="job-time"></span></span><span class="job-timing"><strong></strong><span></span></span></button><div class="job-action-row"><span class="job-status"></span><button class="quick-call">Broadcast OPEN</button></div>';
   $('#work-list').append(card); cards.set(d.id, card);
   card.querySelector('.job-select').addEventListener('click', () => select(d.id));
   card.querySelector('.quick-call').addEventListener('click', () => act({ type: 'radio', jobId: d.id, channel: game.deliveryById(d.id).called ? 'off' : 'open' }));
@@ -75,13 +80,20 @@ function renderQueue() {
     setWithin(card, '.job-distance', `${(d.plannedDistance / 100).toFixed(1)} km`);
     setWithin(card, '.job-time', `${time(d.deadlineAt - game.elapsed)} left`);
     const rider = game.courierById(d.courierId);
+    const advice = estimates.get(d.id);
+    const finish = claimed ? game.courierETA(rider) : advice?.finishIn;
+    const timing = card.querySelector('.job-timing');
+    timing.dataset.state = claimed ? 'riding' : advice.state;
+    setWithin(timing, 'strong', claimed ? rider?.phase === 'pickup' ? 'To pickup' : 'To drop-off' : advice.label);
+    setWithin(timing, 'span', Number.isFinite(finish) ? `~${time(finish)} to finish` : 'Check the team');
     setWithin(card, '.job-status', claimed ? `${rider?.name ?? 'Courier'} is on it` : d.called ? `${d.channel.toUpperCase()} on air` : 'Off the radio');
     const button = card.querySelector('.quick-call');
     button.hidden = claimed;
     button.disabled = game.gameOver || (!d.called && game.radioUsed() >= game.radioSlots);
-    button.textContent = d.called ? 'Withdraw call' : 'Broadcast OPEN';
+    button.textContent = d.called ? 'Withdraw call' : game.radioUsed() >= game.radioSlots ? 'Radio full' : 'Broadcast OPEN';
+    button.title = !d.called && game.radioUsed() >= game.radioSlots ? 'Withdraw an on-air call or wait for a courier to volunteer.' : '';
     button.setAttribute('aria-label', `${d.called ? 'Withdraw' : 'Broadcast OPEN for'} ${d.id.toUpperCase()}`);
-    card.querySelector('.job-select').setAttribute('aria-label', `Inspect ${d.id.toUpperCase()}: ${d.pickupAddress} to ${d.dropoffAddress}, €${d.reward}`);
+    card.querySelector('.job-select').setAttribute('aria-label', `Inspect ${d.id.toUpperCase()}: ${d.pickupAddress} to ${d.dropoffAddress}, €${d.reward}, ${time(d.deadlineAt-game.elapsed)} left. ${timing.textContent}`);
   }
   text('#work-count', jobs.length);
   $('#empty-queue').hidden = jobs.length > 0;
@@ -99,9 +111,9 @@ function renderTeam() {
     }
     const job = game.deliveryById(rider.deliveryId);
     setWithin(card, 'strong', rider.name);
-    setWithin(card, '.rider-head span', rider.phase === 'break' ? `Rest ${time(game.breakRemaining(rider))}` : job ? `${job.id.toUpperCase()} · riding` : rider.deliberation ? 'Considering' : 'Listening');
+    setWithin(card, '.rider-head span', rider.phase === 'break' ? `Rest ${time(game.breakRemaining(rider))}` : job ? `${job.id.toUpperCase()} · ${rider.phase === 'pickup' ? 'pickup' : 'drop-off'}` : rider.phase === 'coasting' ? 'Finishing street' : rider.deliberation ? 'Considering' : 'Listening');
     const preference = { sprinter: 'Likes short, urgent jobs', earner: 'Likes a worthwhile fee', local: 'Likes work in their district' };
-    setWithin(card, 'p', job ? `${time(game.courierETA(rider))} estimated to finish · ${rider.lastDecision.replace(/^Took \w+ · /,'')}` : preference[rider.personality.id]);
+    setWithin(card, 'p', job ? `${time(game.courierETA(rider))} estimated to finish · ${rider.lastDecision.replace(/^Took \w+ · /,'')}` : game.calledDeliveries().length && rider.lastDecision.includes('time to finish') ? rider.lastDecision : preference[rider.personality.id]);
     card.title = `${rider.completed} delivered · ${rider.lastDecision}`;
     card.querySelector('meter').value = Math.round((1 - rider.fatigue) * 100);
     card.querySelector('meter').setAttribute('aria-label', `${rider.name} energy ${Math.round((1 - rider.fatigue) * 100)} percent`);
@@ -131,14 +143,16 @@ function renderSelection() {
   const regionName=id=>game.districts.find(r=>r.id===id)?.name??id;
   text('#selected-regions',`${regionName(d.pickupDistrict)} → ${regionName(d.dropoffDistrict)}`);
   text('#selected-handling', CARGO_FAMILIES[d.type].detail);
-  const feasibility = d.status === 'waiting' ? game.deliveryFeasibility(d) : null;
+  const advice = estimates.get(d.id);
   const rider = game.courierById(d.courierId);
   let explanation = rider ? `${rider.name} volunteered · ${time(game.courierETA(rider))} estimated to finish. ${rider.phase === 'pickup' ? 'Riding to the pickup.' : 'Cargo is on board.'}` : 'Couriers decide after they hear your call.';
-  if (feasibility?.best) explanation = `Estimate ${time(feasibility.best.finishIn)} including pickup. ${feasibility.margin < 0 ? 'The deadline looks difficult.' : feasibility.margin < 18 ? 'A tight window.' : 'Couriers still choose.'}`;
+  if (advice) explanation = `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} with pickup` : ''}. ${advice.detail}`;
   text('#selected-state', explanation);
+  $('#selected-state').dataset.state = advice?.state ?? 'riding';
   for (const button of document.querySelectorAll('[data-radio]')) {
     const channel = button.dataset.radio, cost = channel === 'priority' ? 2 : 1;
     button.disabled = game.gameOver || d.status !== 'waiting' || game.radioUsed() - game.radioCost(d) + cost > game.radioSlots;
+    button.title = button.disabled && d.status === 'waiting' ? `${channel.toUpperCase()} needs ${cost} ${cost === 1 ? 'slot' : 'slots'}. Withdraw another call to make room.` : '';
     button.setAttribute('aria-pressed', String(d.called && d.channel === channel));
   }
   $('#withdraw').hidden = !d.called || d.status !== 'waiting';
@@ -172,6 +186,9 @@ function render() {
   const end = game.config.arrivals + game.config.closing, phase = game.phase();
   text('#reputation', Math.ceil(game.reputation)); $('#rep-meter').value = game.reputation;
   text('#cash', `€${game.cash}`); text('#radio-count', `${game.radioUsed()} / ${game.radioSlots}`);
+  const freeSlots = game.radioSlots - game.radioUsed();
+  text('#radio-hint', freeSlots === 0 ? 'Radio full. Withdraw a call or wait for a volunteer.' : `${freeSlots} ${freeSlots === 1 ? 'slot' : 'slots'} free · a volunteer frees the frequency.`);
+  $('#radio-hint').dataset.full = String(freeSlots === 0);
   text('#phase-name', phase.label); text('#phase-detail', phase.detail);
   const demand=game.demandRegion();
   text('#demand-region',game.closing?'Finishing the queue':`Demand favors ${demand.name}`);
@@ -193,11 +210,13 @@ function render() {
     text('#event-state', ev.state === 'forecast' ? 'ROADWORKS AHEAD' : 'SLOWER STREET');
     text('#event-place', ev.place); text('#event-time', ev.state === 'forecast' ? `Starts in ${time(ev.startsAt - game.elapsed)}` : `Clears in ${time(ev.endsAt - game.elapsed)}`);
   }
-  $('#coach').hidden = game.mode !== 'training' || game.completed >= 3;
+  $('#coach-panel').hidden = game.mode !== 'training' || game.completed >= 3;
   if (game.mode === 'training') {
     const first = game.deliveries[0];
     text('#coach', game.completed > 0 ? 'First delivery done. Try LOCAL for nearby work. PRIORITY uses two radio slots when a job needs attention.' : first.status === 'claimed' ? `${game.courierById(first.courierId).name} chose the job. Watch the pickup, then the delivery. You shape the call; the rider chooses.` : first.called ? 'Your call is on air. Press Start shift or Resume if paused, and watch a courier volunteer.' : 'Your first call: select the light parcel and tap Broadcast OPEN. Start the shift when you are ready.');
   }
+  estimates.clear();
+  for (const d of game.activeDeliveries()) if (d.status === 'waiting') estimates.set(d.id, timingAdvice(game.deliveryFeasibility(d)));
   renderQueue(); renderTeam(); renderSelection();
   if (game.upgradePending && !$('#upgrade-dialog').open && !$('#intro').open && !$('#help-dialog').open) {
     const list = $('#upgrade-list'); list.replaceChildren();
@@ -268,13 +287,20 @@ $('#region-view').addEventListener('change',event=>{
   renderer.draw(true);render();
 });
 $('#fit-map').addEventListener('click',()=>{$('#region-view').value='';renderer.focusRegionId=null;});
+function focusContract(d) {
+  $('#region-view').value='route';renderer.focusRegionId=null;
+  const rider=game.courierById(d.courierId);
+  const route=game.routeBetween(d.pickupId,d.dropoffId);
+  const points=route.map(id=>game.nodeById(id));
+  if(rider){points.push(rider);for(const id of rider.path.slice(rider.pathIndex))points.push(game.nodeById(id));}
+  else if(game.tick===0)points.push(game.nodeById(game.depotNodeId));
+  renderer.focusBounds({x1:Math.min(...points.map(p=>p.x))-45,y1:Math.min(...points.map(p=>p.y))-45,x2:Math.max(...points.map(p=>p.x))+45,y2:Math.max(...points.map(p=>p.y))+45});
+}
 $('#find-route').addEventListener('click',()=>{
   const d=game.deliveryById(game.selectedDeliveryId);if(!d)return;
-  $('#region-view').value='route';renderer.focusRegionId=null;
-  const points=d.plannedPath.map(id=>game.nodeById(id));
-  renderer.focusBounds({x1:Math.min(...points.map(p=>p.x))-45,y1:Math.min(...points.map(p=>p.y))-45,x2:Math.max(...points.map(p=>p.x))+45,y2:Math.max(...points.map(p=>p.y))+45});
+  focusContract(d);
   renderer.draw(true);render();
-  if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:'smooth'});
+  if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 });
 canvas.addEventListener('wheel', event => { event.preventDefault(); const rect = canvas.getBoundingClientRect(); renderer.zoomAt(event.clientX - rect.left, event.clientY - rect.top, event.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
 canvas.addEventListener('pointerdown', event => {

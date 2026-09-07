@@ -1,0 +1,2162 @@
+{
+  "version": 1,
+  "ruleset": "berlin-dispatch-v2",
+  "city": "berlin-inner-ring-v1-9016596dc03b",
+  "seed": "BERLIN-1",
+  "mode": "standard",
+  "fixedStep": 0.016666666666666666,
+  "ticks": 31875,
+  "actions": [
+    {
+      "tick": 0,
+      "type": "pause",
+      "paused": false
+    },
+    {
+      "tick": 0,
+      "type": "radio",
+      "jobId": "d0",
+      "channel": "open"
+    },
+    {
+      "tick": 0,
+      "type": "radio",
+      "jobId": "d1",
+      "channel": "open"
+    },
+    {
+      "tick": 0,
+      "type": "radio",
+      "jobId": "d2",
+      "channel": "open"
+    },
+    {
+      "tick": 1320,
+      "type": "radio",
+      "jobId": "d3",
+      "channel": "open"
+    },
+    {
+      "tick": 2640,
+      "type": "radio",
+      "jobId": "d4",
+      "channel": "open"
+    },
+    {
+      "tick": 3960,
+      "type": "radio",
+      "jobId": "d5",
+      "channel": "open"
+    },
+    {
+      "tick": 5280,
+      "type": "radio",
+      "jobId": "d6",
+      "channel": "open"
+    },
+    {
+      "tick": 5940,
+      "type": "radio",
+      "jobId": "d7",
+      "channel": "open"
+    },
+    {
+      "tick": 6600,
+      "type": "radio",
+      "jobId": "d8",
+      "channel": "open"
+    },
+    {
+      "tick": 7260,
+      "type": "radio",
+      "jobId": "d9",
+      "channel": "open"
+    },
+    {
+      "tick": 7920,
+      "type": "radio",
+      "jobId": "d10",
+      "channel": "open"
+    },
+    {
+      "tick": 8580,
+      "type": "radio",
+      "jobId": "d11",
+      "channel": "open"
+    },
+    {
+      "tick": 9240,
+      "type": "radio",
+      "jobId": "d12",
+      "channel": "open"
+    },
+    {
+      "tick": 9900,
+      "type": "radio",
+      "jobId": "d13",
+      "channel": "open"
+    },
+    {
+      "tick": 10560,
+      "type": "radio",
+      "jobId": "d14",
+      "channel": "open"
+    },
+    {
+      "tick": 11220,
+      "type": "radio",
+      "jobId": "d15",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 11280,
+      "type": "radio",
+      "jobId": "d15",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 11340,
+      "type": "radio",
+      "jobId": "d15",
+      "channel": "open"
+    },
+    {
+      "tick": 11880,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 11940,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 12000,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 12060,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 12120,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 12180,
+      "type": "radio",
+      "jobId": "d16",
+      "channel": "open"
+    },
+    {
+      "tick": 13320,
+      "type": "radio",
+      "jobId": "d17",
+      "channel": "open"
+    },
+    {
+      "tick": 14400,
+      "type": "upgrade",
+      "id": "legs"
+    },
+    {
+      "tick": 14760,
+      "type": "radio",
+      "jobId": "d18",
+      "channel": "open"
+    },
+    {
+      "tick": 16200,
+      "type": "radio",
+      "jobId": "d19",
+      "channel": "open"
+    },
+    {
+      "tick": 17640,
+      "type": "radio",
+      "jobId": "d20",
+      "channel": "open"
+    },
+    {
+      "tick": 18720,
+      "type": "radio",
+      "jobId": "d21",
+      "channel": "open"
+    },
+    {
+      "tick": 19080,
+      "type": "radio",
+      "jobId": "d22",
+      "channel": "open"
+    },
+    {
+      "tick": 19800,
+      "type": "radio",
+      "jobId": "d23",
+      "channel": "open"
+    },
+    {
+      "tick": 20520,
+      "type": "radio",
+      "jobId": "d24",
+      "channel": "open"
+    },
+    {
+      "tick": 21240,
+      "type": "radio",
+      "jobId": "d25",
+      "channel": "open"
+    },
+    {
+      "tick": 21960,
+      "type": "radio",
+      "jobId": "d26",
+      "channel": "open"
+    },
+    {
+      "tick": 22680,
+      "type": "radio",
+      "jobId": "d27",
+      "channel": "open"
+    },
+    {
+      "tick": 23400,
+      "type": "radio",
+      "jobId": "d28",
+      "channel": "open"
+    },
+    {
+      "tick": 24120,
+      "type": "radio",
+      "jobId": "d29",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 24180,
+      "type": "radio",
+      "jobId": "d29",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 24240,
+      "type": "radio",
+      "jobId": "d29",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 24300,
+      "type": "radio",
+      "jobId": "d29",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 24360,
+      "type": "radio",
+      "jobId": "d29",
+      "channel": "open"
+    },
+    {
+      "tick": 24840,
+      "type": "radio",
+      "jobId": "d30",
+      "channel": "open"
+    },
+    {
+      "tick": 25560,
+      "type": "radio",
+      "jobId": "d31",
+      "channel": "open"
+    },
+    {
+      "tick": 26280,
+      "type": "radio",
+      "jobId": "d32",
+      "channel": "open"
+    },
+    {
+      "tick": 27000,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27060,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27120,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27180,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27240,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27300,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open",
+      "accepted": false
+    },
+    {
+      "tick": 27360,
+      "type": "radio",
+      "jobId": "d33",
+      "channel": "open"
+    },
+    {
+      "tick": 27720,
+      "type": "radio",
+      "jobId": "d34",
+      "channel": "open"
+    },
+    {
+      "tick": 28440,
+      "type": "radio",
+      "jobId": "d35",
+      "channel": "open"
+    }
+  ],
+  "review": {
+    "outcome": "success",
+    "completed": 24,
+    "target": 24,
+    "failed": 12,
+    "profit": 477,
+    "reputation": 6.30000000000001,
+    "topRider": "Mauro",
+    "topDeliveries": 9,
+    "causes": [
+      {
+        "id": "claimed-late",
+        "label": "Trips that ran out of time",
+        "tip": "Leave room for travel to pickup, heavy cargo and tired riders.",
+        "count": 12
+      },
+      {
+        "id": "never-called",
+        "label": "Work left off the radio",
+        "tip": "A deadline keeps running while a job waits off-air.",
+        "count": 0
+      },
+      {
+        "id": "called-unclaimed",
+        "label": "Calls with no taker",
+        "tip": "Try LOCAL near a free courier, or reserve two slots for PRIORITY.",
+        "count": 0
+      }
+    ],
+    "lesson": "Leave room for travel to pickup, heavy cargo and tired riders."
+  },
+  "timeline": [
+    {
+      "at": 0,
+      "action": "call",
+      "deliveryId": "d0",
+      "pickup": "Spittelmarkt 11",
+      "dropoff": "Lobeckstraße 19",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 0,
+      "action": "call",
+      "deliveryId": "d1",
+      "pickup": "Brüderstraße 12",
+      "dropoff": "Wilhelmstraße 41A",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 0,
+      "action": "call",
+      "deliveryId": "d2",
+      "pickup": "Hausvogteiplatz 3",
+      "dropoff": "Singerstraße 79",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 0.7500000000000007,
+      "action": "claim",
+      "deliveryId": "d2",
+      "pickup": "Hausvogteiplatz 3",
+      "dropoff": "Singerstraße 79",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 1.3123176861333592
+    },
+    {
+      "at": 1.483333333333333,
+      "action": "claim",
+      "deliveryId": "d1",
+      "pickup": "Brüderstraße 12",
+      "dropoff": "Wilhelmstraße 41A",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.2272814311092974
+    },
+    {
+      "at": 1.7166666666666655,
+      "action": "claim",
+      "deliveryId": "d0",
+      "pickup": "Spittelmarkt 11",
+      "dropoff": "Lobeckstraße 19",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.125589263499444
+    },
+    {
+      "at": 8.766666666666682,
+      "action": "pickup",
+      "deliveryId": "d2",
+      "pickup": "Hausvogteiplatz 3",
+      "dropoff": "Singerstraße 79",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 9.683333333333394,
+      "action": "pickup",
+      "deliveryId": "d0",
+      "pickup": "Spittelmarkt 11",
+      "dropoff": "Lobeckstraße 19",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 13.10000000000023,
+      "action": "pickup",
+      "deliveryId": "d1",
+      "pickup": "Brüderstraße 12",
+      "dropoff": "Wilhelmstraße 41A",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 20.30000000000013,
+      "action": "complete",
+      "deliveryId": "d0",
+      "pickup": "Spittelmarkt 11",
+      "dropoff": "Lobeckstraße 19",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.6581184335794568
+    },
+    {
+      "at": 22.000000000000032,
+      "action": "call",
+      "deliveryId": "d3",
+      "pickup": "Yorckstraße 89",
+      "dropoff": "Schillstraße 11",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 22.849999999999984,
+      "action": "claim",
+      "deliveryId": "d3",
+      "pickup": "Yorckstraße 89",
+      "dropoff": "Schillstraße 11",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.9261307654350414
+    },
+    {
+      "at": 28.63333333333299,
+      "action": "complete",
+      "deliveryId": "d1",
+      "pickup": "Brüderstraße 12",
+      "dropoff": "Wilhelmstraße 41A",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.5342420504454072
+    },
+    {
+      "at": 33.51666666666605,
+      "action": "complete",
+      "deliveryId": "d2",
+      "pickup": "Hausvogteiplatz 3",
+      "dropoff": "Singerstraße 79",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.5230971652233299
+    },
+    {
+      "at": 36.26666666666589,
+      "action": "pickup",
+      "deliveryId": "d3",
+      "pickup": "Yorckstraße 89",
+      "dropoff": "Schillstraße 11",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 43.999999999998785,
+      "action": "call",
+      "deliveryId": "d4",
+      "pickup": "Köpenicker Straße 56",
+      "dropoff": "Neue Blumenstraße 18",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 44.8666666666654,
+      "action": "claim",
+      "deliveryId": "d4",
+      "pickup": "Köpenicker Straße 56",
+      "dropoff": "Neue Blumenstraße 18",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 0.6092331277852683
+    },
+    {
+      "at": 61.49999999999779,
+      "action": "complete",
+      "deliveryId": "d3",
+      "pickup": "Yorckstraße 89",
+      "dropoff": "Schillstraße 11",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.45399045545900096
+    },
+    {
+      "at": 65.78333333333089,
+      "action": "pickup",
+      "deliveryId": "d4",
+      "pickup": "Köpenicker Straße 56",
+      "dropoff": "Neue Blumenstraße 18",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 65.99999999999754,
+      "action": "call",
+      "deliveryId": "d5",
+      "pickup": "Gendarmenmarkt 3",
+      "dropoff": "Klosterstraße 71",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 66.89999999999749,
+      "action": "claim",
+      "deliveryId": "d5",
+      "pickup": "Gendarmenmarkt 3",
+      "dropoff": "Klosterstraße 71",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.830745155964868
+    },
+    {
+      "at": 75.71666666666366,
+      "action": "complete",
+      "deliveryId": "d4",
+      "pickup": "Köpenicker Straße 56",
+      "dropoff": "Neue Blumenstraße 18",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.4492067934985761
+    },
+    {
+      "at": 87.99999999999629,
+      "action": "call",
+      "deliveryId": "d6",
+      "pickup": "Breite Straße 30",
+      "dropoff": "Barnimstraße 18",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 88.81666666666291,
+      "action": "claim",
+      "deliveryId": "d6",
+      "pickup": "Breite Straße 30",
+      "dropoff": "Barnimstraße 18",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.7411959658804781
+    },
+    {
+      "at": 90.44999999999615,
+      "action": "pickup",
+      "deliveryId": "d5",
+      "pickup": "Gendarmenmarkt 3",
+      "dropoff": "Klosterstraße 71",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 98.99999999999567,
+      "action": "call",
+      "deliveryId": "d7",
+      "pickup": "Oranienplatz 14",
+      "dropoff": "Weidenweg 25",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 100.01666666666227,
+      "action": "claim",
+      "deliveryId": "d7",
+      "pickup": "Oranienplatz 14",
+      "dropoff": "Weidenweg 25",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.312047785326609
+    },
+    {
+      "at": 104.866666666662,
+      "action": "complete",
+      "deliveryId": "d5",
+      "pickup": "Gendarmenmarkt 3",
+      "dropoff": "Klosterstraße 71",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.37211302917436123
+    },
+    {
+      "at": 106.24999999999525,
+      "action": "pickup",
+      "deliveryId": "d6",
+      "pickup": "Breite Straße 30",
+      "dropoff": "Barnimstraße 18",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 109.99999999999504,
+      "action": "call",
+      "deliveryId": "d8",
+      "pickup": "Waldemarstraße 112",
+      "dropoff": "Kiefholzstraße 52",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 110.94999999999499,
+      "action": "claim",
+      "deliveryId": "d8",
+      "pickup": "Waldemarstraße 112",
+      "dropoff": "Kiefholzstraße 52",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.8448728668302978
+    },
+    {
+      "at": 117.93333333332792,
+      "action": "pickup",
+      "deliveryId": "d7",
+      "pickup": "Oranienplatz 14",
+      "dropoff": "Weidenweg 25",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 120.99999999999442,
+      "action": "call",
+      "deliveryId": "d9",
+      "pickup": "Blücherplatz 1",
+      "dropoff": "Rochstraße 7",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 121.2999999999944,
+      "action": "complete",
+      "deliveryId": "d6",
+      "pickup": "Breite Straße 30",
+      "dropoff": "Barnimstraße 18",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.4718661131492945
+    },
+    {
+      "at": 122.91666666666097,
+      "action": "claim",
+      "deliveryId": "d9",
+      "pickup": "Blücherplatz 1",
+      "dropoff": "Rochstraße 7",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.6644543758478375
+    },
+    {
+      "at": 130.7499999999962,
+      "action": "pickup",
+      "deliveryId": "d8",
+      "pickup": "Waldemarstraße 112",
+      "dropoff": "Kiefholzstraße 52",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 131.9999999999972,
+      "action": "call",
+      "deliveryId": "d10",
+      "pickup": "Eisenbahnstraße 14",
+      "dropoff": "Teupitzer Straße 75",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 135.01666666666625,
+      "action": "event-forecast",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "title": "Roadworks",
+      "place": "Friedrichstraße"
+    },
+    {
+      "at": 143.00000000000594,
+      "action": "call",
+      "deliveryId": "d11",
+      "pickup": "Askanischer Platz 5",
+      "dropoff": "Klingelhöferstraße 24",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 147.78333333334308,
+      "action": "complete",
+      "deliveryId": "d7",
+      "pickup": "Oranienplatz 14",
+      "dropoff": "Weidenweg 25",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.3398896088824693
+    },
+    {
+      "at": 149.40000000001103,
+      "action": "claim",
+      "deliveryId": "d10",
+      "pickup": "Eisenbahnstraße 14",
+      "dropoff": "Teupitzer Straße 75",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.2468912599178228
+    },
+    {
+      "at": 153.88333333334793,
+      "action": "complete",
+      "deliveryId": "d8",
+      "pickup": "Waldemarstraße 112",
+      "dropoff": "Kiefholzstraße 52",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.3970799559936756
+    },
+    {
+      "at": 154.0000000000147,
+      "action": "call",
+      "deliveryId": "d12",
+      "pickup": "Pücklerstraße 40",
+      "dropoff": "Reuterstraße 47",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 154.85000000001537,
+      "action": "claim",
+      "deliveryId": "d11",
+      "pickup": "Askanischer Platz 5",
+      "dropoff": "Klingelhöferstraße 24",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.6216607753141018
+    },
+    {
+      "at": 156.93333333335036,
+      "action": "pickup",
+      "deliveryId": "d9",
+      "pickup": "Blücherplatz 1",
+      "dropoff": "Rochstraße 7",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 160.00000000001947,
+      "action": "event-start",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "title": "Roadworks",
+      "place": "Friedrichstraße"
+    },
+    {
+      "at": 165.00000000002345,
+      "action": "call",
+      "deliveryId": "d13",
+      "pickup": "Hagelberger Straße 53",
+      "dropoff": "Hobrechtstraße 37",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 172.55000000002946,
+      "action": "pickup",
+      "deliveryId": "d10",
+      "pickup": "Eisenbahnstraße 14",
+      "dropoff": "Teupitzer Straße 75",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 176.0000000000322,
+      "action": "call",
+      "deliveryId": "d14",
+      "pickup": "Blücherstraße 18",
+      "dropoff": "Bundesring 50",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 186.60000000004064,
+      "action": "complete",
+      "deliveryId": "d9",
+      "pickup": "Blücherplatz 1",
+      "dropoff": "Rochstraße 7",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.15546130435251362
+    },
+    {
+      "at": 187.00000000004096,
+      "action": "radio-denied",
+      "deliveryId": "d15",
+      "pickup": "Bödikerstraße 9",
+      "dropoff": "Frankfurter Allee 46B",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 188.00000000004175,
+      "action": "radio-denied",
+      "deliveryId": "d15",
+      "pickup": "Bödikerstraße 9",
+      "dropoff": "Frankfurter Allee 46B",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 188.5500000000422,
+      "action": "claim",
+      "deliveryId": "d12",
+      "pickup": "Pücklerstraße 40",
+      "dropoff": "Reuterstraße 47",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 1.1585179009144053
+    },
+    {
+      "at": 189.00000000004255,
+      "action": "call",
+      "deliveryId": "d15",
+      "pickup": "Bödikerstraße 9",
+      "dropoff": "Frankfurter Allee 46B",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 198.0000000000497,
+      "action": "radio-denied",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 198.03333333338307,
+      "action": "pickup",
+      "deliveryId": "d11",
+      "pickup": "Askanischer Platz 5",
+      "dropoff": "Klingelhöferstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 199.0000000000505,
+      "action": "radio-denied",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 200.0000000000513,
+      "action": "radio-denied",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 200.48333333338502,
+      "action": "complete",
+      "deliveryId": "d10",
+      "pickup": "Eisenbahnstraße 14",
+      "dropoff": "Teupitzer Straße 75",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.0861094215774209
+    },
+    {
+      "at": 201.0000000000521,
+      "action": "radio-denied",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 202.0000000000529,
+      "action": "radio-denied",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 202.4000000000532,
+      "action": "claim",
+      "deliveryId": "d14",
+      "pickup": "Blücherstraße 18",
+      "dropoff": "Bundesring 50",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.3378491650275957
+    },
+    {
+      "at": 203.0000000000537,
+      "action": "call",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 208.45000000005803,
+      "action": "fail",
+      "deliveryId": "d11",
+      "pickup": "Askanischer Platz 5",
+      "dropoff": "Klingelhöferstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 210.51666666672634,
+      "action": "claim",
+      "deliveryId": "d13",
+      "pickup": "Hagelberger Straße 53",
+      "dropoff": "Hobrechtstraße 37",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.9817440288900983
+    },
+    {
+      "at": 213.71666666672888,
+      "action": "pickup",
+      "deliveryId": "d12",
+      "pickup": "Pücklerstraße 40",
+      "dropoff": "Reuterstraße 47",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 215.533333333397,
+      "action": "fail",
+      "deliveryId": "d12",
+      "pickup": "Pücklerstraße 40",
+      "dropoff": "Reuterstraße 47",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 217.9333333333989,
+      "action": "claim",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 3.0834652337608652
+    },
+    {
+      "at": 222.0000000000688,
+      "action": "call",
+      "deliveryId": "d17",
+      "pickup": "Schmollerplatz 24",
+      "dropoff": "Heinrich-Heine-Straße 22",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 222.13333333340225,
+      "action": "pickup",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 225.0000000000712,
+      "action": "event-end",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "title": "Roadworks",
+      "place": "Friedrichstraße"
+    },
+    {
+      "at": 229.7333333334083,
+      "action": "pickup",
+      "deliveryId": "d13",
+      "pickup": "Hagelberger Straße 53",
+      "dropoff": "Hobrechtstraße 37",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 237.18333333341423,
+      "action": "fail",
+      "deliveryId": "d13",
+      "pickup": "Hagelberger Straße 53",
+      "dropoff": "Hobrechtstraße 37",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 237.65000000008126,
+      "action": "pickup",
+      "deliveryId": "d14",
+      "pickup": "Blücherstraße 18",
+      "dropoff": "Bundesring 50",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 239.01666666674902,
+      "action": "claim",
+      "deliveryId": "d15",
+      "pickup": "Bödikerstraße 9",
+      "dropoff": "Frankfurter Allee 46B",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 2.2422222497388624
+    },
+    {
+      "at": 240.00000000008313,
+      "action": "upgrade",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "upgrade": "Fresh bike tune-up"
+    },
+    {
+      "at": 244.15000000008644,
+      "action": "complete",
+      "deliveryId": "d16",
+      "pickup": "Mariannenplatz 28",
+      "dropoff": "Lohmühlenstraße 46",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.3239707622728381
+    },
+    {
+      "at": 245.81666666675443,
+      "action": "fail",
+      "deliveryId": "d14",
+      "pickup": "Blücherstraße 18",
+      "dropoff": "Bundesring 50",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 246.0000000000879,
+      "action": "call",
+      "deliveryId": "d18",
+      "pickup": "Großgörschenstraße 5",
+      "dropoff": "Martin-Luther-Straße 47",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 246.1666666667547,
+      "action": "claim",
+      "deliveryId": "d17",
+      "pickup": "Schmollerplatz 24",
+      "dropoff": "Heinrich-Heine-Straße 22",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 3.5281378725450203
+    },
+    {
+      "at": 247.10000000008878,
+      "action": "claim",
+      "deliveryId": "d18",
+      "pickup": "Großgörschenstraße 5",
+      "dropoff": "Martin-Luther-Straße 47",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 0.7456030459303327
+    },
+    {
+      "at": 248.0000000000895,
+      "action": "pickup",
+      "deliveryId": "d17",
+      "pickup": "Schmollerplatz 24",
+      "dropoff": "Heinrich-Heine-Straße 22",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 251.36666666675885,
+      "action": "fail",
+      "deliveryId": "d15",
+      "pickup": "Bödikerstraße 9",
+      "dropoff": "Frankfurter Allee 46B",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 260.1666666667587,
+      "action": "pickup",
+      "deliveryId": "d18",
+      "pickup": "Großgörschenstraße 5",
+      "dropoff": "Martin-Luther-Straße 47",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 270.0000000000831,
+      "action": "call",
+      "deliveryId": "d19",
+      "pickup": "Reichenberger Straße 31",
+      "dropoff": "Rudi-Dutschke-Straße 17",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 270.7833333334157,
+      "action": "claim",
+      "deliveryId": "d19",
+      "pickup": "Reichenberger Straße 31",
+      "dropoff": "Rudi-Dutschke-Straße 17",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.6137178211071241
+    },
+    {
+      "at": 270.95000000008224,
+      "action": "complete",
+      "deliveryId": "d18",
+      "pickup": "Großgörschenstraße 5",
+      "dropoff": "Martin-Luther-Straße 47",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.5816397824922115
+    },
+    {
+      "at": 273.25000000008015,
+      "action": "complete",
+      "deliveryId": "d17",
+      "pickup": "Schmollerplatz 24",
+      "dropoff": "Heinrich-Heine-Straße 22",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.3023167607346801
+    },
+    {
+      "at": 273.31666666674676,
+      "action": "pickup",
+      "deliveryId": "d19",
+      "pickup": "Reichenberger Straße 31",
+      "dropoff": "Rudi-Dutschke-Straße 17",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 289.98333333339826,
+      "action": "complete",
+      "deliveryId": "d19",
+      "pickup": "Reichenberger Straße 31",
+      "dropoff": "Rudi-Dutschke-Straße 17",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.6971922941898947
+    },
+    {
+      "at": 294.0000000000613,
+      "action": "call",
+      "deliveryId": "d20",
+      "pickup": "Hardenbergstraße 28",
+      "dropoff": "Witzlebenplatz 2",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 294.90000000006046,
+      "action": "claim",
+      "deliveryId": "d20",
+      "pickup": "Hardenbergstraße 28",
+      "dropoff": "Witzlebenplatz 2",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.39708868890939086
+    },
+    {
+      "at": 312.0000000000449,
+      "action": "call",
+      "deliveryId": "d21",
+      "pickup": "Inselstraße 1A",
+      "dropoff": "Neue Promenade 9",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 312.9333333333774,
+      "action": "claim",
+      "deliveryId": "d21",
+      "pickup": "Inselstraße 1A",
+      "dropoff": "Neue Promenade 9",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.7413448103022469
+    },
+    {
+      "at": 318.00000000003945,
+      "action": "call",
+      "deliveryId": "d22",
+      "pickup": "An der Michaelbrücke 1",
+      "dropoff": "Lenaustraße 17",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 318.8500000000387,
+      "action": "claim",
+      "deliveryId": "d22",
+      "pickup": "An der Michaelbrücke 1",
+      "dropoff": "Lenaustraße 17",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 0.9267234964433811
+    },
+    {
+      "at": 323.43333333336784,
+      "action": "pickup",
+      "deliveryId": "d21",
+      "pickup": "Inselstraße 1A",
+      "dropoff": "Neue Promenade 9",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 330.00000000002854,
+      "action": "call",
+      "deliveryId": "d23",
+      "pickup": "Koppenstraße 75",
+      "dropoff": "Maybachufer 34",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 334.9666666666907,
+      "action": "pickup",
+      "deliveryId": "d20",
+      "pickup": "Hardenbergstraße 28",
+      "dropoff": "Witzlebenplatz 2",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 337.0166666666888,
+      "action": "complete",
+      "deliveryId": "d21",
+      "pickup": "Inselstraße 1A",
+      "dropoff": "Neue Promenade 9",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.6007704306778082
+    },
+    {
+      "at": 338.90000000002044,
+      "action": "claim",
+      "deliveryId": "d23",
+      "pickup": "Koppenstraße 75",
+      "dropoff": "Maybachufer 34",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 0.7981709645007321
+    },
+    {
+      "at": 342.0000000000176,
+      "action": "call",
+      "deliveryId": "d24",
+      "pickup": "Georgenkirchstraße 2",
+      "dropoff": "Stargarder Straße 17",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 354.0000000000067,
+      "action": "call",
+      "deliveryId": "d25",
+      "pickup": "Ernst-Zinna-Weg 1",
+      "dropoff": "Marchlewskistraße 46",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 354.1833333333399,
+      "action": "complete",
+      "deliveryId": "d20",
+      "pickup": "Hardenbergstraße 28",
+      "dropoff": "Witzlebenplatz 2",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.13435670372204142
+    },
+    {
+      "at": 355.7500000000051,
+      "action": "claim",
+      "deliveryId": "d25",
+      "pickup": "Ernst-Zinna-Weg 1",
+      "dropoff": "Marchlewskistraße 46",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.36239008672143014
+    },
+    {
+      "at": 357.56666666667013,
+      "action": "pickup",
+      "deliveryId": "d23",
+      "pickup": "Koppenstraße 75",
+      "dropoff": "Maybachufer 34",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 365.49999999999625,
+      "action": "pickup",
+      "deliveryId": "d22",
+      "pickup": "An der Michaelbrücke 1",
+      "dropoff": "Lenaustraße 17",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 365.9999999999958,
+      "action": "call",
+      "deliveryId": "d26",
+      "pickup": "Franz-Mehring-Platz 5",
+      "dropoff": "Wiener Straße 62",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 377.9999999999849,
+      "action": "call",
+      "deliveryId": "d27",
+      "pickup": "Reichenberger Straße 113A",
+      "dropoff": "Emser Straße 89",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 379.8499999999832,
+      "action": "complete",
+      "deliveryId": "d23",
+      "pickup": "Koppenstraße 75",
+      "dropoff": "Maybachufer 34",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "quality": 0.30831295256059943
+    },
+    {
+      "at": 381.6333333333149,
+      "action": "claim",
+      "deliveryId": "d24",
+      "pickup": "Georgenkirchstraße 2",
+      "dropoff": "Stargarder Straße 17",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.5173105987060558
+    },
+    {
+      "at": 387.39999999997633,
+      "action": "complete",
+      "deliveryId": "d22",
+      "pickup": "An der Michaelbrücke 1",
+      "dropoff": "Lenaustraße 17",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.03155612326986301
+    },
+    {
+      "at": 387.39999999997633,
+      "action": "break",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 389.99999999997397,
+      "action": "call",
+      "deliveryId": "d28",
+      "pickup": "Rüdersdorfer Straße 29",
+      "dropoff": "Travestraße 2",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 401.99999999996305,
+      "action": "radio-denied",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 402.99999999996214,
+      "action": "radio-denied",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 403.99999999996123,
+      "action": "radio-denied",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 404.1833333332944,
+      "action": "radio-on",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 404.9999999999603,
+      "action": "radio-denied",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 405.29999999996005,
+      "action": "claim",
+      "deliveryId": "d26",
+      "pickup": "Franz-Mehring-Platz 5",
+      "dropoff": "Wiener Straße 62",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.4835750317966
+    },
+    {
+      "at": 405.9999999999594,
+      "action": "call",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 410.9499999999549,
+      "action": "fail",
+      "deliveryId": "d24",
+      "pickup": "Georgenkirchstraße 2",
+      "dropoff": "Stargarder Straße 17",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 413.0833333332863,
+      "action": "claim",
+      "deliveryId": "d27",
+      "pickup": "Reichenberger Straße 113A",
+      "dropoff": "Emser Straße 89",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.5415094202091535
+    },
+    {
+      "at": 413.99999999995214,
+      "action": "call",
+      "deliveryId": "d30",
+      "pickup": "Stralauer Straße 50",
+      "dropoff": "Prinzenstraße 19",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 414.78333333328476,
+      "action": "fail",
+      "deliveryId": "d25",
+      "pickup": "Ernst-Zinna-Weg 1",
+      "dropoff": "Marchlewskistraße 46",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 416.74999999994964,
+      "action": "claim",
+      "deliveryId": "d30",
+      "pickup": "Stralauer Straße 50",
+      "dropoff": "Prinzenstraße 19",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 2.2315128966349946
+    },
+    {
+      "at": 425.9999999999412,
+      "action": "call",
+      "deliveryId": "d31",
+      "pickup": "Friedenstraße 57",
+      "dropoff": "Große Hamburger Straße 16",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 426.7999999999405,
+      "action": "pickup",
+      "deliveryId": "d30",
+      "pickup": "Stralauer Straße 50",
+      "dropoff": "Prinzenstraße 19",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 430.01666666660424,
+      "action": "pickup",
+      "deliveryId": "d26",
+      "pickup": "Franz-Mehring-Platz 5",
+      "dropoff": "Wiener Straße 62",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 433.13333333326807,
+      "action": "fail",
+      "deliveryId": "d26",
+      "pickup": "Franz-Mehring-Platz 5",
+      "dropoff": "Wiener Straße 62",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 435.5999999999325,
+      "action": "claim",
+      "deliveryId": "d28",
+      "pickup": "Rüdersdorfer Straße 29",
+      "dropoff": "Travestraße 2",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.6300423885716124
+    },
+    {
+      "at": 437.9999999999303,
+      "action": "call",
+      "deliveryId": "d32",
+      "pickup": "Proskauer Straße 8",
+      "dropoff": "Heinz-Bartsch-Straße 14",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 438.9666666665961,
+      "action": "pickup",
+      "deliveryId": "d28",
+      "pickup": "Rüdersdorfer Straße 29",
+      "dropoff": "Travestraße 2",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 440.8166666665944,
+      "action": "pickup",
+      "deliveryId": "d27",
+      "pickup": "Reichenberger Straße 113A",
+      "dropoff": "Emser Straße 89",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 442.48333333325957,
+      "action": "complete",
+      "deliveryId": "d30",
+      "pickup": "Stralauer Straße 50",
+      "dropoff": "Prinzenstraße 19",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.5535316306214905
+    },
+    {
+      "at": 442.48333333325957,
+      "action": "break",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 449.9999999999194,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 450.9999999999185,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 451.9999999999176,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 452.99999999991667,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 453.48333333324956,
+      "action": "fail",
+      "deliveryId": "d27",
+      "pickup": "Reichenberger Straße 113A",
+      "dropoff": "Emser Straße 89",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 453.99999999991576,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 454.99999999991485,
+      "action": "radio-denied",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open"
+    },
+    {
+      "at": 455.2166666665813,
+      "action": "claim",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 1.9494034232280133
+    },
+    {
+      "at": 455.99999999991394,
+      "action": "call",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 456.1166666665805,
+      "action": "complete",
+      "deliveryId": "d28",
+      "pickup": "Rüdersdorfer Straße 29",
+      "dropoff": "Travestraße 2",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.006197448002511438
+    },
+    {
+      "at": 457.7999999999123,
+      "action": "claim",
+      "deliveryId": "d32",
+      "pickup": "Proskauer Straße 8",
+      "dropoff": "Heinz-Bartsch-Straße 14",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.4752850964376747
+    },
+    {
+      "at": 461.4166666665757,
+      "action": "radio-on",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 461.9999999999085,
+      "action": "call",
+      "deliveryId": "d34",
+      "pickup": "Weichselstraße 28",
+      "dropoff": "Skalitzer Straße 72",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 462.56666666657463,
+      "action": "claim",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.9119466858579768
+    },
+    {
+      "at": 466.51666666657104,
+      "action": "pickup",
+      "deliveryId": "d32",
+      "pickup": "Proskauer Straße 8",
+      "dropoff": "Heinz-Bartsch-Straße 14",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 473.99999999989757,
+      "action": "call",
+      "deliveryId": "d35",
+      "pickup": "Eldenaer Straße 30",
+      "dropoff": "Danziger Straße 100",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "channel": "open",
+      "previous": null
+    },
+    {
+      "at": 475.0166666665633,
+      "action": "fail",
+      "deliveryId": "d29",
+      "pickup": "Straßmannstraße 14",
+      "dropoff": "Pücklerstraße 24",
+      "radioUsed": 3,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 477.23333333322796,
+      "action": "claim",
+      "deliveryId": "d31",
+      "pickup": "Friedenstraße 57",
+      "dropoff": "Große Hamburger Straße 16",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Kira",
+      "score": 2.2192291927203716
+    },
+    {
+      "at": 482.1999999998901,
+      "action": "pickup",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 482.9666666665561,
+      "action": "complete",
+      "deliveryId": "d32",
+      "pickup": "Proskauer Straße 8",
+      "dropoff": "Heinz-Bartsch-Straße 14",
+      "radioUsed": 2,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.297237225430801
+    },
+    {
+      "at": 484.7166666665545,
+      "action": "claim",
+      "deliveryId": "d35",
+      "pickup": "Eldenaer Straße 30",
+      "dropoff": "Danziger Straße 100",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "score": 1.4261660775951601
+    },
+    {
+      "at": 490.766666666549,
+      "action": "complete",
+      "deliveryId": "d33",
+      "pickup": "Schmollerplatz 25",
+      "dropoff": "Nansenstraße 4",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "quality": 0.29233084340233206
+    },
+    {
+      "at": 492.1666666665477,
+      "action": "pickup",
+      "deliveryId": "d31",
+      "pickup": "Friedenstraße 57",
+      "dropoff": "Große Hamburger Straße 16",
+      "radioUsed": 1,
+      "cityLevel": 1,
+      "rider": "Kira"
+    },
+    {
+      "at": 492.8833333332137,
+      "action": "claim",
+      "deliveryId": "d34",
+      "pickup": "Weichselstraße 28",
+      "dropoff": "Skalitzer Straße 72",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian",
+      "score": 0.8043802130631024
+    },
+    {
+      "at": 498.3166666665421,
+      "action": "fail",
+      "deliveryId": "d31",
+      "pickup": "Friedenstraße 57",
+      "dropoff": "Große Hamburger Straße 16",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 501.46666666653925,
+      "action": "pickup",
+      "deliveryId": "d35",
+      "pickup": "Eldenaer Straße 30",
+      "dropoff": "Danziger Straße 100",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro"
+    },
+    {
+      "at": 523.3999999998526,
+      "action": "pickup",
+      "deliveryId": "d34",
+      "pickup": "Weichselstraße 28",
+      "dropoff": "Skalitzer Straße 72",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Brian"
+    },
+    {
+      "at": 529.6166666665137,
+      "action": "complete",
+      "deliveryId": "d35",
+      "pickup": "Eldenaer Straße 30",
+      "dropoff": "Danziger Straße 100",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "rider": "Mauro",
+      "quality": 0.15732323232530657
+    },
+    {
+      "at": 531.2499999998455,
+      "action": "fail",
+      "deliveryId": "d34",
+      "pickup": "Weichselstraße 28",
+      "dropoff": "Skalitzer Straße 72",
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "kind": "claimed-late",
+      "penalty": 9
+    },
+    {
+      "at": 531.2499999998455,
+      "action": "shift-finish",
+      "deliveryId": null,
+      "pickup": null,
+      "dropoff": null,
+      "radioUsed": 0,
+      "cityLevel": 1,
+      "outcome": "success",
+      "completed": 24,
+      "target": 24
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { decodeInnerRing } from '../src/inner-ring-city.js';
-import { BerlinPlaytest, FIXED_STEP, replayRun } from '../src/game-berlin-playtest.js';
+import { BerlinPlaytest, FIXED_STEP, GEOGRAPHIC_RULESET, replayRun } from '../src/game-berlin-playtest.js';
 const raw=readFileSync(new URL('../generated/berlin-inner-ring.json',import.meta.url));
 const pack=JSON.parse(raw),city=decodeInnerRing(pack);
 const make=options=>new BerlinPlaytest({city,seed:'BERLIN-1',...options});
@@ -102,4 +102,46 @@ test('a full geographic shift finishes with explicit results and a traffic event
   assert.ok(g.dispatchLog.some(e=>e.action==='event-start'));assert.ok(g.dispatchLog.some(e=>e.action==='event-end'));
   assert.equal(g.couriers.length,3);assert.equal(g.cityLevel,1);assert.equal(g.upgradeTaken,'legs');
   assert.deepEqual(replayRun(g.exportRun(),{city}).exportRun(),g.exportRun());
+});
+
+test('couriers pass impossible offers despite priority and bonus; a feasible call still attracts a volunteer',()=>{
+  const g=make(),late=g.deliveries[0];
+  late.deadlineAt=g.elapsed+1;
+  g.dispatch({type:'radio',jobId:late.id,channel:'priority'});
+  g.dispatch({type:'bonus',jobId:late.id});
+  const actions=JSON.stringify(g.actions),rng=g.rng.state;
+  for(const c of g.couriers) {
+    assert.equal(g.courierChoiceScore(c,late,false),-Infinity);
+    assert.equal(g.predictCall(c),null);
+  }
+  assert.equal(g.rng.state,rng,'Pure forecasts do not consume randomness');
+  assert.equal(JSON.stringify(g.actions),actions,'Advice cannot dispatch');
+  for(const c of g.couriers)assert.equal(g.claim(c,late),false);
+  assert.equal(late.status,'waiting');
+  g.spawnDelivery({pickupId:late.pickupId,dropoffId:late.dropoffId,typeKey:'document'});
+  const feasible=g.deliveries.at(-1);
+  g.dispatch({type:'radio',jobId:feasible.id,channel:'open'});
+  assert.ok(g.couriers.every(c=>c.phase==='idle'),'Broadcasting never assigns');
+  g.dispatch({type:'pause',paused:false});
+  for(let i=0;i<360&&feasible.status==='waiting';i++)g.update(FIXED_STEP);
+  assert.equal(feasible.status,'claimed');
+  assert.ok(g.offerMargin(g.courierById(feasible.courierId),feasible)>0);
+});
+
+test('couriers recheck the deadline after considering an offer',()=>{
+  const g=make(),d=g.deliveries[0],c=g.couriers[0];
+  g.setChannel(d.id,'open');assert.equal(g.beginDeliberation(c),true);
+  assert.ok(c.deliberation);
+  d.deadlineAt=g.elapsed+.01;
+  assert.equal(g.resolveDeliberation(c),false);
+  assert.equal(c.phase,'idle');assert.equal(d.status,'waiting');assert.equal(c.deliberation,null);
+});
+
+test('a recording from before the courier refinement still reproduces its original result',()=>{
+  const record=JSON.parse(readFileSync(new URL('./fixtures/berlin-dispatch-v2.json',import.meta.url)));
+  assert.equal(record.ruleset,'berlin-dispatch-v2');
+  assert.equal(record.review.completed,24);assert.equal(record.review.failed,12);
+  assert.deepEqual(replayRun(record,{city}).exportRun(),record);
+  assert.equal(make().ruleset,GEOGRAPHIC_RULESET);
+  assert.throws(()=>make({ruleset:'unknown'}),/Unsupported ruleset/);
 });

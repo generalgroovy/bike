@@ -6,7 +6,7 @@
 
 **Play the current concept:** [Berlin Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/).
 
-Current concept: **one geographic map and one radio desk**, ruleset `berlin-dispatch-v2`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, shifting locality demand, one upgrade, and a closing review. The retained released build remains at the site root.
+Current concept: **one geographic map and one radio desk**, ruleset `berlin-dispatch-v3`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, shifting locality demand, one upgrade, and a closing review. Couriers now pass on offers they cannot finish; queue estimates expose the time tradeoff. The retained released build remains at the site root. See the [refinement report](docs/BERLIN_REFINEMENT.md) for measured changes and the next playtest.
 
 ## Berlin concept playtest
 

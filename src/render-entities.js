@@ -25,11 +25,11 @@ function drawJobPreview(r){
     drawRouteEndpoint(r,q,'D',assessment?.difficultyColor??'#555b5c');
     drawCargoIcon(r.ctx,d.type,p.x,p.y,r.px(10));
   }
-  const c=r.ctx;c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.strokeStyle=assessment?.distanceColor??'#3f4b50';c.lineWidth=r.px(.7);c.setLineDash([r.px(2),r.px(8)]);c.globalAlpha=selected?.2:.08;c.stroke();c.setLineDash([]);c.globalAlpha=1;
+  if(!g.cityData){const c=r.ctx;c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.strokeStyle=assessment?.distanceColor??'#3f4b50';c.lineWidth=r.px(.7);c.setLineDash([r.px(2),r.px(8)]);c.globalAlpha=selected?.2:.08;c.stroke();c.setLineDash([]);c.globalAlpha=1;}
   if(selected&&mapZoomAtLeast(band(r),'street')){drawAddressTag(r,p.x,p.y,d.pickupAddress,'PICKUP',-1);drawAddressTag(r,q.x,q.y,d.dropoffAddress,'DROP',1);}
 }
 
-function drawAddressTag(r,x,y,address,kicker,side){const c=r.ctx;if(r.zoom<.82)return;const pad=r.px(5),w=Math.max(r.px(94),c.measureText(address).width+pad*2),h=r.px(24),ox=side<0?-w-r.px(12):r.px(12),oy=-h/2;c.fillStyle='#fffaf0';c.strokeStyle='#77736b';c.lineWidth=r.px(1);c.beginPath();c.roundRect(x+ox,y+oy,w,h,r.px(4));c.fill();c.stroke();c.textAlign='left';c.textBaseline='top';c.font=`800 ${r.px(6.3)}px system-ui`;c.fillStyle='#8b857a';c.fillText(kicker,x+ox+pad,y+oy+r.px(3));c.font=`750 ${r.px(8.4)}px system-ui`;c.fillStyle='#292d2e';c.fillText(address,x+ox+pad,y+oy+r.px(11));}
+function drawAddressTag(r,x,y,address,kicker,side){const c=r.ctx;if(r.zoom<.82)return;c.save();c.font=`750 ${r.px(8.4)}px system-ui`;const pad=r.px(5),w=Math.max(r.px(94),c.measureText(address).width+pad*2),h=r.px(24),ox=side<0?-w-r.px(12):r.px(12),oy=-h/2;c.fillStyle='#fffaf0';c.strokeStyle='#77736b';c.lineWidth=r.px(1);c.beginPath();c.roundRect(x+ox,y+oy,w,h,r.px(4));c.fill();c.stroke();c.textAlign='left';c.textBaseline='top';c.font=`800 ${r.px(6.3)}px system-ui`;c.fillStyle='#8b857a';c.fillText(kicker,x+ox+pad,y+oy+r.px(3));c.font=`750 ${r.px(8.4)}px system-ui`;c.fillStyle='#292d2e';c.fillText(address,x+ox+pad,y+oy+r.px(11));c.restore();}
 
 function drawAttention(r){const zoomBand=band(r),c=r.ctx,g=r.game;for(const rider of g.couriers){if(rider.phase!=='idle'||!rider.radioOn)continue;const predicted=g.predictCall(rider);if(!predicted)continue;if(zoomBand==='overview'&&!rider.deliberation)continue;const pickup=g.nodeById(predicted.delivery.pickupId),progress=rider.deliberation?g.deliberationProgress(rider):0;if(!pickup)continue;c.beginPath();c.moveTo(rider.x,rider.y);c.lineTo(pickup.x,pickup.y);c.strokeStyle=rider.color;c.lineWidth=r.px(rider.deliberation?2:1.1);c.globalAlpha=rider.deliberation?.2+.34*progress:zoomBand==='district'?.06:.09;c.setLineDash([r.px(3),r.px(7)]);c.stroke();c.setLineDash([]);c.globalAlpha=1;}}
 

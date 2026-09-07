@@ -28,7 +28,8 @@
   <main class="desk-layout">
     <section class="work-panel" aria-labelledby="work-title">
       <div class="panel-heading"><div><span class="eyebrow">YOUR NEXT DECISION</span><h1 id="work-title">On the desk <span id="work-count">1</span></h1></div></div>
-      <p class="queue-explainer">Choose what the team hears.</p>
+      <p class="queue-explainer">Choose what the team hears. Finish estimates include the ride to pickup.</p>
+      <p id="radio-hint" class="radio-hint" role="status"></p>
       <div id="work-list"></div>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
       <div class="work-footer"><span>⌁ BERLIN · INNER RING</span><small id="seed-label"></small><span id="flow-count"></span></div>
@@ -42,7 +43,7 @@
       <div class="map-attribution"><a href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · © OpenStreetMap contributors · map details</a></div>
       <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
-      <div id="coach" role="status"></div>
+      <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
       <div class="map-bottom"><span id="notice" role="status"></span><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
     </section>
 
@@ -78,7 +79,9 @@
     <span class="eyebrow">A LITTLE RADIO ETIQUETTE</span><h2>You broadcast. Riders decide.</h2>
     <p><strong>OPEN</strong> lets all listening couriers consider a job. <strong>LOCAL</strong> favors nearby riders. <strong>PRIORITY</strong> attracts more attention and uses two slots. None of them assigns a rider.</p>
     <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
-    <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
+    <p>Read each job's finish estimate before its deadline. <strong>Time to spare</strong> leaves a buffer; <strong>Tight window</strong> needs an early call; <strong>Too little time</strong> means the current estimate cannot fit. <strong>After current work</strong> depends on a busy or resting rider becoming available. These are estimates, not promises.</p>
+    <p>Couriers pass on offers they cannot currently finish. PRIORITY and bonuses influence interest; they cannot extend a deadline. Withdraw a call to free radio space when needed. The job still waits on the desk and can miss its deadline.</p>
+    <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
     <p>The operating area is inside the <strong>S41 / S42 Ringbahn</strong>. Map views zoom to official localities without changing the operating area. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
     <p class="muted">Space: pause · + / −: zoom · 0: fit map · Escape: clear selection. Drag to pan. Contracts can always be selected from the queue.</p>

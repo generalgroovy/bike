@@ -90,6 +90,12 @@ prototype.courierAvailability=function(c,d=null) {
   const state=busy?'busy':c.phase==='break'?'break':c.deliberation?'thinking':'ready';
   const fromNodeId=busy?(current?.dropoffId??c.path[c.pathIndex]):c.nodeId;
   const readyIn=busy?this.courierETA(c):state==='break'?this.breakRemaining(c):0;
+  if(this.fullCity&&d) {
+    const from=this.nodeById(fromNodeId),pickup=this.nodeById(d.pickupId),base=c.baseSpeed*c.experience.speed*this.modifiers.speed;
+    const lowerBound=Math.hypot(from.x-pickup.x,from.y-pickup.y)/base;
+    if(readyIn+lowerBound>Math.min(180,Math.max(0,d.deadlineAt-this.elapsed)+30))
+      return {rider:c,state,readyIn,travelIn:Infinity,arrivalIn:Infinity,fromNodeId,pickupId:d.pickupId,availableNow:state==='ready'||state==='thinking'};
+  }
   const travelIn=d?this.routeTravelCost(fromNodeId,d.pickupId)/(c.baseSpeed*c.experience.speed*this.modifiers.speed):0;
   return {rider:c,state,readyIn,travelIn,arrivalIn:readyIn+travelIn,fromNodeId,pickupId:d?.pickupId,availableNow:state==='ready'||state==='thinking'};
 };

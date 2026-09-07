@@ -6,7 +6,7 @@ import { decodeInnerRing } from '../src/inner-ring-city.js';
 
 const city = decodeInnerRing(JSON.parse(readFileSync(new URL('../generated/berlin-inner-ring.json', import.meta.url))));
 const results = [];
-for (const ruleset of GEOGRAPHIC_RULESETS) for (let index = 1; index <= 5; index++) {
+for (const ruleset of GEOGRAPHIC_RULESETS.filter(id=>id!=='berlin-dispatch-v4')) for (let index = 1; index <= 5; index++) {
   const seed = `BERLIN-${index}`, game = new BerlinPlaytest({ city, seed, mode: 'standard', ruleset });
   const claims = [], claim = game.claim;
   game.claim = function (courier, delivery, ...args) {

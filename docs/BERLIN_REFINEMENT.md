@@ -2,7 +2,9 @@
 
 7 September 2026 · `feature/berlin-playtest` · ruleset `berlin-dispatch-v3`
 
-[Play the guided shift](https://generalgroovy.github.io/bike/preview/berlin/?mode=training&seed=BERLIN-1) · [Test the Berlin shift](https://generalgroovy.github.io/bike/preview/berlin/?mode=standard&seed=BERLIN-1)
+This report covers the retained Inner Ring v3 scenario. See [full Berlin](BERLIN_FULL_CITY.md) for the current default preview.
+
+[Play the guided shift](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring&mode=training&seed=BERLIN-1) · [Test the Berlin shift](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring&mode=standard&seed=BERLIN-1)
 
 ## What changed and why
 

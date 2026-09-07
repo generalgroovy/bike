@@ -18,6 +18,10 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 
 class PlaytestAcceptance(unittest.TestCase):
+    city = 'inner-ring'
+    node_count = 30656
+    ruleset = 'berlin-dispatch-v3'
+    map_asset = 'berlin-inner-ring.json'
     @classmethod
     def setUpClass(cls):
         REPORTS.mkdir(parents=True, exist_ok=True)
@@ -38,13 +42,14 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def setUp(self):
         self.context = self.browser.new_context(viewport={'width': 1280, 'height': 720}, reduced_motion='reduce')
+        self.addCleanup(lambda: self.context.close() if self.context.pages else None)
         self.errors, self.external, self.failed_responses = [], [], []
         self.page = self.context.new_page()
         self.page.on('pageerror', lambda error: self.errors.append(str(error)))
         self.page.on('response', lambda response: self.failed_responses.append(response.url) if response.status >= 400 else None)
         self.context.route('**/*', self.network_guard)
-        self.page.goto(self.base + '/playtest.html?seed=BERLIN-1&mode=training')
-        expect(self.page.locator('#intro')).to_be_visible()
+        self.page.goto(self.base + f'/playtest.html?seed=BERLIN-1&mode=training&city={self.city}')
+        expect(self.page.locator('#intro')).to_be_visible(timeout=30000)
 
     def network_guard(self, route):
         if route.request.url.startswith(self.base + '/'):
@@ -196,8 +201,8 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def test_unified_entry_region_views_and_route_focus_use_one_geographic_map(self):
         self.start('standard')
-        self.assertEqual(self.game('g.nodes.length'), 30656)
-        self.assertEqual(self.game('g.ruleset'), 'berlin-dispatch-v3')
+        self.assertEqual(self.game('g.nodes.length'), self.node_count)
+        self.assertEqual(self.game('g.ruleset'), self.ruleset)
         before = self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])')
         self.page.locator('#region-view').select_option('kreuzberg')
         self.assertGreater(self.camera('r.zoom'), 1)
@@ -209,7 +214,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.locator('#fit-map').click()
         self.assertEqual(self.camera('r.zoom'), 1)
         self.assertEqual(self.page.locator('#region-view').input_value(), '')
-        self.page.goto(self.base + '/index.html?mode=standard&seed=BERLIN-1')
+        self.page.goto(self.base + f'/index.html?mode=standard&seed=BERLIN-1&city={self.city}')
         expect(self.page.locator('#intro')).to_be_visible()
         self.assertEqual(self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])'), before)
         self.assertEqual(self.game('g.cityData.metadata.crs'), 'EPSG:25833')
@@ -233,8 +238,8 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def test_map_load_failure_is_explicit_and_does_not_substitute_a_schematic(self):
         self.context.unroute('**/*', self.network_guard)
-        self.context.route('**/generated/berlin-inner-ring.json', lambda route: route.abort())
-        self.page.goto(self.base + '/index.html')
+        self.context.route('**/generated/'+self.map_asset, lambda route: route.abort())
+        self.page.goto(self.base + '/index.html?city='+self.city)
         expect(self.page.locator('#fatal-error')).to_be_visible()
         expect(self.page.locator('#fatal-message')).to_contain_text('Berlin map could not load')
         expect(self.page.locator('#intro')).to_be_hidden()

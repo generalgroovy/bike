@@ -4,6 +4,7 @@ Usage: python tools/build-inner-ring.py [source-folder] [output-folder]
 Fetch with fetch-inner-ring.mjs first. No network, credentials or randomness here.
 """
 import hashlib
+import gzip
 import json
 import math
 import sys
@@ -11,19 +12,34 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from pyproj import Transformer
-from shapely import STRtree, make_valid
+from shapely import STRtree, make_valid, prepare
 from shapely.geometry import LineString, Point, Polygon, shape
 from shapely.ops import transform, unary_union
+from city_source import iter_features
 
 source = Path(sys.argv[1] if len(sys.argv) > 1 else '../inner-ring-source')
 output = Path(sys.argv[2] if len(sys.argv) > 2 else 'generated')
+full_city = '--full-city' in sys.argv
+stem = 'berlin-city' if full_city else 'berlin-inner-ring'
 output.mkdir(parents=True, exist_ok=True)
 read = lambda name: json.loads((source / name).read_text(encoding='utf-8'))
-ring_source = read('ringbahn-boundary.geojson')
+def features(name):
+    if full_city:
+        yield from iter_features(source/(name+'.geojson'))
+    else:
+        yield from read(name + '.geojson')['features']
+ring_source = read('boundary.geojson')['features'][0] if full_city else read('ringbahn-boundary.geojson')
+if full_city:
+    for name in ['boundary','boroughs','regions','streets','addresses','parks','landcover']:
+        with (source/(name+'.geojson')).open('rb') as stream:
+            assert hashlib.file_digest(stream,'sha256').hexdigest()==read(name+'.source.json')['sha256'],f'Source hash mismatch: {name}'
 to_meters = Transformer.from_crs('EPSG:4326', 'EPSG:25833', always_xy=True)
 to_geo = Transformer.from_crs('EPSG:25833', 'EPSG:4326', always_xy=True)
-ring = transform(to_meters.transform, shape(ring_source['geometry']))
-assert ring.is_valid and 70e6 < ring.area < 120e6, 'Unexpected Ringbahn area'
+ring = make_valid(transform(to_meters.transform, shape(ring_source['geometry'])))
+assert ring.is_valid and ((880e6 < ring.area < 900e6) if full_city else (70e6 < ring.area < 120e6)), 'Unexpected operating area'
+prepare(ring)
+def clip(geometry):
+    return geometry if full_city and ring.covers(geometry) else geometry.intersection(ring)
 x0, y0, x1, y1 = ring.bounds
 meters_per_unit = 10
 
@@ -42,8 +58,8 @@ def polygons(g, tolerance=1):
             for poly in parts(g.simplify(tolerance, preserve_topology=True), 'Polygon')]
 
 regions = []
-for f in sorted(read('regions.geojson')['features'], key=lambda f: f['properties']['nam']):
-    g = make_valid(transform(to_meters.transform, shape(f['geometry']))).intersection(ring)
+for f in sorted(features('regions'), key=lambda f: f['properties']['nam']):
+    g = clip(make_valid(transform(to_meters.transform, shape(f['geometry']))))
     if g.area < 1000:
         continue
     name = f['properties']['nam']
@@ -55,20 +71,22 @@ region_ids = {r['name']: r['id'] for r in regions}
 
 context = {'water': [], 'vegetation': [], 'buildings': [], 'parks': []}
 water_geometries = []
-for f in read('landcover.geojson')['features']:
+print(f'Building {stem}: {len(regions)} localities', flush=True)
+for f in features('landcover'):
     code = f['properties']['landCoverObservation']['class']['@href'].split('/')[-1]
     layer = 'water' if code.startswith('4') else 'vegetation' if code.startswith('3') else 'buildings' if code == '1-1' else None
     if not layer:
         continue
-    g = make_valid(transform(to_meters.transform, shape(f['geometry']))).intersection(ring)
+    g = clip(make_valid(transform(to_meters.transform, shape(f['geometry']))))
     if g.area < 15:
         continue
     context[layer].extend(polygons(g))
     if layer == 'water':
         water_geometries.append(g)
-water = unary_union(water_geometries)
-for f in read('parks.geojson')['features']:
-    g = make_valid(transform(to_meters.transform, shape(f['geometry']))).intersection(ring)
+water_tree = STRtree(water_geometries) if full_city else None
+water = None if full_city else unary_union(water_geometries)
+for f in features('parks'):
+    g = clip(make_valid(transform(to_meters.transform, shape(f['geometry']))))
     if g.area < 300:
         continue
     context['parks'].append(dict(name=f['properties']['namenr'], polygons=polygons(g), area=g.area,
@@ -76,13 +94,14 @@ for f in read('parks.geojson')['features']:
 
 # Preserve junction identity. Crossings in the picture never create junctions.
 roads = []
-for f in sorted(read('streets.geojson')['features'], key=lambda f: f['id']):
+print('Context ready; building directed streets', flush=True)
+for f in sorted(features('streets'), key=lambda f: f['id']):
     p = f['properties']
     assert all(p.get(k) is not None for k in ['beginnt_bei_vp','endet_bei_vp','verkehrsrichtung','verkehrsebene']), f['id']
     assert p['verkehrsrichtung'] in ['B','R','G']
     original = transform(to_meters.transform, shape(f['geometry']))
     assert original.geom_type == 'LineString', f['id']
-    for i, clipped in enumerate(parts(original.intersection(ring), 'LineString')):
+    for i, clipped in enumerate(parts(clip(original), 'LineString')):
         if clipped.length < 1:
             continue
         # Keep the direction of digitisation, even if the clipping library reverses a piece.
@@ -116,14 +135,16 @@ for i, road in enumerate(roads):
     if road['routable'] and road['level'] == 0:
         by_street[road['key']].append(i)
 trees = {key: (indices, STRtree([roads[i]['line'] for i in indices])) for key, indices in by_street.items()}
-candidates = defaultdict(list)
+candidates = defaultdict(dict if full_city else list)
 address_inside = 0
-for f in sorted(read('addresses.geojson')['features'], key=lambda f: f['id']):
+print(f'{len(roads)} street sections; sampling official addresses', flush=True)
+for f in (features('addresses') if full_city else sorted(features('addresses'), key=lambda f: f['id'])):
     p = f['properties']
     location = transform(to_meters.transform, shape(f['geometry']))
     if not ring.covers(location):
         continue
     address_inside += 1
+    if full_city and address_inside % 50000 == 0: print(f'Checked {address_inside} address points', flush=True)
     if p['str_nr'] not in trees:
         continue
     indices, tree = trees[p['str_nr']]
@@ -135,13 +156,22 @@ for f in sorted(read('addresses.geojson')['features'], key=lambda f: f['id']):
     if distance < .5 or distance > 60:
         continue
     access = LineString([snap, location])
-    if not ring.covers(access) or access.intersection(water).length > .5:
+    near_water = [water_geometries[int(i)] for i in water_tree.query(access)] if full_city else None
+    crosses_water = access.intersection(unary_union(near_water)).length > .5 if near_water else False if full_city else access.intersection(water).length > .5
+    if not ring.covers(access) or crosses_water:
         continue
-    candidates[ri].append(dict(location=location, position=position, sourceId=f['id'],
+    candidate = dict(location=location, position=position, sourceId=f['id'],
                               label=f"{p['str_name']} {p['hnr']}{p['hnr_zusatz'] or ''}", postcode=p['plz'],
-                              region=region_ids.get(p['ort_name'], road['region']), lonLat=f['geometry']['coordinates']))
+                              region=region_ids.get(p['ort_name'], road['region']), lonLat=f['geometry']['coordinates'])
+    if full_city:
+        for fraction in ([.33,.67] if road['line'].length > 150 else [.5]):
+            old = candidates[ri].get(fraction)
+            rank = lambda a:(abs(a['position']-road['line'].length*fraction),a['sourceId'])
+            if old is None or rank(candidate)<rank(old): candidates[ri][fraction]=candidate
+    else:
+        candidates[ri].append(candidate)
 for i, road in enumerate(roads):
-    choices = candidates[i]
+    choices = list(candidates[i].values()) if full_city else candidates[i]
     selected = []
     for fraction in ([.33,.67] if road['line'].length > 150 else [.5]):
         if not choices:
@@ -151,6 +181,7 @@ for i, road in enumerate(roads):
             selected.append(best)
     road['addresses'] = selected
 
+print(f'{address_inside} source addresses inside boundary; constructing graph', flush=True)
 nodes, edges, visuals, node_ids, names, name_ids = [], [], [], {}, [], {}
 max_junction_displacement = 0
 def name_id(name):
@@ -236,10 +267,13 @@ depot = min(address_ids,key=lambda i:math.dist(nodes[i][:2],depot_xy))
 for r in regions:
     r['addresses'] = sum(nodes[i][2] == r['id'] for i in address_ids)
 sources = [read(f'{name}.source.json') for name in ['streets','addresses','regions','parks','landcover']]
-sources.append(dict(name='ringbahn',url=ring_source.get('properties',{}).get('sourceUrl','https://www.openstreetmap.org/relation/14981'),
-                    sha256=hashlib.sha256((source/'ringbahn-boundary.geojson').read_bytes()).hexdigest(),license='ODbL-1.0'))
+if full_city:
+    sources.extend([read('boundary.source.json'), read('boroughs.source.json')])
+else:
+    sources.append(dict(name='ringbahn',url=ring_source.get('properties',{}).get('sourceUrl','https://www.openstreetmap.org/relation/14981'),
+                        sha256=hashlib.sha256((source/'ringbahn-boundary.geojson').read_bytes()).hexdigest(),license='ODbL-1.0'))
 snapshot = hashlib.sha256(''.join(s['sha256'] for s in sources).encode()).hexdigest()[:12]
-metadata = dict(id=f'berlin-inner-ring-v1-{snapshot}', schema=1, crs='EPSG:25833', origin=[x0,y1], padding=30, metersPerUnit=meters_per_unit,
+metadata = dict(id=f'{stem}-v1-{snapshot}', schema=1, crs='EPSG:25833', origin=[x0,y1], padding=30, metersPerUnit=meters_per_unit,
                 bounds=dict(x1=30,y1=30,x2=round((x1-x0)/10+30,2),y2=round((y1-y0)/10+30,2)),
                 areaKm2=round(ring.area/1e6,3), simplificationMeters=1, coordinateRoundingMeters=.1,
                 junctionMaxDisplacementMeters=round(max_junction_displacement,3), sourceAddressesInRing=address_inside,
@@ -247,12 +281,29 @@ metadata = dict(id=f'berlin-inner-ring-v1-{snapshot}', schema=1, crs='EPSG:25833
                 regions=len(regions), streets=len(visuals), nodes=len(nodes), edges=len(edges),
                 routingPolicy='Detailnetz B/R/G directions; no motorways/private/unclassified roads; pedestrian paths allowed as push-bike links. No turn restrictions or bicycle exceptions.',
                 accessPolicy='Sampled official address points; access links of at most 60 m to the same named street. Access links are schematic, not surveyed entrances.',
-                license='ODbL-1.0; Berlin source datasets dl-de-zero-2.0', sources=sources)
+                license='dl-de-zero-2.0' if full_city else 'ODbL-1.0; Berlin source datasets dl-de-zero-2.0', sources=sources)
 pack = dict(metadata=metadata, names=names, nodes=nodes, edges=edges, streets=visuals, addressIds=address_ids,
             depot=depot, boundary=polygons(ring,0)[0][0], regions=regions, context=context)
+if full_city:
+    metadata['scope']='full-city'
+    metadata['name']='Berlin · Full city'
+    metadata['sourceAddressesInCity']=metadata.pop('sourceAddressesInRing')
+    pack['boundaryPolygons']=polygons(ring,0)
+    pack['boroughs']=[]
+    for f in features('boroughs'):
+        g=make_valid(transform(to_meters.transform,shape(f['geometry'])))
+        pack['boroughs'].append(dict(name=f['properties']['namgem'],polygons=polygons(g),center=point(g.representative_point().coords[0])))
+    for r in regions:
+        choices=[i for i in address_ids if nodes[i][2]==r['id']]
+        r['depot']=min(choices,key=lambda i:math.dist(nodes[i][:2],r['center'])) if choices else None
 payload = json.dumps(pack, ensure_ascii=False, separators=(',',':'))+'\n'
-path = output/'berlin-inner-ring.json'; path.write_text(payload,encoding='utf-8',newline='\n')
-(output/'berlin-inner-ring-sources.json').write_text(json.dumps(dict(**metadata, sha256=hashlib.sha256(payload.encode()).hexdigest()),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-(output/'berlin-inner-ring-boundary.geojson').write_bytes((source/'ringbahn-boundary.geojson').read_bytes())
+path = output/(stem+'.json'); path.write_text(payload,encoding='utf-8',newline='\n')
+if full_city:
+    (output/(stem+'.json.gz')).write_bytes(gzip.compress(payload.encode(),compresslevel=9,mtime=0))
+(output/(stem+'-sources.json')).write_text(json.dumps(dict(**metadata, sha256=hashlib.sha256(payload.encode()).hexdigest()),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+if full_city:
+    (output/(stem+'-boundary.geojson')).write_text(json.dumps(ring_source,ensure_ascii=False)+'\n',encoding='utf-8')
+else:
+    (output/(stem+'-boundary.geojson')).write_bytes((source/'ringbahn-boundary.geojson').read_bytes())
 print(json.dumps({k:v for k,v in metadata.items() if k!='sources'},ensure_ascii=False,indent=2))
 print(f'{path}: {len(payload.encode())/1e6:.2f} MB')

@@ -1,10 +1,10 @@
-import { BerlinPlaytest, CARGO_FAMILIES, FIXED_STEP, SHIFT_MODES } from './game-berlin-playtest.js';
+import { BerlinPlaytest, CARGO_FAMILIES, FIXED_STEP, SHIFT_MODES, replayRun } from './game-berlin-playtest.js';
 import { Renderer } from './render.js';
 import { createSeed } from './rng.js';
 import { createCargoIconElement } from './cargo-icons.js';
 import { createRiderPortraitElement } from './rider-identity.js';
 import { audio } from './audio-engine.js';
-import { loadInnerRing } from './inner-ring-city.js';
+import { loadInnerRing, loadBerlinCity } from './inner-ring-city.js';
 import { timingAdvice } from './playtest-advice.js';
 
 const $ = selector => document.querySelector(selector);
@@ -16,14 +16,15 @@ const text = (selector, value) => { const el = $(selector), next = String(value)
 const dialogs = ['#intro', '#help-dialog', '#upgrade-dialog', '#review-dialog'];
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
 let sound = false, faulted = false, helpWasPaused = true, pointer = null;
+let savedRecord=null, saveEnabled=false, lastSave=0;
 const touches=new Map();let pinchDistance=0;
 audio.enabled = false;
 for(const control of document.querySelectorAll('button,select')) if(control.id!=='reload') control.disabled=true;
 
-function begin(mode, seed = createSeed()) {
+function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, restored=null) {
   dialogs.forEach(id => { if ($(id).open) $(id).close(); });
   renderer?.dispose();
-  game = new BerlinPlaytest({ seed, mode, city });
+  game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
   $('#region-view').value = '';
   cards.clear(); riderCards.clear();
@@ -33,10 +34,25 @@ function begin(mode, seed = createSeed()) {
   lastLog = accumulator = 0; lastTime = performance.now(); faulted = false;
   const url = new URL(location.href);
   url.searchParams.set('seed', seed); url.searchParams.set('mode', mode);
+  url.searchParams.set('city',game.fullCity?'berlin':'inner-ring');
+  if(game.fullCity)url.searchParams.set('district',game.startRegion);else url.searchParams.delete('district');
   history.replaceState({}, '', url);
-  if (mode === 'training') focusContract(game.deliveries[0]);
+  if (mode === 'training'&&!restored) focusContract(game.deliveries[0]);
+  else if(game.fullCity&&game.startRegion!=='citywide') {
+    const region=city.regions.find(r=>r.id===game.startRegion);renderer.focusBounds(region.bounds);$('#region-view').value=region.id;renderer.focusRegionId=region.id;
+  }
   render(true);
   renderer.draw(true);
+}
+
+function saveShift() {
+  if(!game||!saveEnabled)return;
+  try {
+    const key=`send-it:shift:${city.metadata.id}`;
+    if(game.gameOver){localStorage.removeItem(key);savedRecord=null;text('#save-state','Shift complete · download the record in review.');}
+    else {savedRecord=game.exportRun();localStorage.setItem(key,JSON.stringify(savedRecord));text('#save-state','Saved on this device · resume after reloading.');}
+    lastSave=performance.now();
+  }catch {text('#save-state','Saving unavailable in this browser.');}
 }
 
 function act(action) {
@@ -48,6 +64,7 @@ function act(action) {
     if (action.type === 'bonus') audio.cue('tool-sweeten');
   }
   render();
+  if(changed)saveShift();
   return changed;
 }
 
@@ -104,7 +121,15 @@ function renderTeam() {
     let card = riderCards.get(rider.id);
     if (!card) {
       card = document.createElement('article'); card.className = 'rider';
-      card.append(createRiderPortraitElement(rider));
+      const locate=document.createElement('button');locate.className='rider-locate';locate.setAttribute('aria-label',`Locate ${rider.name} on the map`);locate.title=`Locate ${rider.name}`;locate.append(createRiderPortraitElement(rider));card.append(locate);
+      locate.addEventListener('click',()=>{
+        game.selectedCourierId=rider.id;
+        renderer.focusRegionId=null;
+        const job=game.deliveryById(rider.deliveryId);
+        if(job){game.selectedDeliveryId=job.id;focusContract(job);}else {game.selectedDeliveryId=null;renderer.focusBounds({x1:rider.x-85,y1:rider.y-85,x2:rider.x+85,y2:rider.y+85});$('#region-view').value='route';}
+        renderer.draw(true);render();
+        if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:'instant'});
+      });
       const content = document.createElement('div');
       content.innerHTML = '<div class="rider-head"><strong></strong><span></span></div><p></p><meter min="0" max="100"></meter>';
       card.append(content); $('#team-list').append(card); riderCards.set(rider.id, card);
@@ -244,6 +269,7 @@ function frame(now) {
       while (accumulator >= FIXED_STEP) { game.update(FIXED_STEP); accumulator -= FIXED_STEP; }
       renderer.draw();
       if (now - lastUI > 125) { render(); lastUI = now; }
+      if (now-lastSave>5000)saveShift();
     }
   } catch (error) {
     faulted = true; game.paused = true; $('#fatal-error').hidden = false; throw error;
@@ -256,10 +282,12 @@ $('#bonus').addEventListener('click', () => act({ type: 'bonus', jobId: game.sel
 $('#pause').addEventListener('click', () => act({ type: 'pause', paused: !game.paused }));
 $('#speed').addEventListener('click', () => act({ type: 'speed', speed: game.speed === 1 ? 2 : 1 }));
 $('#sound').addEventListener('click', () => { sound = !sound; audio.enabled = sound; if (sound) audio.ensure(); text('#sound', sound ? 'Sound on' : 'Sound off'); $('#sound').setAttribute('aria-pressed', String(sound)); });
-$('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true }); $('#continue-shift').hidden = false; $('#intro').showModal(); });
+$('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true }); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
 $('#continue-shift').addEventListener('click', () => $('#intro').close());
 document.querySelectorAll('[data-start]').forEach(button => button.addEventListener('click', () => {
+  saveEnabled=true;
   const seed = game.tick === 0 ? game.seed : createSeed(); begin(button.dataset.start, seed);
+  saveShift();
   if (sound) audio.ensure();
 }));
 $('#help').addEventListener('click', () => { helpWasPaused = game.paused; act({ type: 'pause', paused: true }); $('#help-dialog').showModal(); });
@@ -267,8 +295,21 @@ function closeHelp() { $('#help-dialog').close(); act({ type: 'pause', paused: h
 $('#close-help').addEventListener('click', closeHelp);
 $('#help-dialog').addEventListener('cancel', event => { event.preventDefault(); closeHelp(); });
 ['#intro', '#upgrade-dialog', '#review-dialog'].forEach(id => $(id).addEventListener('cancel', event => event.preventDefault()));
-$('#retry').addEventListener('click', () => begin(game.mode, game.seed));
-$('#next-shift').addEventListener('click', () => begin(game.mode === 'training' ? 'standard' : game.mode));
+$('#retry').addEventListener('click', () => {begin(game.mode,game.seed,game.startRegion);saveShift();});
+$('#next-shift').addEventListener('click', () => {begin(game.mode === 'training' ? 'standard' : game.mode);saveShift();});
+$('#resume-saved').addEventListener('click',()=>{
+  if(!savedRecord)return;
+  try {
+    const restored=replayRun(savedRecord,{city});
+    restored.dispatch({type:'pause',paused:true});
+    restored.selectedDeliveryId=restored.activeDeliveries()[0]?.id??null;
+    begin(restored.mode,restored.seed,restored.startRegion,restored);
+    saveEnabled=true;saveShift();
+    game.flash('Shift restored. Resume when you are ready.',6);
+  }catch {
+    $('#resume-saved').hidden=true;$('#resume-note').hidden=false;text('#resume-note','This saved shift could not be restored. Start a fresh shift below.');
+  }
+});
 $('#export-run').addEventListener('click', () => {
   const record = game.exportRun(), url = URL.createObjectURL(new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a'); link.href = url; link.download = `send-it-${game.mode}-${String(game.seed).replace(/[^a-z0-9_-]/gi, '_').slice(0,60)}.json`; link.click();
@@ -353,18 +394,31 @@ window.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => {
   if (!game) return;
   accumulator = 0; lastTime = performance.now();
-  if (document.hidden) { act({ type: 'pause', paused: true }); audio.ctx?.suspend(); }
+  if (document.hidden) { act({ type: 'pause', paused: true }); saveShift();audio.ctx?.suspend(); }
   else { game.flash('The desk paused while you were away. Resume when ready.', 8); render(); }
 });
-window.addEventListener('pagehide', () => { game?.dispatch({ type: 'pause', paused: true }); });
+window.addEventListener('pagehide', () => { game?.dispatch({ type: 'pause', paused: true });saveShift(); });
 const params = new URLSearchParams(location.search);
 try {
-  city=await loadInnerRing({signal:AbortSignal.timeout(60000)});
+  const inner=params.get('city')==='inner-ring';
+  text('#loading-detail',inner?'Loading the Inner Ring street map.':'Loading Berlin’s complete street map. The first visit may take a moment.');
+  city=await (inner?loadInnerRing:loadBerlinCity)({signal:AbortSignal.timeout(120000)});
+  text('#scope-name',inner?'⌁ BERLIN · INNER RING':'⌁ BERLIN · FULL CITY');
+  text('#scope-eyebrow',inner?'BERLIN / INNER RING':'BERLIN / FULL CITY');
+  text('#map-credits',inner?'Berlin Open Data · © OpenStreetMap contributors · map details':'Berlin Open Data · map sources and accuracy');
+  $('#region-view').options[0].textContent=inner?'Whole Inner Ring':'Whole Berlin';
+  text('#scope-link',inner?'Explore the full city':'Play the original Inner Ring');$('#scope-link').href=inner?'?city=berlin':'?city=inner-ring';
+  text('#city-summary',`${city.metadata.areaKm2.toLocaleString()} km² · ${city.regions.length} official localities · one connected operating map`);
+  $('#start-region-field').hidden=inner;
+  if(inner)text('#scope-help','This original scenario operates inside the S41 / S42 Ringbahn. Map views change the camera without changing the operating area.');
   for(const region of city.regions) {
     const option=document.createElement('option');option.value=region.id;option.textContent=region.name;$('#region-view').append(option);
+    if(!inner&&region.depot!=null)$('#start-region').append(option.cloneNode(true));
   }
+  if([...$('#start-region').options].some(o=>o.value===params.get('district')))$('#start-region').value=params.get('district');
   for(const control of document.querySelectorAll('button,select')) control.disabled=false;
   begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed());
+  try {const record=JSON.parse(localStorage.getItem(`send-it:shift:${city.metadata.id}`));if(record?.city===city.metadata.id&&record.ticks>0&&!record.review?.outcome){savedRecord=record;$('#resume-saved').hidden=false;text('#resume-saved',`Resume saved ${record.mode==='training'?'first shift':'Berlin shift'} · paused`);}}catch{}
   $('#map-loading').hidden=true;$('#intro').showModal();requestAnimationFrame(frame);
 } catch(error) {
   console.error('Berlin map startup failed',error);

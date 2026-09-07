@@ -1,18 +1,18 @@
-# SEND IT — Berlin Inner Ring
+# SEND IT — Berlin
 
 **Send It** is a browser-based real-time logistics game about coordinating autonomous bicycle couriers through a shared radio across Berlin.
 
 > **You control information, not riders.**
 
-**Play the current concept:** [Berlin Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/).
+**Play the current concept:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
-Current concept: **one geographic map and one radio desk**, ruleset `berlin-dispatch-v3`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, shifting locality demand, one upgrade, and a closing review. Couriers now pass on offers they cannot finish; queue estimates expose the time tradeoff. The retained released build remains at the site root. See the [refinement report](docs/BERLIN_REFINEMENT.md) for measured changes and the next playtest.
+Current concept: **one geographic city and one radio desk**, full-city ruleset `berlin-dispatch-v4`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, one upgrade, and a closing review. Start across Berlin or in any of its 97 localities. Couriers pass on offers they cannot finish; queue estimates expose the time tradeoff. Shifts save locally and restore paused. The retained released build remains at the site root. See the [full-city report](docs/BERLIN_FULL_CITY.md) for current scope, validation and next steps.
 
 ## Berlin concept playtest
 
-Serve this directory over HTTP (`python -m http.server 8080`) and open `index.html` or `playtest.html`. Both open the same desk. Read [the current state, map build, validation and next steps](docs/BERLIN_PLAYTEST.md). No map API key or build step is required to play.
+Serve this directory over HTTP (`python -m http.server 8080`) and open `index.html` or `playtest.html`. Both open the same desk. Read [the current state, map build, validation and next steps](docs/BERLIN_FULL_CITY.md). No map API key or build step is required to play.
 
-The 87.35 km² operating area follows the S41/S42 Ringbahn. Its 6,938 street sections, 7,533 sampled reachable address points, official locality boundaries, parks, water and built-up areas use a shared metric projection. A region selector changes the map view; it does not reshape the city or restrict the shift. [Map sources and accuracy limits](map-data.html) distinguish source geometry from game abstractions.
+The default operating area follows Berlin's official boundary, covering 890.668 km². Its 43,473 street sections, 45,618 sampled reachable address points, 12 boroughs, 97 localities, parks, water and built-up areas use a shared metric projection. Choose a starting locality before the shift; map controls change the camera without moving riders. The original Inner Ring map and v1–v3 replay support remain available. [Map sources and accuracy limits](map-data.html) distinguish source geometry from game abstractions.
 
 The earlier full prototype is retained at `legacy.html` for regression checks. The documentation below describes that historical release and its optional systems; the current concept is defined in the guide above.
 

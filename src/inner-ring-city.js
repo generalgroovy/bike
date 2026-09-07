@@ -17,12 +17,22 @@ export function decodeInnerRing(pack) {
   return {geographic:true,metadata:pack.metadata,width:bounds.x2+30,height:bounds.y2+30,nodes,edges,visualEdges,districts,
     parks:[],river:[],canal:[],ringPath:pack.boundary,ringStations:[],streetCatalog:pack.names,
     landmarks:[{id:'checkpoint',name:'Dispatch desk',addressNodeId:`n${pack.depot}`,x:nodes[pack.depot].x,y:nodes[pack.depot].y}],
-    unlockStages:[{level:1,threshold:0,name:'Berlin · Inner Ring',desc:'Inside the S41 / S42 Ringbahn',bounds,districts:districts.map(d=>d.id)}],
-    context:pack.context,regions:pack.regions};
+    unlockStages:[{level:1,threshold:0,name:pack.metadata.name??'Berlin · Inner Ring',desc:pack.metadata.scope==='full-city'?'The full Berlin city boundary':'Inside the S41 / S42 Ringbahn',bounds,districts:districts.map(d=>d.id)}],
+    context:pack.context,regions:pack.regions,boundaryPolygons:pack.boundaryPolygons,boroughs:pack.boroughs};
 }
 
 export async function loadInnerRing({signal}={}) {
   const response = await fetch(new URL('../generated/berlin-inner-ring.json',import.meta.url),{signal});
   if (!response.ok) throw new Error(`Berlin map could not load (${response.status})`);
   return decodeInnerRing(await response.json());
+}
+
+export async function loadBerlinCity({signal}={}) {
+  // A separate gzip payload keeps the full city practical on a static host.
+  // Browsers without streaming decompression can read the identical JSON pack.
+  const compressed=typeof DecompressionStream!=='undefined';
+  const response=await fetch(new URL(`../generated/berlin-city.json${compressed?'.gz':''}`,import.meta.url),{signal});
+  if(!response.ok)throw new Error(`Berlin city map could not load (${response.status})`);
+  const data=compressed?await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json():await response.json();
+  return decodeInnerRing(data);
 }

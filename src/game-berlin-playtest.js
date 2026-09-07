@@ -2,10 +2,12 @@ import { Game, PERSONALITIES, EXPERIENCE } from './game.js';
 import { BASE_GAME_METHODS } from './game-core.js';
 import { RIDER_SYSTEM } from './game-riders.js';
 import { installGeographicMotion } from './game-geographic-motion.js';
+import { CityAddressIndex } from './city-address-index.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
 export const GEOGRAPHIC_RULESET = 'berlin-dispatch-v3';
-export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET]);
+export const FULL_CITY_RULESET = 'berlin-dispatch-v4';
+export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET, FULL_CITY_RULESET]);
 export const PLAYTEST_CITY = 'berlin-curated-v12';
 export const FIXED_STEP = 1 / 60;
 export const SHIFT_MODES = Object.freeze({
@@ -27,12 +29,26 @@ export const CARGO_FAMILIES = Object.freeze({
  * Optional full-game update/complete/spawn wrappers are deliberately not invoked.
  */
 export class BerlinPlaytest extends Game {
-  constructor({ seed = 'FIRST-BERLIN', mode = 'training', city, ruleset } = {}) {
+  constructor({ seed = 'FIRST-BERLIN', mode = 'training', city, ruleset, startRegion } = {}) {
     super({ seed, initialize: false, city });
     if (!Object.hasOwn(SHIFT_MODES, mode)) throw new Error('Unknown shift mode');
     this.mode = mode;
-    this.ruleset = ruleset ?? (this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
-    if (!(this.cityData ? GEOGRAPHIC_RULESETS : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
+    this.fullCity = this.cityData?.metadata.scope === 'full-city';
+    this.ruleset = ruleset ?? (this.fullCity ? FULL_CITY_RULESET : this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
+    if (!(this.fullCity ? [FULL_CITY_RULESET] : this.cityData ? GEOGRAPHIC_RULESETS.filter(id=>id!==FULL_CITY_RULESET) : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
+    this.feasibleOffers = [GEOGRAPHIC_RULESET,FULL_CITY_RULESET].includes(this.ruleset);
+    if (this.fullCity) {
+      this.startRegion = mode === 'training' && (!startRegion || startRegion === 'citywide') ? 'mitte' : startRegion ?? 'citywide';
+      const starts = this.startRegion === 'citywide' ? ['mitte','spandau','koepenick'] : [this.startRegion];
+      this.startNodes = starts.map(id=>{
+        const region=city.regions.find(r=>r.id===id);
+        if(region?.depot==null)throw new Error('Unknown or unreachable start locality');
+        return `n${region.depot}`;
+      });
+      this.depotNodeId=this.startNodes[0];
+      const depot=this.nodeById(this.depotNodeId),landmark=this.landmarks.find(l=>l.id==='checkpoint');
+      Object.assign(landmark,{addressNodeId:depot.id,x:depot.x,y:depot.y});
+    }
     this.config = SHIFT_MODES[mode];
     this.tick = 0;
     this.actions = [];
@@ -50,7 +66,7 @@ export class BerlinPlaytest extends Game {
     this.dispatchFocus = this.dispatchFocusMax = 0;
     this.runTrait = { title: this.config.name, desc: 'You broadcast. Couriers choose.' };
     this.runContract = { title: 'Mitte + Kreuzberg', minTrip: mode === 'training' ? 70 : 130, maxTrip: mode === 'training' ? 300 : 680 };
-    if (this.cityData) this.runContract = {title:'Berlin · Inner Ring', minTrip:mode==='training'?70:130, maxTrip:mode==='training'?240:420};
+    if (this.cityData) this.runContract = {title:this.fullCity?'Berlin · Full city':'Berlin · Inner Ring', minTrip:mode==='training'?70:130, maxTrip:mode==='training'?240:420};
     this.cleanChain = this.bestChain = 0;
     this.goals = [];
     this.modifiers.fatigue = .65;
@@ -71,7 +87,8 @@ export class BerlinPlaytest extends Game {
     rider.homeDistrict = ['mitte', 'kreuzberg', 'mitte'][i];
     rider.fatigue = .08;
     if (this.cityData) {
-      const depot = this.nodeById(this.depotNodeId);
+      const depot = this.nodeById(this.fullCity?this.startNodes[i%this.startNodes.length]:this.depotNodeId);
+      rider.nodeId=depot.id;
       rider.x = depot.x; rider.y = depot.y;
       rider.homeDistrict = depot.districtId;
     }
@@ -88,18 +105,23 @@ export class BerlinPlaytest extends Game {
    */
   offerMargin(c, d) {
     const base = c.baseSpeed * c.experience.speed * this.modifiers.speed;
+    if (this.fullCity) {
+      const p=this.nodeById(d.pickupId),q=this.nodeById(d.dropoffId);
+      const lowerBound=Math.hypot(c.x-p.x,c.y-p.y)/base+Math.hypot(p.x-q.x,p.y-q.y)/(base*this.cargoHandlingFor(d).speed);
+      if(lowerBound>d.deadlineAt-this.elapsed)return d.deadlineAt-this.elapsed-lowerBound;
+    }
     const pickup = this.routeTravelCost(c.nodeId, d.pickupId) / base;
     const loaded = this.routeTravelCost(d.pickupId, d.dropoffId) / (base * this.cargoHandlingFor(d).speed);
     return d.deadlineAt - this.elapsed - pickup - loaded;
   }
 
   courierChoiceScore(c, d, withNoise = true) {
-    if (this.ruleset === GEOGRAPHIC_RULESET && c?.phase === 'idle' && this.offerMargin(c, d) < 1.5) return -Infinity;
+    if (this.feasibleOffers && c?.phase === 'idle' && this.offerMargin(c, d) < 1.5) return -Infinity;
     return super.courierChoiceScore(c, d, withNoise);
   }
 
   claim(c, d, score = 0) {
-    if (this.ruleset === GEOGRAPHIC_RULESET && c?.radioOn && c.phase === 'idle' && d?.called && d.status === 'waiting' && this.offerMargin(c, d) < 0) {
+    if (this.feasibleOffers && c?.radioOn && c.phase === 'idle' && d?.called && d.status === 'waiting' && this.offerMargin(c, d) < 0) {
       c.deliberation = null;
       c.decisionAt = this.elapsed + this.decisionDelay(c);
       c.lastDecision = `Passed ${d.id.toUpperCase()} · too little time to finish`;
@@ -110,7 +132,7 @@ export class BerlinPlaytest extends Game {
 
   beginDeliberation(c) {
     const result = super.beginDeliberation(c);
-    const calls = this.ruleset === GEOGRAPHIC_RULESET ? this.calledDeliveries() : [];
+    const calls = this.feasibleOffers ? this.calledDeliveries() : [];
     if (!result && c.radioOn && c.phase === 'idle' && calls.length && calls.every(d => this.offerMargin(c, d) < 1.5))
       c.lastDecision = 'Waiting for a call with time to finish';
     return result;
@@ -118,7 +140,7 @@ export class BerlinPlaytest extends Game {
 
   predictCall(c) {
     const prediction = super.predictCall(c);
-    return this.ruleset === GEOGRAPHIC_RULESET && prediction?.score === -Infinity ? null : prediction;
+    return this.feasibleOffers && prediction?.score === -Infinity ? null : prediction;
   }
 
   playableAddressNodes() {
@@ -139,6 +161,20 @@ export class BerlinPlaytest extends Game {
   }
 
   randomTrip() {
+    if (this.fullCity) {
+      this.addressIndex??=new CityAddressIndex(this.playableAddressNodes());
+      const rider=this.couriers[this.deliverySerial%this.couriers.length],max=this.runContract.maxTrip;
+      const nearby=this.addressIndex.near(rider.x,rider.y,210);
+      const local=nearby.filter(n=>n.districtId===this.demandRegion().id);
+      for(let i=0;i<64;i++) {
+        const pickup=this.rng.pick(local.length&&this.rng.chance(.65)?local:nearby);if(!pickup)return null;
+        const drops=this.addressIndex.near(pickup.x,pickup.y,max*.8).filter(n=>Math.hypot(n.x-pickup.x,n.y-pickup.y)>50);
+        if(!drops.length)continue;
+        const dropoff=this.rng.pick(drops),path=this.routeBetween(pickup.id,dropoff.id),distance=this.routeDistance(path);
+        if(path.length&&distance>=this.runContract.minTrip&&distance<=max)return{pickup,dropoff,path,distance};
+      }
+      return null;
+    }
     if (this.cityData) {
       const pool = this.playableAddressNodes(), max = this.runContract.maxTrip;
       // Demand favors the advertised locality. Nearby work remains available to
@@ -176,7 +212,9 @@ export class BerlinPlaytest extends Game {
       const depot = this.nodeById(this.depotNodeId);
       const near = this.playableAddressNodes().filter(n => n.id !== depot.id)
         .sort((a, b) => Math.hypot(a.x - depot.x, a.y - depot.y) - Math.hypot(b.x - depot.x, b.y - depot.y));
-      const pickup = near[4], drop = near.find(n => this.routeDistance(this.routeBetween(pickup.id, n.id)) >= 100);
+      const pickup = this.fullCity ? depot : near[4];
+      const drop = this.fullCity ? near.find(n => {const distance=this.routeDistance(this.routeBetween(pickup.id,n.id));return distance>=70&&distance<=this.runContract.maxTrip;}) ?? near.find(n => {const distance=this.routeDistance(this.routeBetween(pickup.id,n.id));return distance>0&&distance<=this.runContract.maxTrip;}) : near.find(n => this.routeDistance(this.routeBetween(pickup.id, n.id)) >= 100);
+      if(!drop)return false;
       options = { ...options, pickupId: pickup.id, dropoffId: drop.id };
     }
     const created = BASE_GAME_METHODS.spawnDelivery.call(this, { ...options, typeKey, special: false });
@@ -205,6 +243,10 @@ export class BerlinPlaytest extends Game {
   }
 
   demandRegion() {
+    if(this.fullCity) {
+      const id=this.startRegion==='citywide'?({opening:'mitte',build:'spandau',recovery:'koepenick',push:'mitte'}[this.phase().id]??'mitte'):this.startRegion;
+      return this.districts.find(d=>d.id===id)??this.districts[0];
+    }
     const id = this.mode==='training'?'mitte':({opening:'mitte',build:'kreuzberg',recovery:'moabit',push:'friedrichshain'}[this.phase().id]??'mitte');
     return this.districts.find(d=>d.id===id)??this.districts[0];
   }
@@ -217,8 +259,8 @@ export class BerlinPlaytest extends Game {
   updateRoadEvent() {
     if (this.eventFinished) return;
     if (!this.currentEvent && this.elapsed >= this.nextEventAt - 25) {
-      const candidates = this.visualEdges.filter(e => e.roadClass !== 'connector' && this.visualEdgePlayable(e.id));
-      const preferred = candidates.filter(e => /Friedrichstraße|Leipziger Straße/.test(e.streetName));
+      const candidates = this.visualEdges.filter(e => e.roadClass !== 'connector' && this.visualEdgePlayable(e.id) && (!this.fullCity||e.routable));
+      const preferred = candidates.filter(e => this.fullCity ? this.nodeById(e.a).districtId===this.demandRegion().id : /Friedrichstraße|Leipziger Straße/.test(e.streetName));
       const edge = this.rng.pick(preferred.length ? preferred : candidates);
       if (!edge) { this.eventFinished = true; return; }
       this.currentEvent = {
@@ -368,7 +410,7 @@ export class BerlinPlaytest extends Game {
     const misses = this.deliveries.filter(d => d.status === 'failed');
     const causes = [
       { id: 'never-called', label: 'Work left off the radio', tip: 'A deadline keeps running while a job waits off-air.' },
-      { id: 'called-unclaimed', label: 'Calls with no taker', tip: this.ruleset === GEOGRAPHIC_RULESET ? 'Call earlier and compare time to finish. Withdraw calls that cannot fit to free the radio; priority and bonuses cannot buy time.' : 'Try LOCAL near a free courier, or reserve two slots for PRIORITY.' },
+      { id: 'called-unclaimed', label: 'Calls with no taker', tip: this.feasibleOffers ? 'Call earlier and compare time to finish. Withdraw calls that cannot fit to free the radio; priority and bonuses cannot buy time.' : 'Try LOCAL near a free courier, or reserve two slots for PRIORITY.' },
       { id: 'claimed-late', label: 'Trips that ran out of time', tip: 'Leave room for travel to pickup, heavy cargo and tired riders.' }
     ].map(cause => ({ ...cause, count: misses.filter(d => d.failureKind === cause.id).length }))
       .sort((a, b) => b.count - a.count);
@@ -381,6 +423,7 @@ export class BerlinPlaytest extends Game {
 
   exportRun() {
     return { version: 1, ruleset: this.ruleset, city: this.cityData?.metadata.id??PLAYTEST_CITY, seed: this.seed, mode: this.mode,
+      ...(this.fullCity?{startRegion:this.startRegion}:{}),
       fixedStep: FIXED_STEP, ticks: this.tick, actions: this.actions.map(a => ({ ...a })),
       review: this.shiftReview(), timeline: this.dispatchLog.map(entry => ({ ...entry })) };
   }
@@ -401,7 +444,7 @@ export function replayRun(record, {city}={}) {
   if (record?.version !== 1 || !rulesets.includes(record.ruleset) || record.city !== cityId ||
       record.fixedStep !== FIXED_STEP || !Number.isInteger(record.ticks) || record.ticks < 0 || record.ticks > 40000 ||
       !Array.isArray(record.actions) || record.actions.length > 10000) throw new Error('Unsupported replay');
-  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode, city, ruleset: record.ruleset });
+  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode, city, ruleset: record.ruleset, startRegion: record.startRegion });
   let index = 0;
   while (game.tick <= record.ticks) {
     while (index < record.actions.length && record.actions[index].tick === game.tick) {

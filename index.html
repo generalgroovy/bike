@@ -32,15 +32,15 @@
       <p id="radio-hint" class="radio-hint" role="status"></p>
       <div id="work-list"></div>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
-      <div class="work-footer"><span>⌁ BERLIN · INNER RING</span><small id="seed-label"></small><span id="flow-count"></span></div>
+      <div class="work-footer"><span id="scope-name">⌁ BERLIN · FULL CITY</span><small id="seed-label"></small><span id="flow-count"></span><span id="save-state" role="status">Your shift saves on this device.</span><a id="scope-link" href="?city=inner-ring">Play the original Inner Ring</a></div>
     </section>
 
     <section class="city-panel" aria-label="Berlin dispatch map">
       <canvas id="game-canvas" aria-label="Couriers and contracts on the Berlin map. All contracts are also available in the work queue."></canvas>
-      <div class="map-caption"><span class="eyebrow">BERLIN / INNER RING</span><strong>A city in motion.</strong><small id="demand-region">Demand favors Mitte</small></div>
+      <div class="map-caption"><span class="eyebrow" id="scope-eyebrow">BERLIN / FULL CITY</span><strong>A city in motion.</strong><small id="demand-region">Demand favors Mitte</small></div>
       <label class="region-picker">Map view <select id="region-view" aria-label="Map region"><option value="">Whole Inner Ring</option><option value="route" disabled>Selected route</option></select></label>
       <div class="map-scale"><span id="map-scale-label">1 km</span><i id="map-scale-bar"></i><small>N ↑</small></div>
-      <div class="map-attribution"><a href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · © OpenStreetMap contributors · map details</a></div>
+      <div class="map-attribution"><a id="map-credits" href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · map sources and accuracy</a></div>
       <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
       <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
@@ -70,6 +70,9 @@
     <span class="eyebrow">SEND IT / BERLIN</span><h2>Good work starts<br>with a good call.</h2>
     <p>Three couriers. A shared radio. You choose which jobs they hear.<br><strong>They choose which jobs to take.</strong></p>
     <div class="welcome-steps"><span><b>01</b> Read a contract</span><span><b>02</b> Put it on the radio</span><span><b>03</b> Watch the team respond</span></div>
+    <p id="city-summary" class="city-summary"></p>
+    <label id="start-region-field" class="start-region-field">Where does your team start?<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select><small>Citywide shifts spread three couriers across Berlin. A first shift starts together in Mitte. Choose a locality to start together there.</small></label>
+    <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
     <div class="mode-choices"><button data-start="training" class="primary"><strong>Play your first shift ↗</strong><small>3 minutes · guided opening · 5 deliveries</small></button><button data-start="standard"><strong>Take the Berlin desk</strong><small>9 minutes · 24 deliveries · a busier city</small></button></div>
     <p class="fine-print">Finish with reputation left and reach the delivery target. At closing, new work stops; unfinished jobs count as misses when the timer ends. Pause whenever you need.</p>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
@@ -82,7 +85,8 @@
     <p>Read each job's finish estimate before its deadline. <strong>Time to spare</strong> leaves a buffer; <strong>Tight window</strong> needs an early call; <strong>Too little time</strong> means the current estimate cannot fit. <strong>After current work</strong> depends on a busy or resting rider becoming available. These are estimates, not promises.</p>
     <p>Couriers pass on offers they cannot currently finish. PRIORITY and bonuses influence interest; they cannot extend a deadline. Withdraw a call to free radio space when needed. The job still waits on the desk and can miss its deadline.</p>
     <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
-    <p>The operating area is inside the <strong>S41 / S42 Ringbahn</strong>. Map views zoom to official localities without changing the operating area. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations.</p>
+    <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
+    <p>Tap a rider portrait to locate them. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
     <p class="muted">Space: pause · + / −: zoom · 0: fit map · Escape: clear selection. Drag to pan. Contracts can always be selected from the queue.</p>
     <button id="close-help" class="primary">Back to the desk</button>
@@ -97,7 +101,7 @@
     <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
   </dialog>
   <nav class="mobile-desk-nav" aria-label="Jump to desk panel"><a href="#game-canvas">Map</a><a href="#work-title">Jobs <span id="mobile-job-count">1</span></a><a href="#contract-title">Contract</a></nav>
-  <div id="map-loading" role="status"><span>↗ SEND IT</span><strong>Opening the Berlin desk…</strong><small>Loading the Inner Ring street map.</small></div>
+  <div id="map-loading" role="status"><span>↗ SEND IT</span><strong>Opening the Berlin desk…</strong><small id="loading-detail">Loading Berlin's full street map.</small></div>
   <div id="fatal-error" role="alert" hidden><span id="fatal-message">The desk paused because something went wrong. Reload to start again.</span> <button id="reload">Reload</button></div>
   <script type="module" src="src/playtest-main.js"></script>
 </body>

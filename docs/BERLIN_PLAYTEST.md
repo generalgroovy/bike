@@ -1,8 +1,8 @@
 # Send It: one Berlin desk, one geographic city
 
-Implementation snapshot: 7 September 2026. Ruleset `berlin-dispatch-v3`; city `berlin-inner-ring-v1-9016596dc03b`. See [the refinement report](BERLIN_REFINEMENT.md) for the latest pacing and clarity changes.
+Retained Inner Ring scenario: 7 September 2026. Ruleset `berlin-dispatch-v3`; city `berlin-inner-ring-v1-9016596dc03b`. The default preview now opens [full Berlin](BERLIN_FULL_CITY.md). This document describes the original Inner Ring scope.
 
-[Play the current Berlin Inner Ring concept](https://generalgroovy.github.io/bike/preview/berlin/).
+[Play the retained Berlin Inner Ring concept](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
 The simplified desk and useful depth of the broader prototype now meet in one game: three independent couriers, a shared radio, readable cargo differences, locality demand, a forecast slowdown, one upgrade and a closing review. The operating area follows the S41/S42 Ringbahn. Streets, routes, address pins and contextual map layers share one geographic coordinate system.
 
@@ -10,11 +10,11 @@ This is ready for concept playtesting. Automated correctness and geographic proc
 
 ## Play and test
 
-Run `python -m http.server 8080` from the repository and open `http://localhost:8080/`. `index.html` and `playtest.html` open the same desk. The historical full prototype is retained at `legacy.html` for regression checks. No runtime build, map API key or third-party tile service is needed.
+Run `python -m http.server 8080` from the repository and open `http://localhost:8080/?city=inner-ring`. `index.html` and `playtest.html` open the same desk. The historical full prototype is retained at `legacy.html` for regression checks. No runtime build, map API key or third-party tile service is needed.
 
 Choose **Play your first shift**, broadcast the first contract on OPEN, then start the clock. The map starts close to that route; the guide can be collapsed. Riders volunteer; no assignment command exists. **Map view** zooms to a locality while keeping the whole Inner Ring in operation. **Find route** frames the current street route and the accepting courier's remaining path. Mouse wheel, drag, touch pinch, zoom buttons and keyboard controls operate the map. Narrow screens have Map / Jobs / Contract navigation.
 
-Share a starting situation using `?mode=standard&seed=BERLIN-1`. The seed recreates the opening; reproducing the played outcome also requires the recorded actions and ticks.
+Share a starting situation using `?city=inner-ring&mode=standard&seed=BERLIN-1`. The seed recreates the opening; reproducing the played outcome also requires the recorded actions and ticks.
 
 ## The unified game
 

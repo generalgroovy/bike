@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
-const css=read('../ui-minimal.css'),context=read('../ui-minimal-map-context.css'),html=read('../index.html'),shell=read('../src/ui-shell.js');
+const css=read('../ui-minimal.css'),context=read('../ui-minimal-map-context.css'),html=read('../legacy.html'),shell=read('../src/ui-shell.js');
 
 test('minimal GUI reserves substantially more viewport for the map',()=>{
   assert.match(css,/\.commandbar\{height:42px;flex:0 0 42px/);

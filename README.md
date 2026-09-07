@@ -1,16 +1,20 @@
-# SEND IT — Berlin Courier Dispatch Roguelike
+# SEND IT — Berlin Inner Ring
 
 **Send It** is a browser-based real-time logistics game about coordinating autonomous bicycle couriers through a shared radio across Berlin.
 
 > **You control information, not riders.**
 
-Play: `https://generalgroovy.github.io/bike/`
+**Play the current concept:** [Berlin Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/).
 
-Current release line: **v0.12 — Google Maps basemap + progressive map detail**.
+Current concept: **one geographic map and one radio desk**, ruleset `berlin-dispatch-v2`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, shifting locality demand, one upgrade, and a closing review. The retained released build remains at the site root.
 
 ## Berlin concept playtest
 
-This branch also includes [the Berlin desk](playtest.html), a separate small ruleset for testing simplicity, decisions, and replay appeal. Serve this directory over HTTP and open `playtest.html`. Read [the playtest guide and approval gates](docs/BERLIN_PLAYTEST.md). The three-minute training shift and nine-minute standard shift use the bundled curated graph; full mobile adaptation and another city follow tested Berlin concept approval.
+Serve this directory over HTTP (`python -m http.server 8080`) and open `index.html` or `playtest.html`. Both open the same desk. Read [the current state, map build, validation and next steps](docs/BERLIN_PLAYTEST.md). No map API key or build step is required to play.
+
+The 87.35 km² operating area follows the S41/S42 Ringbahn. Its 6,938 street sections, 7,533 sampled reachable address points, official locality boundaries, parks, water and built-up areas use a shared metric projection. A region selector changes the map view; it does not reshape the city or restrict the shift. [Map sources and accuracy limits](map-data.html) distinguish source geometry from game abstractions.
+
+The earlier full prototype is retained at `legacy.html` for regression checks. The documentation below describes that historical release and its optional systems; the current concept is defined in the guide above.
 
 ---
 

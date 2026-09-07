@@ -1,0 +1,3 @@
+# City-pack hashes must survive checkouts on Windows and Linux.
+generated/*.json text eol=lf
+generated/*.geojson text eol=lf

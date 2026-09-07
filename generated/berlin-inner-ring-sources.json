@@ -1,0 +1,136 @@
+{
+  "id": "berlin-inner-ring-v1-9016596dc03b",
+  "schema": 1,
+  "crs": "EPSG:25833",
+  "origin": [
+    383418.1858412043,
+    5823373.171137904
+  ],
+  "padding": 30,
+  "metersPerUnit": 10,
+  "bounds": {
+    "x1": 30,
+    "y1": 30,
+    "x2": 1343.53,
+    "y2": 972.94
+  },
+  "areaKm2": 87.351,
+  "simplificationMeters": 1,
+  "coordinateRoundingMeters": 0.1,
+  "junctionMaxDisplacementMeters": 0.539,
+  "sourceAddressesInRing": 51240,
+  "routingComponents": 83,
+  "largestComponentNodes": 29619,
+  "reachableAddresses": 7533,
+  "regions": 19,
+  "streets": 6938,
+  "nodes": 30656,
+  "edges": 32293,
+  "routingPolicy": "Detailnetz B/R/G directions; no motorways/private/unclassified roads; pedestrian paths allowed as push-bike links. No turn restrictions or bicycle exceptions.",
+  "accessPolicy": "Sampled official address points; access links of at most 60 m to the same named street. Access links are schematic, not surveyed entrances.",
+  "license": "ODbL-1.0; Berlin source datasets dl-de-zero-2.0",
+  "sources": [
+    {
+      "name": "streets",
+      "endpoint": "https://gdi.berlin.de/services/wfs/detailnetz",
+      "type": "detailnetz:c_strassenabschnitte",
+      "bbox": [
+        13.2823881,
+        52.4649157,
+        13.4756728,
+        52.5497241
+      ],
+      "fetchedAt": "2026-09-07T00:14:09.376Z",
+      "features": 10020,
+      "sha256": "d83b2488c5ecc1edc37e7523927d6017f3a70f4279c7eb1d7620b9d79ed3b84e",
+      "urls": [
+        "https://gdi.berlin.de/services/wfs/detailnetz?service=WFS&request=GetFeature&version=2.0.0&typeNames=detailnetz%3Ac_strassenabschnitte&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=0",
+        "https://gdi.berlin.de/services/wfs/detailnetz?service=WFS&request=GetFeature&version=2.0.0&typeNames=detailnetz%3Ac_strassenabschnitte&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=10000"
+      ]
+    },
+    {
+      "name": "addresses",
+      "endpoint": "https://gdi.berlin.de/services/wfs/adressen_berlin",
+      "type": "adressen_berlin:adressen_berlin",
+      "bbox": [
+        13.2823881,
+        52.4649157,
+        13.4756728,
+        52.5497241
+      ],
+      "fetchedAt": "2026-09-07T00:14:18.162Z",
+      "features": 70317,
+      "sha256": "e2ae446af1e797e120326888b26021d0c8bc11c5261bb242689bf1828e6b15a3",
+      "urls": [
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=0",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=10000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=20000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=30000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=40000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=50000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=60000",
+        "https://gdi.berlin.de/services/wfs/adressen_berlin?service=WFS&request=GetFeature&version=2.0.0&typeNames=adressen_berlin%3Aadressen_berlin&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=70000"
+      ]
+    },
+    {
+      "name": "regions",
+      "endpoint": "https://gdi.berlin.de/services/wfs/alkis_ortsteile",
+      "type": "alkis_ortsteile:ortsteile",
+      "bbox": [
+        13.2823881,
+        52.4649157,
+        13.4756728,
+        52.5497241
+      ],
+      "fetchedAt": "2026-09-07T00:14:08.115Z",
+      "features": 34,
+      "sha256": "527b85be46956e6513bb7897843fa32c56ef0f6ee3f424d72167db8f8fdbd2a0",
+      "urls": [
+        "https://gdi.berlin.de/services/wfs/alkis_ortsteile?service=WFS&request=GetFeature&version=2.0.0&typeNames=alkis_ortsteile%3Aortsteile&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=0"
+      ]
+    },
+    {
+      "name": "parks",
+      "endpoint": "https://gdi.berlin.de/services/wfs/gruenanlagen",
+      "type": "gruenanlagen:gruenanlagen",
+      "bbox": [
+        13.2823881,
+        52.4649157,
+        13.4756728,
+        52.5497241
+      ],
+      "fetchedAt": "2026-09-07T00:14:09.367Z",
+      "features": 759,
+      "sha256": "878e335baccff49c8f5b72c6789662fd7eaf8e9cdabb9d67b9549a5524ee3251",
+      "urls": [
+        "https://gdi.berlin.de/services/wfs/gruenanlagen?service=WFS&request=GetFeature&version=2.0.0&typeNames=gruenanlagen%3Agruenanlagen&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=0"
+      ]
+    },
+    {
+      "name": "landcover",
+      "endpoint": "https://gdi.berlin.de/services/wfs/lc_alkis",
+      "type": "lc_alkis:LandCoverUnit",
+      "bbox": [
+        13.2823881,
+        52.4649157,
+        13.4756728,
+        52.5497241
+      ],
+      "fetchedAt": "2026-09-07T00:14:23.845Z",
+      "features": 23733,
+      "sha256": "b7115cf26ebe6ba95b183e729852387490aeb6e2eeb3a5aba017324551b12ac0",
+      "urls": [
+        "https://gdi.berlin.de/services/wfs/lc_alkis?service=WFS&request=GetFeature&version=2.0.0&typeNames=lc_alkis%3ALandCoverUnit&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=0",
+        "https://gdi.berlin.de/services/wfs/lc_alkis?service=WFS&request=GetFeature&version=2.0.0&typeNames=lc_alkis%3ALandCoverUnit&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=10000",
+        "https://gdi.berlin.de/services/wfs/lc_alkis?service=WFS&request=GetFeature&version=2.0.0&typeNames=lc_alkis%3ALandCoverUnit&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=10000&bbox=13.2823881%2C52.4649157%2C13.4756728%2C52.5497241%2CEPSG%3A4326&startIndex=20000"
+      ]
+    },
+    {
+      "name": "ringbahn",
+      "url": "https://api.openstreetmap.org/api/0.6/relation/14981/full.json",
+      "sha256": "753ce7873c6daa44cafbeaed786a4d90d8d214fdc8e3ffc4cae1db7e2605bb3a",
+      "license": "ODbL-1.0"
+    }
+  ],
+  "sha256": "63675d70941e409a42af14ab254668d5f5488ffd2f4fbefd8709902a7ef7f0ec"
+}

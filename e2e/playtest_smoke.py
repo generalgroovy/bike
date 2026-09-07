@@ -194,6 +194,60 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.evaluate("delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))")
         expect(self.page.locator('#pause')).to_have_text('Resume')
 
+    def test_unified_entry_region_views_and_route_focus_use_one_geographic_map(self):
+        self.start('standard')
+        self.assertEqual(self.game('g.nodes.length'), 30656)
+        self.assertEqual(self.game('g.ruleset'), 'berlin-dispatch-v2')
+        before = self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])')
+        self.page.locator('#region-view').select_option('kreuzberg')
+        self.assertGreater(self.camera('r.zoom'), 1)
+        self.assertEqual(self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])'), before)
+        self.assertTrue(self.game('g.paused'))
+        self.page.locator('#find-route').click()
+        self.assertGreater(self.camera('r.zoom'), 2)
+        self.page.screenshot(path=str(REPORTS / 'geographic-route.png'), full_page=True)
+        self.page.locator('#fit-map').click()
+        self.assertEqual(self.camera('r.zoom'), 1)
+        self.assertEqual(self.page.locator('#region-view').input_value(), '')
+        self.page.goto(self.base + '/index.html?mode=standard&seed=BERLIN-1')
+        expect(self.page.locator('#intro')).to_be_visible()
+        self.assertEqual(self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])'), before)
+        self.assertEqual(self.game('g.cityData.metadata.crs'), 'EPSG:25833')
+
+    def test_touch_pinch_and_panel_navigation(self):
+        self.start()
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.locator('.mobile-desk-nav a').first.click()
+        self.page.evaluate("""() => {
+            const c=document.querySelector('canvas'),r=c.getBoundingClientRect();
+            // Synthetic pointer capture is a no-op; event handling is production code.
+            c.setPointerCapture=()=>{};c.hasPointerCapture=()=>false;
+            const send=(type,id,x,y,primary)=>c.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',isPrimary:primary,button:0,clientX:r.left+x,clientY:r.top+y,bubbles:true}));
+            send('pointerdown',10,90,240,true);send('pointerdown',11,230,240,false);
+            send('pointermove',11,310,240,false);send('pointerup',11,310,240,false);send('pointerup',10,90,240,true);
+        }""")
+        self.assertGreater(self.camera('r.zoom'), 1.4)
+        self.assertTrue(self.game('g.paused'))
+        self.page.locator('.mobile-desk-nav a').nth(1).click()
+        self.assertTrue(self.page.locator('#work-title').evaluate('(el)=>el.getBoundingClientRect().top>=0&&el.getBoundingClientRect().top<innerHeight'))
+
+    def test_map_load_failure_is_explicit_and_does_not_substitute_a_schematic(self):
+        self.context.unroute('**/*', self.network_guard)
+        self.context.route('**/generated/berlin-inner-ring.json', lambda route: route.abort())
+        self.page.goto(self.base + '/index.html')
+        expect(self.page.locator('#fatal-error')).to_be_visible()
+        expect(self.page.locator('#fatal-message')).to_contain_text('Berlin map could not load')
+        expect(self.page.locator('#intro')).to_be_hidden()
+        self.assertIsNone(self.game('g'))
+
+    def test_still_map_is_cached_while_riders_keep_animating(self):
+        self.start()
+        frames = self.camera('r.renderStats.frames')
+        paints = self.camera('r.renderStats.mapRepaints')
+        self.page.wait_for_timeout(250)
+        self.assertGreater(self.camera('r.renderStats.frames'), frames)
+        self.assertEqual(self.camera('r.renderStats.mapRepaints'), paints)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

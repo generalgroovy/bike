@@ -11,7 +11,8 @@ export class Camera{
   resetView(){this.fitPlayable();}
   worldToScreen(x,y){return{x:this.offsetX+x*this.scale,y:this.offsetY+y*this.scale};}
   screenToWorld(x,y){return{x:(x-this.offsetX)/this.scale,y:(y-this.offsetY)/this.scale};}
-  zoomAt(x,y,factor){const before=this.screenToWorld(x,y);this.zoom=clamp(this.zoom*factor,.72,6);this.scale=this.fitScale*this.zoom;this.offsetX=x-before.x*this.scale;this.offsetY=y-before.y*this.scale;this.clampView();return this.zoom;}
+  zoomAt(x,y,factor){const before=this.screenToWorld(x,y);this.zoom=clamp(this.zoom*factor,.72,this.game.cityData?32:6);this.scale=this.fitScale*this.zoom;this.offsetX=x-before.x*this.scale;this.offsetY=y-before.y*this.scale;this.clampView();return this.zoom;}
+  focusBounds(bounds){this.fitPlayable();const target=Math.min((this.viewWidth-80)/Math.max(1,bounds.x2-bounds.x1),(this.viewHeight-140)/Math.max(1,bounds.y2-bounds.y1));this.zoom=clamp(target/this.fitScale,1,this.game.cityData?32:6);this.scale=this.fitScale*this.zoom;this.offsetX=this.viewWidth/2-(bounds.x1+bounds.x2)/2*this.scale;this.offsetY=this.viewHeight/2-(bounds.y1+bounds.y2)/2*this.scale;this.clampView();}
   pan(dx,dy){this.offsetX+=dx;this.offsetY+=dy;this.clampView();}
   clampView(){if(!this.viewWidth)return;const b=this.activeBounds(),pad=100,minX=this.viewWidth-b.x2*this.scale-pad,maxX=pad-b.x1*this.scale,minY=this.viewHeight-b.y2*this.scale-pad,maxY=pad-b.y1*this.scale,spanW=(b.x2-b.x1)*this.scale,spanH=(b.y2-b.y1)*this.scale;if(spanW<this.viewWidth-pad*2)this.offsetX=(this.viewWidth-(b.x1+b.x2)*this.scale)/2;else this.offsetX=clamp(this.offsetX,minX,maxX);if(spanH<this.viewHeight-pad*2)this.offsetY=(this.viewHeight-(b.y1+b.y2)*this.scale)/2;else this.offsetY=clamp(this.offsetY,minY,maxY);}
   px(value){return value/this.scale;}

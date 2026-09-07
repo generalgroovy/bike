@@ -50,7 +50,7 @@ class BrowserAcceptance(unittest.TestCase):
         self.page.on('pageerror', lambda error: self.errors.append(str(error)))
         self.page.on('dialog', self.dismiss_dialog)
         self.context.route('**/*', self.network_guard)
-        self.page.goto(self.base + '/?seed=V13-BROWSER')
+        self.page.goto(self.base + '/legacy.html?seed=V13-BROWSER')
         expect(self.page.locator('.task-card').first).to_be_visible()
         self.page.keyboard.press('Space')
         self.assertTrue(self.game('g.paused'))

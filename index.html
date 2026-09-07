@@ -1,130 +1,101 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#151a20">
-<meta name="description" content="Send It — a fast, autonomous Berlin bicycle courier dispatch roguelike.">
-<title>Send It // Berlin Dispatch</title>
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="review.css">
-<link rel="stylesheet" href="outlook.css">
-<link rel="stylesheet" href="insight.css">
-<link rel="stylesheet" href="event-options.css">
-<link rel="stylesheet" href="ui-overhaul.css">
-<link rel="stylesheet" href="ui-clarity.css">
-<link rel="stylesheet" href="ui-minimal.css">
-<link rel="stylesheet" href="ui-minimal-map-context.css">
-<link rel="stylesheet" href="ui-map-overview.css">
-<link rel="stylesheet" href="ui-v10-stable-map.css">
-<link rel="stylesheet" href="ui-v11-kinetic.css">
-<link rel="stylesheet" href="ui-v13-native.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#172a2d">
+  <meta name="description" content="A short shift on the Berlin courier desk. Shape the radio, read the city, and let your riders choose.">
+  <title>Send It — The Berlin desk</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="playtest.css">
 </head>
 <body>
-<main class="app-shell">
-<header class="commandbar">
-  <div class="brand" data-tip="SEND IT: shape the work riders hear; riders choose for themselves.">
-    <span class="brand-mark">↗</span><span><strong>SEND IT</strong><small>BERLIN DISPATCH</small></span>
-  </div>
-  <div class="shift-chip" data-tip="Run trait × contract profile. Same seed reproduces the same opening conditions.">
-    <span>SHIFT</span><strong id="trait">—</strong><i>×</i><strong id="contract">—</strong><small id="seed">—</small>
-    <span id="trait-desc" hidden></span><span id="contract-desc" hidden></span>
-  </div>
-  <div class="city-chip" data-tip="Operating territory expands after enough completed deliveries.">
-    <span>AREA</span><strong id="city-stage">CENTER</strong><div class="city-progress"><i id="city-progress"></i></div><small id="city-next">—</small>
-  </div>
-  <div class="metrics" aria-label="Shift statistics">
-    <div data-tip="Reputation. At 0 the shift ends."><span>REP</span><strong id="rep" data-level="good">100</strong></div>
-    <div><span>€</span><strong id="cash">0</strong></div>
-    <div><span>SCORE</span><strong id="score">0</strong></div>
-    <div data-tip="Dispatch focus powers client calls, rebroadcasts and event responses."><span>FOCUS</span><strong><b id="focus">2</b>/<b id="focus-max">3</b></strong></div>
-  </div>
-  <div class="top-actions"><button id="sound-toggle" class="ghost" aria-label="Toggle sound" data-tip="Musical UI and city cues. Audio begins after your first interaction.">♫ SOUND</button><button id="help-toggle" class="ghost" aria-label="Help">? HELP</button><button id="new-run" aria-label="New shift">NEW SHIFT</button></div>
-</header>
-
-<section class="task-rail" aria-label="Delivery contracts">
-  <div class="task-summary">
-    <span class="eyebrow">WORK</span>
-    <div><strong id="active-count">0</strong><small>ACTIVE</small></div>
-    <div class="bandwidth" data-tip="Live radio bandwidth. OPEN and LOCAL cost 1; PRIORITY costs 2."><strong><span id="called-count">0</span>/<span id="radio-slots">4</span></strong><small>RADIO</small></div>
-  </div>
-  <div id="deliveries" class="task-strip"></div>
-</section>
-
-<section class="workspace">
-  <section class="map-stage" aria-label="Berlin courier map">
-    <canvas id="game-canvas"></canvas>
-    <div id="map-source" class="native-map-source" role="status" aria-live="polite">NATIVE · CURATED MAP</div>
-    <div class="map-city"><strong>BERLIN</strong><small id="map-stage-label">CENTER DESK</small></div>
-    <div id="event-chip" class="event-chip" hidden>
-      <span id="event-state">FORECAST</span><strong id="event-title">—</strong><small id="event-detail">—</small><b id="event-time">—</b>
-      <button id="event-advisory" data-tip="Spend 1 focus to prepare for or respond to this event. Route and demand events have different counterplay.">RESPOND · 1 FOCUS</button>
+  <header class="masthead">
+    <a class="wordmark" href="playtest.html" aria-label="Send It Berlin desk"><span>↗</span> SEND IT<span class="edition">THE BERLIN DESK</span></a>
+    <div class="desk-stats" aria-label="Shift status">
+      <div><small>REPUTATION</small><strong id="reputation">100</strong><meter id="rep-meter" min="0" max="100" value="100">100</meter></div>
+      <div><small>CASH</small><strong id="cash">€10</strong></div>
+      <div><small>RADIO</small><strong id="radio-count">0 / 3</strong></div>
     </div>
-    <aside id="job-inspector" class="job-inspector" hidden>
-      <div class="inspect-head"><span><b id="inspect-glyph">●</b><strong id="inspect-id">D0</strong><em id="inspect-special"></em></span><button id="inspect-close" aria-label="Close contract">×</button></div>
-      <div class="inspect-route"><span><small>PICKUP</small><b id="inspect-pickup">—</b></span><i>→</i><span><small>DROP</small><b id="inspect-dropoff">—</b></span></div>
-      <div class="inspect-facts"><span id="inspect-time">—</span><span id="inspect-distance">—</span><span id="inspect-reward">—</span><span id="inspect-likely">—</span></div>
-      <div id="inspect-advice" class="inspect-advice"></div>
-      <div id="inspect-streets" class="inspect-streets"></div>
-      <div id="inspect-outlook" class="inspect-outlook" data-tip="NOW riders can hear this call immediately. BUSY/BREAK riders are only forecasts of when they could become relevant soon; they cannot be pre-assigned." hidden></div>
-      <div class="dispatch-tools">
-        <button data-tool="sweeten" data-tip="Spend €5 to add €9 payout and make this job more attractive to riders.">+€ BONUS</button>
-        <button data-tool="extend" data-tip="Spend 1 focus to call the client and negotiate 20 extra seconds.">+20s CLIENT</button>
-        <button data-tool="rebroadcast" data-tip="Spend 1 focus to push this live call back to every listening rider for 7 seconds.">REBROADCAST</button>
-      </div>
+    <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><button id="help">How to play</button><button id="new-shift">New shift</button></nav>
+  </header>
+
+  <div class="shift-bar">
+    <div><span class="live-dot"></span><strong id="phase-name">Find your rhythm</strong><span id="phase-detail">A small desk. A city full of possibilities.</span></div>
+    <div class="shift-target"><span id="delivery-target">0 / 5 delivered</span><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock">3:00</strong></div>
+  </div>
+
+  <main class="desk-layout">
+    <section class="work-panel" aria-labelledby="work-title">
+      <div class="panel-heading"><div><span class="eyebrow">YOUR NEXT DECISION</span><h1 id="work-title">On the desk <span id="work-count">1</span></h1></div></div>
+      <p class="queue-explainer">Choose what the team hears.</p>
+      <div id="work-list"></div>
+      <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
+      <div class="work-footer"><span>⌁ BERLIN · INNER RING</span><small id="seed-label"></small><span id="flow-count"></span></div>
+    </section>
+
+    <section class="city-panel" aria-label="Berlin dispatch map">
+      <canvas id="game-canvas" aria-label="Couriers and contracts on the Berlin map. All contracts are also available in the work queue."></canvas>
+      <div class="map-caption"><span class="eyebrow">BERLIN / INNER RING</span><strong>A city in motion.</strong><small id="demand-region">Demand favors Mitte</small></div>
+      <label class="region-picker">Map view <select id="region-view" aria-label="Map region"><option value="">Whole Inner Ring</option><option value="route" disabled>Selected route</option></select></label>
+      <div class="map-scale"><span id="map-scale-label">1 km</span><i id="map-scale-bar"></i><small>N ↑</small></div>
+      <div class="map-attribution"><a href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · © OpenStreetMap contributors · map details</a></div>
+      <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
+      <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
+      <div id="coach" role="status"></div>
+      <div class="map-bottom"><span id="notice" role="status"></span><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
+    </section>
+
+    <aside class="details-panel">
+      <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><div><span class="eyebrow">THE PEOPLE ON THE RADIO</span><h2 id="team-title">Your three riders</h2></div></div><div id="team-list"></div></section>
+      <section class="contract-section" aria-labelledby="contract-title">
+        <div class="panel-heading"><div><span class="eyebrow">SELECTED CONTRACT</span><h2 id="contract-title">Make the call.</h2></div></div>
+        <p id="selection-empty" class="empty">Tap a job or a pickup on the map.</p>
+        <div id="contract-detail" hidden>
+          <div class="contract-top"><span id="selected-cargo"></span><strong id="selected-reward"></strong></div>
+          <div class="addresses"><span>PICKUP</span><strong id="selected-pickup"></strong><span>DROP-OFF</span><strong id="selected-drop"></strong></div>
+          <div class="contract-facts"><strong id="selected-time"></strong><span id="selected-distance"></span></div>
+          <div class="region-route"><span id="selected-regions"></span><button id="find-route">Find route ↗</button></div>
+          <p id="selected-handling"></p><p id="selected-state" class="explanation"></p>
+          <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open"><strong>OPEN</strong><small>1 slot · everyone</small></button><button data-radio="local"><strong>LOCAL</strong><small>1 slot · nearby</small></button><button data-radio="priority"><strong>PRIORITY</strong><small>2 slots · attention</small></button></div>
+          <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
+          <button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
+        </div>
+      </section>
     </aside>
-    <div id="notice" class="notice" role="status"></div>
-    <div class="map-tools" aria-label="Map controls"><button id="zoom-out" title="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in">+</button><button id="zoom-reset" title="Fit active operating area">FIT</button></div>
-    <div class="time-tools" aria-label="Simulation controls"><button id="pause" title="Pause / resume (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
-  </section>
+  </main>
 
-  <aside class="team-dock">
-    <div class="dock-head"><div><span class="eyebrow">TEAM</span><strong>Riders</strong></div><small>click / hover to inspect</small></div>
-    <div id="couriers" class="rider-list"></div>
-    <details class="goals-drawer">
-      <summary><span>GOALS</span><b id="goal-count">0</b></summary>
-      <div id="goals" class="goals"></div>
-    </details>
-  </aside>
-</section>
-</main>
+  <dialog id="intro" class="welcome">
+    <span class="eyebrow">SEND IT / BERLIN</span><h2>Good work starts<br>with a good call.</h2>
+    <p>Three couriers. A shared radio. You choose which jobs they hear.<br><strong>They choose which jobs to take.</strong></p>
+    <div class="welcome-steps"><span><b>01</b> Read a contract</span><span><b>02</b> Put it on the radio</span><span><b>03</b> Watch the team respond</span></div>
+    <div class="mode-choices"><button data-start="training" class="primary"><strong>Play your first shift ↗</strong><small>3 minutes · guided opening · 5 deliveries</small></button><button data-start="standard"><strong>Take the Berlin desk</strong><small>9 minutes · 24 deliveries · a busier city</small></button></div>
+    <p class="fine-print">Finish with reputation left and reach the delivery target. At closing, new work stops; unfinished jobs count as misses when the timer ends. Pause whenever you need.</p>
+    <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
+  </dialog>
 
-<div id="hover-tip" class="hover-tip" hidden></div>
+  <dialog id="help-dialog">
+    <span class="eyebrow">A LITTLE RADIO ETIQUETTE</span><h2>You broadcast. Riders decide.</h2>
+    <p><strong>OPEN</strong> lets all listening couriers consider a job. <strong>LOCAL</strong> favors nearby riders. <strong>PRIORITY</strong> attracts more attention and uses two slots. None of them assigns a rider.</p>
+    <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
+    <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
+    <p>The operating area is inside the <strong>S41 / S42 Ringbahn</strong>. Map views zoom to official localities without changing the operating area. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations.</p>
+    <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
+    <p class="muted">Space: pause · + / −: zoom · 0: fit map · Escape: clear selection. Drag to pan. Contracts can always be selected from the queue.</p>
+    <button id="close-help" class="primary">Back to the desk</button>
+  </dialog>
 
-<aside id="help-panel" class="help-panel" hidden>
-  <div class="help-head"><div><span class="eyebrow">REFERENCE</span><h2>How to dispatch</h2></div><button id="help-close">×</button></div>
-  <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which contracts are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
-  <div class="help-grid">
-    <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p></section>
-    <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>
-    <section><h3>Riders</h3><p>Task bar = completion.<br>Energy bar = fatigue reserve.<br>Grey = break / radio off.<br>Personality affects what they volunteer for.<br><b>Rider Outlook</b> shows who can hear now and who may become available soon.</p></section>
-    <section><h3>Momentum</h3><p><b>FLOW</b> rises with clean deliveries and breaks on misses or service breaches.<br><b>CITY</b> shows the highest district load.<br><b>PHASE</b> shows the current predictable demand rhythm.</p></section>
-    <section><h3>Sensory language</h3><p>Delivery sonar = waiting work.<br>Faster rider trails burn brighter and play higher notes.<br>Pressure adds low pulses.<br>Radio, goals, events and FLOW each have a distinct motif in the same musical key.</p></section>
-    <section><h3>Native map</h3><p>No API key is required. Wheel or <b>+ / −</b> zooms from overview to street detail; drag pans and <b>0</b> fits the operating area. The source badge distinguishes local detail from the bundled curated fallback. Routes remain a gameplay abstraction, not navigation guidance.</p></section>
-    <section><h3>Route readouts</h3><p>Cargo icons identify the load. <b>NEAR → CROSS-TOWN</b> describes distance; <b>EASY → EXTREME</b> describes difficulty. Signed <b>ride margin</b> compares the deadline with an estimated loaded ride only; it excludes getting to pickup, pickup waits and breaks. Use Dispatch Insight for rider-specific feasibility.</p></section>
-    <section><h3>Operator UI</h3><p><b>Q</b> contracts rail · <b>R</b> rider rail · <b>D</b> density · <b>M</b> full map focus.<br>The queue defaults to attention-first sorting; all UI controls shape information, never rider authority.</p></section>
-  </div>
-  <div class="legend-grid">
-    <div><strong>CARGO</strong><span>▲ Food</span><span>● Parcel</span><span>■ Docs</span><span>⬢ Grocery</span><span>◆ Fragile</span><span>✿ Flowers</span><span>⌑ Keys</span><span>✚ Medical</span><span>♨ Catering</span><span>❄ Cold</span></div>
-    <div><strong>INPUT</strong><span>Wheel · zoom</span><span>Drag · pan</span><span>Space · pause</span><span>1 / 2 / 3 · speed</span><span>0 · fit area</span><span>+ / − · zoom</span><span>Q / R · rails</span><span>D · density</span><span>M · map focus</span><span>H / ? · help</span></div>
-  </div>
-  <p class="help-legal"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · Native map mode uses bundled files; game routes are not navigation guidance.</p>
-  <button id="help-done">BACK TO DISPATCH</button>
-</aside>
-
-<dialog id="upgrade-modal" class="modal" hidden>
-  <span class="eyebrow">SHIFT UPGRADE</span><h2>Choose one advantage.</h2><div id="upgrade-choices" class="upgrade-grid"></div>
-</dialog>
-<dialog id="gameover-modal" class="modal gameover" hidden>
-  <span class="eyebrow danger">SHIFT COLLAPSED</span><h2>The desk lost the city.</h2><div id="run-summary" class="run-summary"></div>
-  <section class="dispatch-review"><h3>Dispatch review</h3><div id="review-metrics" class="review-metrics"></div><div id="review-advice" class="review-advice"></div></section>
-  <section class="timeline-review"><div class="timeline-head"><h3>Critical timeline</h3><small>what changed the desk</small></div><div id="review-timeline" class="review-timeline"></div></section>
-  <p class="best">Browser best: <strong id="best-score">0</strong></p>
-  <div class="modal-actions"><button id="same-seed" class="ghost">RETRY SEED</button><button id="random-seed">NEW SHIFT</button></div>
-</dialog>
-<script type="module" src="src/main.js"></script>
-<script type="module" src="src/ui-outlook.js"></script>
-<script type="module" src="src/ui-event-options.js"></script>
-<script type="module" src="src/ui-shell.js"></script>
+  <dialog id="upgrade-dialog"><span class="eyebrow">HALFWAY THROUGH</span><h2>A little help for the team.</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>
+  <dialog id="review-dialog" class="review">
+    <span class="eyebrow" id="result-label">SHIFT REVIEW</span><h2 id="result-title"></h2><p id="result-description"></p>
+    <div class="review-stats" id="result-stats"></div><div class="review-note"><strong id="result-rider"></strong><p id="result-flow"></p><p id="result-lesson"></p></div>
+    <details><summary>What happened on the radio?</summary><ol id="result-timeline"></ol></details>
+    <div class="review-actions"><button id="retry" class="primary">Retry this shift</button><button id="next-shift">Try a new shift</button><button id="export-run">Download shift record</button></div>
+    <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
+  </dialog>
+  <nav class="mobile-desk-nav" aria-label="Jump to desk panel"><a href="#game-canvas">Map</a><a href="#work-title">Jobs <span id="mobile-job-count">1</span></a><a href="#contract-title">Contract</a></nav>
+  <div id="map-loading" role="status"><span>↗ SEND IT</span><strong>Opening the Berlin desk…</strong><small>Loading the Inner Ring street map.</small></div>
+  <div id="fatal-error" role="alert" hidden><span id="fatal-message">The desk paused because something went wrong. Reload to start again.</span> <button id="reload">Reload</button></div>
+  <script type="module" src="src/playtest-main.js"></script>
 </body>
 </html>

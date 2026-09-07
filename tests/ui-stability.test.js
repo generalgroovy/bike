@@ -52,7 +52,7 @@ test('interactive map overlays explicitly retain pointer input',()=>{
 });
 
 test('operator shell loads stability before v11 observer and no longer injects stylesheets',()=>{
-  const shell=read('../src/ui-shell.js'),html=read('../index.html');
+  const shell=read('../src/ui-shell.js'),html=read('../legacy.html');
   const stabilityAt=shell.indexOf("import './ui-stability.js'");
   const vibeAt=shell.indexOf("import './ui-vibe.js'");
   const registerAt=shell.indexOf("registerUiTask('operator-shell'");

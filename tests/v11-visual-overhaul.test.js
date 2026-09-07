@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 
 test('v11 stylesheet stack is static and deterministic before browser modules start',()=>{
-  const html=read('../index.html'),shell=read('../src/ui-shell.js');
+  const html=read('../legacy.html'),shell=read('../src/ui-shell.js');
   const a=html.indexOf('ui-minimal-map-context.css'),b=html.indexOf('ui-map-overview.css'),c=html.indexOf('ui-v10-stable-map.css'),d=html.indexOf('ui-v11-kinetic.css'),script=html.indexOf('src/main.js');
   assert.ok(a>=0&&b>a&&c>b&&d>c&&script>d);
   assert.doesNotMatch(shell,/createElement\(['"]link['"]\)/);
@@ -51,7 +51,7 @@ test('dynamic polish respects reduced motion and high contrast',()=>{
 });
 
 test('help and shell agree on the current rail and map-focus controls',()=>{
-  const html=read('../index.html'),shell=read('../src/ui-shell.js');
+  const html=read('../legacy.html'),shell=read('../src/ui-shell.js');
   assert.match(html,/<b>Q<\/b> contracts rail/);
   assert.match(html,/<b>R<\/b> rider rail/);
   assert.match(html,/<b>M<\/b> full map focus/);

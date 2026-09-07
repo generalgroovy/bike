@@ -16,6 +16,6 @@ test('overhaul CSS establishes map-first hierarchy responsive density and access
 });
 
 test('index loads the new shell after existing gameplay and sensory surfaces',()=>{
-  const html=read('../index.html');
+  const html=read('../legacy.html');
   assert.match(html,/ui-overhaul\.css/);assert.match(html,/src\/ui-shell\.js/);assert.match(html,/Operator UI/);assert.match(html,/D · density/);assert.match(html,/M · map focus/);
 });

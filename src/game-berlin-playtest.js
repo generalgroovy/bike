@@ -1,6 +1,7 @@
 import { Game, PERSONALITIES, EXPERIENCE } from './game.js';
 import { BASE_GAME_METHODS } from './game-core.js';
 import { RIDER_SYSTEM } from './game-riders.js';
+import { installGeographicMotion } from './game-geographic-motion.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
 export const PLAYTEST_CITY = 'berlin-curated-v12';
@@ -24,11 +25,11 @@ export const CARGO_FAMILIES = Object.freeze({
  * Optional full-game update/complete/spawn wrappers are deliberately not invoked.
  */
 export class BerlinPlaytest extends Game {
-  constructor({ seed = 'FIRST-BERLIN', mode = 'training' } = {}) {
-    super({ seed, initialize: false });
+  constructor({ seed = 'FIRST-BERLIN', mode = 'training', city } = {}) {
+    super({ seed, initialize: false, city });
     if (!Object.hasOwn(SHIFT_MODES, mode)) throw new Error('Unknown shift mode');
     this.mode = mode;
-    this.ruleset = PLAYTEST_RULESET;
+    this.ruleset = this.cityData ? 'berlin-dispatch-v2' : PLAYTEST_RULESET;
     this.config = SHIFT_MODES[mode];
     this.tick = 0;
     this.actions = [];
@@ -46,6 +47,8 @@ export class BerlinPlaytest extends Game {
     this.dispatchFocus = this.dispatchFocusMax = 0;
     this.runTrait = { title: this.config.name, desc: 'You broadcast. Couriers choose.' };
     this.runContract = { title: 'Mitte + Kreuzberg', minTrip: mode === 'training' ? 70 : 130, maxTrip: mode === 'training' ? 300 : 680 };
+    if (this.cityData) this.runContract = {title:'Berlin · Inner Ring', minTrip:mode==='training'?70:130, maxTrip:mode==='training'?240:420};
+    this.cleanChain = this.bestChain = 0;
     this.goals = [];
     this.modifiers.fatigue = .65;
     for (let i = 0; i < 3; i++) this.addCourier();
@@ -64,6 +67,11 @@ export class BerlinPlaytest extends Game {
     rider.baseSpeed = [15, 13.5, 14][i];
     rider.homeDistrict = ['mitte', 'kreuzberg', 'mitte'][i];
     rider.fatigue = .08;
+    if (this.cityData) {
+      const depot = this.nodeById(this.depotNodeId);
+      rider.x = depot.x; rider.y = depot.y;
+      rider.homeDistrict = depot.districtId;
+    }
     return true;
   }
 
@@ -72,6 +80,13 @@ export class BerlinPlaytest extends Game {
   }
 
   playableAddressNodes() {
+    if (this.cityData) {
+      if (!this.playtestAddresses) {
+        const depot = this.nodeById(this.depotNodeId);
+        this.playtestAddresses = this.addressNodes.filter(n=>this.mode!=='training'||Math.hypot(n.x-depot.x,n.y-depot.y)<180);
+      }
+      return this.playtestAddresses;
+    }
     // The legacy center map contains disconnected street islands. A valid trip
     // inside an island is still impossible to collect from the depot component.
     if (!this.playtestAddresses) this.playtestAddresses = super.playableAddressNodes().filter(node => {
@@ -82,6 +97,22 @@ export class BerlinPlaytest extends Game {
   }
 
   randomTrip() {
+    if (this.cityData) {
+      const pool = this.playableAddressNodes(), max = this.runContract.maxTrip;
+      // Demand favors the advertised locality. Nearby work remains available to
+      // keep an unlucky queue from stranding all three couriers across town.
+      const hot = this.demandRegion();
+      const nearby = pool.filter(n=>this.couriers.some(c=>Math.hypot(c.x-n.x,c.y-n.y)<210));
+      const local = nearby.filter(n=>n.districtId===hot.id);
+      for (let i=0;i<64;i++) {
+        const pickup = this.rng.pick(local.length&&this.rng.chance(.65)?local:nearby.length?nearby:pool);
+        const drops = pool.filter(n=>n.id!==pickup.id&&Math.hypot(n.x-pickup.x,n.y-pickup.y)<max*.8&&Math.hypot(n.x-pickup.x,n.y-pickup.y)>50);
+        if (!drops.length) continue;
+        const dropoff = this.rng.pick(drops), path = this.routeBetween(pickup.id,dropoff.id), distance = this.routeDistance(path);
+        if (path.length&&distance>=this.runContract.minTrip&&distance<=max) return {pickup,dropoff,path,distance};
+      }
+      return null;
+    }
     for (let attempt = 0; attempt < 96; attempt++) {
       const pickup = this.randomAddress(), dropoff = this.randomAddress(pickup?.id);
       if (!pickup || !dropoff) continue;
@@ -131,6 +162,11 @@ export class BerlinPlaytest extends Game {
     return { id: 'push', label: 'One last push', detail: 'Keep the team moving. Leave room for an urgent call.' };
   }
 
+  demandRegion() {
+    const id = this.mode==='training'?'mitte':({opening:'mitte',build:'kreuzberg',recovery:'moabit',push:'friedrichshain'}[this.phase().id]??'mitte');
+    return this.districts.find(d=>d.id===id)??this.districts[0];
+  }
+
   arrivalInterval() {
     if (this.mode === 'training') return this.completed < 1 ? 32 : 20;
     return { opening: 22, build: 11, recovery: 24, push: 12 }[this.phase().id] ?? 20;
@@ -172,11 +208,16 @@ export class BerlinPlaytest extends Game {
 
   completeDelivery(c, d) {
     RIDER_SYSTEM.completeDelivery.call(this, c, d);
+    if (this.cityData) {
+      this.cleanChain++; this.bestChain=Math.max(this.bestChain,this.cleanChain);
+      if (this.cleanChain>1&&this.cleanChain%3===0) this.flash(`${this.cleanChain} clean deliveries in a row. The desk is flowing.`,5);
+    }
   }
 
   failDelivery(d) {
     if (!['waiting', 'claimed'].includes(d.status)) return;
     d.failedAt = this.elapsed;
+    this.cleanChain = 0;
     RIDER_SYSTEM.failDelivery.call(this, d);
     if (this.reputation <= 0) this.finishShift('collapse');
   }
@@ -228,6 +269,8 @@ export class BerlinPlaytest extends Game {
       default: return false;
     }
     if (ok) this.actions.push({ tick: this.tick, ...recorded });
+    else if (this.cityData&&action.type==='radio'&&this.deliveryById(action.jobId)?.status==='waiting')
+      this.actions.push({tick:this.tick,...recorded,accepted:false});
     return ok;
   }
 
@@ -295,7 +338,7 @@ export class BerlinPlaytest extends Game {
   }
 
   exportRun() {
-    return { version: 1, ruleset: this.ruleset, city: PLAYTEST_CITY, seed: this.seed, mode: this.mode,
+    return { version: 1, ruleset: this.ruleset, city: this.cityData?.metadata.id??PLAYTEST_CITY, seed: this.seed, mode: this.mode,
       fixedStep: FIXED_STEP, ticks: this.tick, actions: this.actions.map(a => ({ ...a })),
       review: this.shiftReview(), timeline: this.dispatchLog.map(entry => ({ ...entry })) };
   }
@@ -309,15 +352,19 @@ export class BerlinPlaytest extends Game {
   activeClientHubs() { return []; } districtPressure() { return null; }
 }
 
-export function replayRun(record) {
-  if (record?.version !== 1 || record.ruleset !== PLAYTEST_RULESET || record.city !== PLAYTEST_CITY ||
+installGeographicMotion(BerlinPlaytest);
+
+export function replayRun(record, {city}={}) {
+  const ruleset = city?'berlin-dispatch-v2':PLAYTEST_RULESET, cityId = city?.metadata.id??PLAYTEST_CITY;
+  if (record?.version !== 1 || record.ruleset !== ruleset || record.city !== cityId ||
       record.fixedStep !== FIXED_STEP || !Number.isInteger(record.ticks) || record.ticks < 0 || record.ticks > 40000 ||
       !Array.isArray(record.actions) || record.actions.length > 10000) throw new Error('Unsupported replay');
-  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode });
+  const game = new BerlinPlaytest({ seed: record.seed, mode: record.mode, city });
   let index = 0;
   while (game.tick <= record.ticks) {
     while (index < record.actions.length && record.actions[index].tick === game.tick) {
-      if (!game.dispatch(record.actions[index++])) throw new Error('Replay action rejected');
+      const action=record.actions[index++];
+      if (game.dispatch(action)!==(action.accepted!==false)) throw new Error('Replay action result changed');
     }
     if (game.tick === record.ticks) break;
     const before = game.tick;

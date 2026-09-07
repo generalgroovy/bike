@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=readFileSync(new URL('../legacy.html',import.meta.url),'utf8');
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const renderMap=readFileSync(new URL('../src/render-map.js',import.meta.url),'utf8');
 const outlook=readFileSync(new URL('../src/ui-outlook.js',import.meta.url),'utf8');

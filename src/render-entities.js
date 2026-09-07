@@ -15,9 +15,10 @@ function drawRouteEndpoint(r,node,label,color){if(!node)return;const c=r.ctx,siz
 function drawJobPreview(r){
   const g=r.game,d=focusedDelivery(g);if(!d||!g.activeDeliveries().includes(d))return;
   const selected=g.selectedDeliveryId===d.id,p=g.nodeById(d.pickupId),q=g.nodeById(d.dropoffId),assessment=assessRoute(g,d);if(!p||!q)return;
-  if(d.plannedPath){
-    drawPath(r,d.plannedPath,assessment?.distanceColor??'#657279',selected?7:4.5,[],selected?.18:.09);
-    drawPath(r,d.plannedPath,assessment?.difficultyColor??'#303c43',selected?3.1:1.9,selected?[]:[5,5],selected?.96:.7);
+  const previewPath=g.cityData?g.routeBetween(d.pickupId,d.dropoffId):d.plannedPath;
+  if(previewPath){
+    drawPath(r,previewPath,assessment?.distanceColor??'#657279',selected?7:4.5,[],selected?.18:.09);
+    drawPath(r,previewPath,assessment?.difficultyColor??'#303c43',selected?3.1:1.9,selected?[]:[5,5],selected?.96:.7);
   }
   if(selected){
     drawRouteEndpoint(r,p,'P',cargoVisual(d.type).color);

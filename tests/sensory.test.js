@@ -21,6 +21,6 @@ test('map sensory layer renders sonar radio bursts tool memory and speed trails 
 });
 
 test('sound is explicit optional and recurring clients have distinct sensory identity',()=>{
-  const html=read('../index.html'),css=read('../sensory.css'),clients=read('../src/ui-client-hubs.js');
+  const html=read('../legacy.html'),css=read('../sensory.css'),clients=read('../src/ui-client-hubs.js');
   assert.match(html,/id="sound-toggle"/);assert.match(html,/Sensory language/);assert.match(html,/Delivery sonar = waiting work/);assert.match(css,/data-muted/);assert.match(css,/FLOW ×3/);assert.match(css,/data-client-kind="kitchen"/);assert.match(css,/data-kind="clinic"/);assert.match(clients,/dataset\.clientKind/);assert.match(clients,/client\.dataset\.kind/);
 });

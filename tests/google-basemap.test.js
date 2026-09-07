@@ -47,7 +47,7 @@ test('Google basemap is presentation-only and never becomes rider or simulation 
 });
 
 test('API key remains browser-local and no production key is committed',()=>{
-  const js=read('../src/google-basemap.js'),html=read('../index.html');
+  const js=read('../src/google-basemap.js'),html=read('../legacy.html');
   assert.match(js,/sendit\.googleMapsApiKey\.v1/);
   assert.match(js,/localStorage/);
   assert.match(js,/maps\.googleapis\.com\/maps\/api\/js/);
@@ -57,7 +57,7 @@ test('API key remains browser-local and no production key is committed',()=>{
 });
 
 test('native v13 entry point does not load the historical Google bridge or key prompt',()=>{
-  const html=read('../index.html');
+  const html=read('../legacy.html');
   assert.doesNotMatch(html,/<script[^>]*src=["']src\/google-basemap\.js/);
   assert.doesNotMatch(html,/ui-v12-google-map\.css|id="google-map"|Google vector basemap/);
   assert.match(html,/id="map-source"/);
@@ -65,7 +65,7 @@ test('native v13 entry point does not load the historical Google bridge or key p
 });
 
 test('Google mode reserves attribution space and exposes public privacy and terms',()=>{
-  const html=read('../index.html'),css=read('../ui-v12-google-map.css'),privacy=read('../privacy.html'),terms=read('../terms.html');
+  const html=read('../legacy.html'),css=read('../ui-v12-google-map.css'),privacy=read('../privacy.html'),terms=read('../terms.html');
   assert.match(css,/html\[data-basemap=google\] \.job-inspector\{bottom:36px/);
   assert.match(css,/html\[data-basemap=google\] \.time-tools\{bottom:34px/);
   assert.match(html,/href="privacy\.html"/);

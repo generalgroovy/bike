@@ -3,6 +3,7 @@ import { drawBackdrop,drawMap } from './render-map.js';
 import { drawEntities } from './render-entities.js';
 import { loadBerlinRuntime } from './berlin-runtime.js';
 import { mapZoomBand,mapZoomRank } from './map-zoom.js';
+import { drawGeographicMap } from './render-geographic.js';
 
 function prepareEdges(game){
   const edges=[];
@@ -103,7 +104,7 @@ export class Renderer extends Camera{
     c.save();
     c.translate(this.offsetX,this.offsetY);
     c.scale(this.scale,this.scale);
-    drawMap(this);
+    if(this.game.cityData)drawGeographicMap(this);else drawMap(this);
     drawEntities(this);
     c.restore();
     return true;

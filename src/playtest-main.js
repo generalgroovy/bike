@@ -4,6 +4,7 @@ import { createSeed } from './rng.js';
 import { createCargoIconElement } from './cargo-icons.js';
 import { createRiderPortraitElement } from './rider-identity.js';
 import { audio } from './audio-engine.js';
+import { loadInnerRing } from './inner-ring-city.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
@@ -11,15 +12,18 @@ const cards = new Map(), riderCards = new Map();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
 const dialogs = ['#intro', '#help-dialog', '#upgrade-dialog', '#review-dialog'];
-let game, renderer, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
+let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
 let sound = false, faulted = false, helpWasPaused = true, pointer = null;
+const touches=new Map();let pinchDistance=0;
 audio.enabled = false;
+for(const control of document.querySelectorAll('button,select')) if(control.id!=='reload') control.disabled=true;
 
 function begin(mode, seed = createSeed()) {
   dialogs.forEach(id => { if ($(id).open) $(id).close(); });
   renderer?.dispose();
-  game = new BerlinPlaytest({ seed, mode });
+  game = new BerlinPlaytest({ seed, mode, city });
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
+  $('#region-view').value = '';
   cards.clear(); riderCards.clear();
   $('#work-list').replaceChildren(); $('#team-list').replaceChildren();
   lastLog = accumulator = 0; lastTime = performance.now(); faulted = false;
@@ -31,6 +35,7 @@ function begin(mode, seed = createSeed()) {
 }
 
 function act(action) {
+  if (!game) return false;
   const changed = game.dispatch(action);
   if (changed && sound) {
     audio.ensure();
@@ -96,7 +101,7 @@ function renderTeam() {
     setWithin(card, 'strong', rider.name);
     setWithin(card, '.rider-head span', rider.phase === 'break' ? `Rest ${time(game.breakRemaining(rider))}` : job ? `${job.id.toUpperCase()} · riding` : rider.deliberation ? 'Considering' : 'Listening');
     const preference = { sprinter: 'Likes short, urgent jobs', earner: 'Likes a worthwhile fee', local: 'Likes work in their district' };
-    setWithin(card, 'p', preference[rider.personality.id]);
+    setWithin(card, 'p', job ? `${time(game.courierETA(rider))} estimated to finish · ${rider.lastDecision.replace(/^Took \w+ · /,'')}` : preference[rider.personality.id]);
     card.title = `${rider.completed} delivered · ${rider.lastDecision}`;
     card.querySelector('meter').value = Math.round((1 - rider.fatigue) * 100);
     card.querySelector('meter').setAttribute('aria-label', `${rider.name} energy ${Math.round((1 - rider.fatigue) * 100)} percent`);
@@ -107,6 +112,7 @@ function select(id) {
   game.selectedDeliveryId = id;
   game.selectedCourierId = null;
   render();
+  if (innerWidth<=850) $('#contract-title').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 }
 
 function renderSelection() {
@@ -122,10 +128,12 @@ function renderSelection() {
   text('#selected-reward', `€${d.reward}`); text('#selected-pickup', d.pickupAddress); text('#selected-drop', d.dropoffAddress);
   text('#selected-time', `${time(d.deadlineAt - game.elapsed)} left`);
   text('#selected-distance', `${(d.plannedDistance / 100).toFixed(1)} km`);
+  const regionName=id=>game.districts.find(r=>r.id===id)?.name??id;
+  text('#selected-regions',`${regionName(d.pickupDistrict)} → ${regionName(d.dropoffDistrict)}`);
   text('#selected-handling', CARGO_FAMILIES[d.type].detail);
   const feasibility = d.status === 'waiting' ? game.deliveryFeasibility(d) : null;
   const rider = game.courierById(d.courierId);
-  let explanation = rider ? `${rider.name} volunteered. ${rider.phase === 'pickup' ? 'Riding to the pickup.' : 'Cargo is on board.'}` : 'Couriers decide after they hear your call.';
+  let explanation = rider ? `${rider.name} volunteered · ${time(game.courierETA(rider))} estimated to finish. ${rider.phase === 'pickup' ? 'Riding to the pickup.' : 'Cargo is on board.'}` : 'Couriers decide after they hear your call.';
   if (feasibility?.best) explanation = `Estimate ${time(feasibility.best.finishIn)} including pickup. ${feasibility.margin < 0 ? 'The deadline looks difficult.' : feasibility.margin < 18 ? 'A tight window.' : 'Couriers still choose.'}`;
   text('#selected-state', explanation);
   for (const button of document.querySelectorAll('[data-radio]')) {
@@ -149,6 +157,7 @@ function showReview() {
     strong.textContent = value; small.textContent = label; box.append(strong, small); stats.append(box);
   }
   text('#result-rider', `${review.topRider} completed ${review.topDeliveries} deliveries.`);
+  text('#result-flow', `Best flow: ${game.bestChain} deliveries in a row without a miss.`);
   text('#result-lesson', review.lesson);
   const timeline = $('#result-timeline'); timeline.replaceChildren();
   for (const entry of game.dispatchLog.filter(e => ['claim', 'complete', 'fail', 'event-start', 'event-end', 'upgrade'].includes(e.action)).slice(-12)) {
@@ -164,6 +173,14 @@ function render() {
   text('#reputation', Math.ceil(game.reputation)); $('#rep-meter').value = game.reputation;
   text('#cash', `€${game.cash}`); text('#radio-count', `${game.radioUsed()} / ${game.radioSlots}`);
   text('#phase-name', phase.label); text('#phase-detail', phase.detail);
+  const demand=game.demandRegion();
+  text('#demand-region',game.closing?'Finishing the queue':`Demand favors ${demand.name}`);
+  text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'Build a clean delivery streak');
+  text('#mobile-job-count',game.activeDeliveries().length);
+  const metersPerPixel=city.metadata.metersPerUnit/renderer.scale;
+  const scaleMeters=[50,100,200,500,1000,2000,5000].findLast(n=>n/metersPerPixel<=100)??50;
+  text('#map-scale-label',scaleMeters>=1000?`${scaleMeters/1000} km`:`${scaleMeters} m`);
+  $('#map-scale-bar').style.width=`${scaleMeters/metersPerPixel}px`;
   text('#delivery-target', `${game.completed} / ${game.config.target} delivered`);
   text('#clock', time(end - game.elapsed)); $('#shift-progress').max = end; $('#shift-progress').value = game.elapsed;
   text('#pause', game.gameOver ? 'Shift finished' : game.paused ? game.tick === 0 ? 'Start shift' : 'Resume' : 'Pause');
@@ -244,19 +261,48 @@ function zoom(factor) { renderer.zoomAt(renderer.viewWidth / 2, renderer.viewHei
 $('#zoom-in').addEventListener('click', () => zoom(1.2));
 $('#zoom-out').addEventListener('click', () => zoom(1 / 1.2));
 $('#fit-map').addEventListener('click', () => { renderer.resetView(); renderer.draw(true); });
+$('#region-view').addEventListener('change',event=>{
+  const region=city.regions.find(r=>r.id===event.target.value);
+  renderer.focusRegionId=region?.id??null;
+  if(region)renderer.focusBounds(region.bounds);else renderer.resetView();
+  renderer.draw(true);render();
+});
+$('#fit-map').addEventListener('click',()=>{$('#region-view').value='';renderer.focusRegionId=null;});
+$('#find-route').addEventListener('click',()=>{
+  const d=game.deliveryById(game.selectedDeliveryId);if(!d)return;
+  $('#region-view').value='route';renderer.focusRegionId=null;
+  const points=d.plannedPath.map(id=>game.nodeById(id));
+  renderer.focusBounds({x1:Math.min(...points.map(p=>p.x))-45,y1:Math.min(...points.map(p=>p.y))-45,x2:Math.max(...points.map(p=>p.x))+45,y2:Math.max(...points.map(p=>p.y))+45});
+  renderer.draw(true);render();
+  if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:'smooth'});
+});
 canvas.addEventListener('wheel', event => { event.preventDefault(); const rect = canvas.getBoundingClientRect(); renderer.zoomAt(event.clientX - rect.left, event.clientY - rect.top, event.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
 canvas.addEventListener('pointerdown', event => {
+  if(event.pointerType==='touch') {
+    touches.set(event.pointerId,{x:event.clientX,y:event.clientY});canvas.setPointerCapture(event.pointerId);
+    if(touches.size===2) {const [a,b]=[...touches.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);if(pointer)pointer.moved=true;return;}
+  }
   if (!event.isPrimary || event.button !== 0) return;
   pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', event => {
+  if(touches.has(event.pointerId))touches.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(touches.size===2) {
+    const [a,b]=[...touches.values()],distance=Math.hypot(a.x-b.x,a.y-b.y),rect=canvas.getBoundingClientRect();
+    if(pinchDistance>0&&distance>0)renderer.zoomAt((a.x+b.x)/2-rect.left,(a.y+b.y)/2-rect.top,distance/pinchDistance);
+    pinchDistance=distance;return;
+  }
   if (!pointer || pointer.id !== event.pointerId) return;
   if (Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY) > 6) pointer.moved = true;
   if (pointer.moved) renderer.pan(event.clientX - pointer.x, event.clientY - pointer.y);
   pointer.x = event.clientX; pointer.y = event.clientY;
 });
 canvas.addEventListener('pointerup', event => {
+  if(touches.has(event.pointerId)) {
+    touches.delete(event.pointerId);
+    if(pinchDistance) {pinchDistance=0;pointer=null;touches.clear();if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);return;}
+  }
   if (!pointer || pointer.id !== event.pointerId) return;
   if (!pointer.moved) {
     const rect = canvas.getBoundingClientRect(), p = renderer.screenToWorld(event.clientX - rect.left, event.clientY - rect.top);
@@ -266,9 +312,10 @@ canvas.addEventListener('pointerup', event => {
   }
   pointer = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 });
-canvas.addEventListener('pointercancel', () => { pointer = null; });
-canvas.addEventListener('lostpointercapture', () => { pointer = null; });
+canvas.addEventListener('pointercancel', () => { pointer = null;touches.clear();pinchDistance=0; });
+canvas.addEventListener('lostpointercapture', event => {if(pointer?.id===event.pointerId)pointer=null;touches.delete(event.pointerId);if(touches.size<2)pinchDistance=0;});
 window.addEventListener('keydown', event => {
+  if (!game) return;
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.target.closest?.('input,textarea,select,[contenteditable=true]') || dialogs.some(id => $(id).open)) return;
   if (event.key === ' ' && event.target.closest?.('button,a,summary')) return;
   if (event.key === ' ') { event.preventDefault(); act({ type: 'pause', paused: !game.paused }); }
@@ -278,12 +325,24 @@ window.addEventListener('keydown', event => {
   if (event.key === 'Escape') { game.selectedDeliveryId = game.selectedCourierId = null; render(); }
 });
 document.addEventListener('visibilitychange', () => {
+  if (!game) return;
   accumulator = 0; lastTime = performance.now();
   if (document.hidden) { act({ type: 'pause', paused: true }); audio.ctx?.suspend(); }
   else { game.flash('The desk paused while you were away. Resume when ready.', 8); render(); }
 });
-window.addEventListener('pagehide', () => { game.dispatch({ type: 'pause', paused: true }); });
+window.addEventListener('pagehide', () => { game?.dispatch({ type: 'pause', paused: true }); });
 const params = new URLSearchParams(location.search);
-begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed());
-$('#intro').showModal();
-requestAnimationFrame(frame);
+try {
+  city=await loadInnerRing({signal:AbortSignal.timeout(60000)});
+  for(const region of city.regions) {
+    const option=document.createElement('option');option.value=region.id;option.textContent=region.name;$('#region-view').append(option);
+  }
+  for(const control of document.querySelectorAll('button,select')) control.disabled=false;
+  begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed());
+  $('#map-loading').hidden=true;$('#intro').showModal();requestAnimationFrame(frame);
+} catch(error) {
+  console.error('Berlin map startup failed',error);
+  $('#map-loading').hidden=true;
+  $('#fatal-error').hidden=false;
+  $('#fatal-message').textContent='The Berlin map could not load. Check your connection and reload; this desk needs its local city data.';
+}

@@ -37,7 +37,7 @@ const previewFiles = copyApplication(preview, previewTarget);
 writeFileSync(resolve(output, '.nojekyll'), '');
 writeFileSync(resolve(previewTarget, 'build.json'), JSON.stringify({
   branch: 'feature/berlin-playtest', commit: previewSha, releasedCommit: releasedSha,
-  playtest: 'playtest.html', fullGame: 'index.html'
+  playtest: 'index.html', legacy: 'legacy.html', mapData: 'map-data.html'
 }, null, 2) + '\n');
 writeFileSync(resolve(output, 'preview/index.html'), `<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -45,8 +45,8 @@ writeFileSync(resolve(output, 'preview/index.html'), `<!doctype html>
 <style>body{font:18px/1.6 system-ui;margin:0;background:#f6f3e9;color:#172a2d}main{max-width:680px;margin:8vh auto;padding:28px}h1{line-height:1.15;font-size:40px}a{color:inherit}nav{display:grid;gap:14px;margin:30px 0}nav a{display:block;padding:18px 22px;border:1px solid #b9cbbf;border-radius:10px;text-decoration:none}nav a:first-child{background:#172a2d;color:#fffdf4}small{font-size:13px;overflow-wrap:anywhere}</style>
 <main><small>SEND IT / BERLIN / PLAYABLE PREVIEW</small><h1>Try the Berlin desk.</h1>
 <p>Three couriers. A shared radio. You choose which jobs they hear; they choose which jobs to take.</p>
-<nav><a href="berlin/playtest.html">Play the simplified Berlin desk<br><small>Guided 3-minute opening or a 9-minute shift</small></a>
-<a href="berlin/">Explore the full game on this branch</a></nav>
-<p>This concept preview uses the curated Berlin map. Mobile refinement and further expansion follow playtesting and concept approval.</p>
+<nav><a href="berlin/">Play Send It: Berlin Inner Ring<br><small>One desk · real city geography · 3-minute first shift or 9-minute challenge</small></a></nav>
+<p>Read the city, choose the calls, and watch three independent riders respond. Streets, routes, addresses, waterways and official locality boundaries share one geographic map inside the S41 / S42 Ringbahn.</p>
+<p><a href="berlin/map-data.html">Map sources, accuracy and downloads</a>. Mobile refinement and city expansion follow Berlin playtesting and concept approval.</p>
 <small>Build <a href="https://github.com/generalgroovy/bike/commit/${previewSha}">${previewSha.slice(0, 7)}</a> · <a href="../">Released game</a> · <a href="berlin/build.json">Build details</a></small></main></html>\n`);
 console.log(JSON.stringify({ releasedSha, previewSha, releasedFiles, previewFiles, output }));

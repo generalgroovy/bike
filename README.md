@@ -6,6 +6,8 @@
 
 **Play the current concept:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
+**Windows app:** the 0.14 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, portraits and original score. It runs offline without Python, Node, a web server or a separate browser. Use the portable `.exe` or the per-user installer. [App setup, build and verification](docs/WINDOWS_APP.md).
+
 Current concept: **one geographic city and one radio desk**, full-city ruleset `berlin-dispatch-v5`. Three autonomous couriers, cargo-aware handoffs, OPEN / LOCAL / PRIORITY, bonuses and client negotiations with visible consequences. The full Berlin map includes official building footprints loaded as you zoom. A paper-map identity and the original **Spokes & Postcards** score connect rider personalities and events. Shifts save locally and restore paused; earlier rulesets remain replayable. See the [Berlin acceptance guide](docs/BERLIN_ACCEPTANCE.md) for the current implementation, evidence and player/mobile acceptance gate.
 
 ## Berlin concept playtest

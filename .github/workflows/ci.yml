@@ -50,8 +50,36 @@ jobs:
           path: reports/browser/
           retention-days: 7
           if-no-files-found: warn
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked build tools
+        run: npm ci
+      - name: Build bundled Windows applications
+        run: npm run app:windows
+      - name: Test packaged app offline and across restarts
+        run: node desktop/smoke.mjs "dist/win-unpacked/Send It.exe"
+      - name: Upload Windows apps and native acceptance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: send-it-windows-app
+          path: |
+            dist/*.exe
+            reports/desktop/
+            desktop/build.json
+          retention-days: 14
+          if-no-files-found: error
   preview:
-    needs: [test, browser]
+    needs: [test, browser, desktop]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tested source

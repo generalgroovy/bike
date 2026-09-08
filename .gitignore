@@ -4,3 +4,5 @@ node_modules/
 reports/
 __pycache__/
 *.pyc
+dist/
+desktop/build.json

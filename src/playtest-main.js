@@ -454,6 +454,7 @@ document.addEventListener('visibilitychange', () => {
   else { game.flash('The desk paused while you were away. Resume when ready.', 8); render(); }
 });
 window.addEventListener('pagehide', () => { game?.dispatch({ type: 'pause', paused: true });saveShift(); });
+window.addEventListener('send-it:pause-and-save',()=>{if(!game)return;act({type:'pause',paused:true});saveShift();audio.suspend();});
 const params = new URLSearchParams(location.search);
 try {
   const inner=params.get('city')==='inner-ring';

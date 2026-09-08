@@ -3,19 +3,21 @@ import { Renderer } from './render.js';
 import { createSeed } from './rng.js';
 import { createCargoIconElement } from './cargo-icons.js';
 import { createRiderPortraitElement } from './rider-identity.js';
-import { audio } from './audio-engine.js';
+import { DeskScore } from './playtest-score.js';
+import { decisionBrief, riderActivity } from './playtest-decisions.js';
 import { loadInnerRing, loadBerlinCity } from './inner-ring-city.js';
 import { timingAdvice } from './playtest-advice.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
 const cards = new Map(), riderCards = new Map();
-const estimates = new Map();
+const estimates = new Map(), feasibility = new Map();
+const audio = new DeskScore();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
-const dialogs = ['#intro', '#help-dialog', '#upgrade-dialog', '#review-dialog'];
+const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#upgrade-dialog', '#review-dialog'];
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
-let sound = false, faulted = false, helpWasPaused = true, pointer = null;
+let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
 const touches=new Map();let pinchDistance=0;
 audio.enabled = false;
@@ -24,6 +26,7 @@ for(const control of document.querySelectorAll('button,select')) if(control.id!=
 function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, restored=null) {
   dialogs.forEach(id => { if ($(id).open) $(id).close(); });
   renderer?.dispose();
+  audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
   game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
   $('#region-view').value = '';
@@ -31,7 +34,8 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   estimates.clear();
   $('#coach-panel').open = true;
   $('#work-list').replaceChildren(); $('#team-list').replaceChildren();
-  lastLog = accumulator = 0; lastTime = performance.now(); faulted = false;
+  lastLog = restored?game.dispatchLog.length:0;accumulator = 0; lastTime = performance.now(); faulted = false;
+  $('#client-negotiation').hidden=!game.refined;$('#refined-help').hidden=!game.refined;
   const url = new URL(location.href);
   url.searchParams.set('seed', seed); url.searchParams.set('mode', mode);
   url.searchParams.set('city',game.fullCity?'berlin':'inner-ring');
@@ -60,17 +64,23 @@ function act(action) {
   const changed = game.dispatch(action);
   if (changed && sound) {
     audio.ensure();
-    if (action.type === 'radio') audio.cue(`call-${action.channel}`);
-    if (action.type === 'bonus') audio.cue('tool-sweeten');
+    if (action.type === 'pause') {audio.cancel();audio.cue(action.paused?'pause':'start');}
   }
   render();
   if(changed)saveShift();
   return changed;
 }
 
+function soundPan(point){return point?Math.max(-.85,Math.min(.85,(renderer.worldToScreen(point.x,point.y).x/renderer.viewWidth-.5)*1.7)):0;}
+function renderListening(){
+  const list=audio.listened.map(t=>`${t.id.toUpperCase()} · ${t.division}`).join('  /  ');
+  text('#listening-now',!sound?'Sound off':game.paused?'Listening paused':!audio.rhythms?'Task rhythms off':list?`Listening: ${list}`:'Listening for new work');
+}
+
 function newCard(d) {
   const card = document.createElement('article');
   card.className = 'job-card'; card.dataset.job = d.id;
+  card.style.setProperty('--cargo-color',({document:'#398a9a',fragile:'#947397',grocery:'#739455'})[d.type]);
   card.innerHTML = '<button class="job-select"><span class="job-top"><span class="job-family"></span><strong class="job-fee"></strong></span><span class="job-address"><small>P</small><span class="job-pickup"></span></span><span class="job-address"><small>D</small><span class="job-drop"></span></span><span class="job-meta"><span class="job-distance"></span><span class="job-time"></span></span><span class="job-timing"><strong></strong><span></span></span></button><div class="job-action-row"><span class="job-status"></span><button class="quick-call">Broadcast OPEN</button></div>';
   $('#work-list').append(card); cards.set(d.id, card);
   card.querySelector('.job-select').addEventListener('click', () => select(d.id));
@@ -101,7 +111,8 @@ function renderQueue() {
     const finish = claimed ? game.courierETA(rider) : advice?.finishIn;
     const timing = card.querySelector('.job-timing');
     timing.dataset.state = claimed ? 'riding' : advice.state;
-    setWithin(timing, 'strong', claimed ? rider?.phase === 'pickup' ? 'To pickup' : 'To drop-off' : advice.label);
+    const activity=rider&&riderActivity(game,rider);
+    setWithin(timing, 'strong', claimed ? activity?.label??(rider?.phase === 'pickup' ? 'To pickup' : 'To drop-off') : advice.label);
     setWithin(timing, 'span', Number.isFinite(finish) ? `~${time(finish)} to finish` : 'Check the team');
     setWithin(card, '.job-status', claimed ? `${rider?.name ?? 'Courier'} is on it` : d.called ? `${d.channel.toUpperCase()} on air` : 'Off the radio');
     const button = card.querySelector('.quick-call');
@@ -133,12 +144,15 @@ function renderTeam() {
       const content = document.createElement('div');
       content.innerHTML = '<div class="rider-head"><strong></strong><span></span></div><p></p><meter min="0" max="100"></meter>';
       card.append(content); $('#team-list').append(card); riderCards.set(rider.id, card);
+      card.style.setProperty('--courier',rider.color);
     }
     const job = game.deliveryById(rider.deliveryId);
     setWithin(card, 'strong', rider.name);
-    setWithin(card, '.rider-head span', rider.phase === 'break' ? `Rest ${time(game.breakRemaining(rider))}` : job ? `${job.id.toUpperCase()} · ${rider.phase === 'pickup' ? 'pickup' : 'drop-off'}` : rider.phase === 'coasting' ? 'Finishing street' : rider.deliberation ? 'Considering' : 'Listening');
+    const activity=riderActivity(game,rider);
+    card.dataset.phase=rider.phase;
+    setWithin(card, '.rider-head span', rider.phase === 'break' ? `Rest ${time(game.breakRemaining(rider))}` : activity?.label??(job ? `${job.id.toUpperCase()} · ${rider.phase === 'pickup' ? 'pickup' : 'drop-off'}` : rider.phase === 'coasting' ? 'Finishing street' : rider.deliberation ? 'Considering' : 'Listening'));
     const preference = { sprinter: 'Likes short, urgent jobs', earner: 'Likes a worthwhile fee', local: 'Likes work in their district' };
-    setWithin(card, 'p', job ? `${time(game.courierETA(rider))} estimated to finish · ${rider.lastDecision.replace(/^Took \w+ · /,'')}` : game.calledDeliveries().length && rider.lastDecision.includes('time to finish') ? rider.lastDecision : preference[rider.personality.id]);
+    setWithin(card, 'p', activity?.detail??(job ? `${time(game.courierETA(rider))} estimated to finish · ${rider.lastDecision.replace(/^Took \w+ · /,'')}` : game.calledDeliveries().length && rider.lastDecision.includes('time to finish') ? rider.lastDecision : preference[rider.personality.id]));
     card.title = `${rider.completed} delivered · ${rider.lastDecision}`;
     card.querySelector('meter').value = Math.round((1 - rider.fatigue) * 100);
     card.querySelector('meter').setAttribute('aria-label', `${rider.name} energy ${Math.round((1 - rider.fatigue) * 100)} percent`);
@@ -167,10 +181,11 @@ function renderSelection() {
   text('#selected-distance', `${(d.plannedDistance / 100).toFixed(1)} km`);
   const regionName=id=>game.districts.find(r=>r.id===id)?.name??id;
   text('#selected-regions',`${regionName(d.pickupDistrict)} → ${regionName(d.dropoffDistrict)}`);
-  text('#selected-handling', CARGO_FAMILIES[d.type].detail);
+  const handling=game.handoffTime(d);
+  text('#selected-handling', CARGO_FAMILIES[d.type].detail+(game.refined?` Stops: ${handling.pickup}s collection + ${handling.dropoff}s handover.`:''));
   const advice = estimates.get(d.id);
   const rider = game.courierById(d.courierId);
-  let explanation = rider ? `${rider.name} volunteered · ${time(game.courierETA(rider))} estimated to finish. ${rider.phase === 'pickup' ? 'Riding to the pickup.' : 'Cargo is on board.'}` : 'Couriers decide after they hear your call.';
+  let explanation = rider ? `${rider.name} volunteered · ${time(game.courierETA(rider))} estimated to finish. ${riderActivity(game,rider)?.detail??(rider.phase === 'pickup' ? 'Riding to the pickup.' : 'Cargo is on board.')}` : 'Couriers decide after they hear your call.';
   if (advice) explanation = `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} with pickup` : ''}. ${advice.detail}`;
   text('#selected-state', explanation);
   $('#selected-state').dataset.state = advice?.state ?? 'riding';
@@ -183,7 +198,23 @@ function renderSelection() {
   $('#withdraw').hidden = !d.called || d.status !== 'waiting';
   $('#bonus').disabled = game.gameOver || d.status !== 'waiting' || d.sweetened || game.cash < 5;
   text('#bonus', d.sweetened ? '€5 courier bonus paid' : 'Offer €5 courier bonus');
+  const extension=game.extensionOffer(d);
+  $('#client-call').disabled=!extension.available;
+  text('#client-call',d.extended?'Client extension agreed':extension.available?`Ask for +${Math.round(extension.seconds)}s · fee −€${extension.fee}`:'Call client for more time');
+  text('#client-call-detail',d.extended?`+${Math.round(d.deadlineAdded??0)}s agreed; fee reduced by €${d.feeConcession??0}.`:extension.available?`One time. Fee €${d.reward} → €${extension.newReward}. More time, less pay; no rider is assigned.`:extension.reason);
+  $('#decision-details').hidden=d.status!=='waiting';
+  if($('#decision-details').open&&d.status==='waiting')renderDecisions(d);
 }
+
+function renderDecisions(d) {
+  const brief=decisionBrief(game,d,feasibility.get(d.id));if(!brief)return;
+  const outlook=$('#rider-outlook');
+  if(!outlook.children.length)for(const c of game.couriers){const row=document.createElement('div');row.className='outlook-row';row.innerHTML='<strong></strong><span></span><small></small>';row.style.setProperty('--courier',c.color);outlook.append(row);}
+  brief.rows.forEach((row,i)=>{const el=outlook.children[i];el.dataset.state=row.state;setWithin(el,'strong',row.rider.name);setWithin(el,'span',row.detail);setWithin(el,'small',Number.isFinite(row.finishIn)?`~${time(row.finishIn)} to finish · ${row.margin>=0?`${time(row.margin)} buffer`:`${time(-row.margin)} late`}`:'No finish within the estimate window');});
+  const effects=$('#channel-effects');if(!effects.children.length)for(const channel of brief.channels){const p=document.createElement('p');p.innerHTML='<strong></strong><span></span>';effects.append(p);}
+  brief.channels.forEach((channel,i)=>{const el=effects.children[i];setWithin(el,'strong',`${channel.id.toUpperCase()} · ${channel.eligible} ready ${channel.eligible===1?'rider':'riders'} can consider`);setWithin(el,'span',channel.detail);});
+}
+$('#decision-details').addEventListener('toggle',()=>{if($('#decision-details').open){const d=game?.deliveryById(game.selectedDeliveryId);if(d?.status==='waiting')renderDecisions(d);}});
 
 function showReview() {
   const review = game.shiftReview(), success = review.outcome === 'success';
@@ -196,7 +227,7 @@ function showReview() {
     strong.textContent = value; small.textContent = label; box.append(strong, small); stats.append(box);
   }
   text('#result-rider', `${review.topRider} completed ${review.topDeliveries} deliveries.`);
-  text('#result-flow', `Best flow: ${game.bestChain} deliveries in a row without a miss.`);
+  text('#result-flow', `Best flow: ${game.bestChain} deliveries in a row without a miss.`+(game.refined?` ${review.clientExtensions} client extensions · €${review.feesConceded} in fee concessions · €${review.bonusesPaid} in bonuses.`:''));
   text('#result-lesson', review.lesson);
   const timeline = $('#result-timeline'); timeline.replaceChildren();
   for (const entry of game.dispatchLog.filter(e => ['claim', 'complete', 'fail', 'event-start', 'event-end', 'upgrade'].includes(e.action)).slice(-12)) {
@@ -218,6 +249,7 @@ function render() {
   const demand=game.demandRegion();
   text('#demand-region',game.closing?'Finishing the queue':`Demand favors ${demand.name}`);
   text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'Build a clean delivery streak');
+  text('#map-detail-status',renderer.buildingDetails?.status(renderer.scale)??'');
   text('#mobile-job-count',game.activeDeliveries().length);
   const metersPerPixel=city.metadata.metersPerUnit/renderer.scale;
   const scaleMeters=[50,100,200,500,1000,2000,5000].findLast(n=>n/metersPerPixel<=100)??50;
@@ -240,10 +272,11 @@ function render() {
     const first = game.deliveries[0];
     text('#coach', game.completed > 0 ? 'First delivery done. Try LOCAL for nearby work. PRIORITY uses two radio slots when a job needs attention.' : first.status === 'claimed' ? `${game.courierById(first.courierId).name} chose the job. Watch the pickup, then the delivery. You shape the call; the rider chooses.` : first.called ? 'Your call is on air. Press Start shift or Resume if paused, and watch a courier volunteer.' : 'Your first call: select the light parcel and tap Broadcast OPEN. Start the shift when you are ready.');
   }
-  estimates.clear();
-  for (const d of game.activeDeliveries()) if (d.status === 'waiting') estimates.set(d.id, timingAdvice(game.deliveryFeasibility(d)));
+  estimates.clear();feasibility.clear();
+  for (const d of game.activeDeliveries()) if (d.status === 'waiting') {const value=game.deliveryFeasibility(d);feasibility.set(d.id,value);estimates.set(d.id,timingAdvice(value));}
   renderQueue(); renderTeam(); renderSelection();
   if (game.upgradePending && !$('#upgrade-dialog').open && !$('#intro').open && !$('#help-dialog').open) {
+    audio.cancel();
     const list = $('#upgrade-list'); list.replaceChildren();
     for (const upgrade of game.getUpgradeChoices()) {
       const button = document.createElement('button'), name = document.createElement('strong'), desc = document.createElement('small');
@@ -254,9 +287,21 @@ function render() {
   }
   if (game.gameOver && !$('#review-dialog').open) { if ($('#upgrade-dialog').open) $('#upgrade-dialog').close(); showReview(); }
   const events = game.dispatchLog.slice(lastLog); lastLog = game.dispatchLog.length;
-  if (sound && !document.hidden) for (const event of events) {
-    if (['complete', 'claim', 'pickup', 'fail', 'event-start', 'event-end', 'upgrade'].includes(event.action)) audio.cue(event.action);
+  for (const event of events) {
+    const job=game.deliveryById(event.deliveryId);
+    if(event.action==='complete'&&job){
+      const rider=game.couriers.find(c=>c.name===event.rider);$('#delivery-receipt').style.setProperty('--courier',rider?.color??'#367b69');
+      text('#receipt-title',`${event.rider} · ${job.id.toUpperCase()}`);text('#receipt-address',job.dropoffAddress);text('#receipt-result',`+€${job.reward} · ${Math.round(event.quality*100)}% of the time window left`);receiptUntil=performance.now()+5000;
+    }
+    if(sound&&!document.hidden){
+      const rider=game.couriers.find(c=>c.name===event.rider);
+      const edge=event.action.startsWith('event-')&&game.visualEdges.find(e=>e.streetName===event.place);
+      const point=rider??(job?game.nodeById(job.pickupId):edge?game.nodeById(edge.a):null);
+      const name=['call','channel'].includes(event.action)?`call-${event.channel}`:({uncall:'call-off',sweeten:'bonus','shift-finish':'finish'})[event.action]??event.action;
+      audio.cue(name,{jobId:job?.id,rider:event.rider,cargo:job?.type,pan:soundPan(point),success:game.outcome==='success'});
+    }
   }
+  $('#delivery-receipt').hidden=performance.now()>receiptUntil;
 }
 
 function frame(now) {
@@ -268,7 +313,7 @@ function frame(now) {
       accumulator += delta;
       while (accumulator >= FIXED_STEP) { game.update(FIXED_STEP); accumulator -= FIXED_STEP; }
       renderer.draw();
-      if (now - lastUI > 125) { render(); lastUI = now; }
+      if (now - lastUI > 125) { render();audio.update(game,{feasibility,panFor:soundPan});renderListening(); lastUI = now; }
       if (now-lastSave>5000)saveShift();
     }
   } catch (error) {
@@ -279,16 +324,27 @@ function frame(now) {
 document.querySelectorAll('[data-radio]').forEach(button => button.addEventListener('click', () => act({ type: 'radio', jobId: game.selectedDeliveryId, channel: button.dataset.radio })));
 $('#withdraw').addEventListener('click', () => act({ type: 'radio', jobId: game.selectedDeliveryId, channel: 'off' }));
 $('#bonus').addEventListener('click', () => act({ type: 'bonus', jobId: game.selectedDeliveryId }));
+$('#client-call').addEventListener('click', () => act({ type: 'client-call', jobId: game.selectedDeliveryId }));
 $('#pause').addEventListener('click', () => act({ type: 'pause', paused: !game.paused }));
 $('#speed').addEventListener('click', () => act({ type: 'speed', speed: game.speed === 1 ? 2 : 1 }));
-$('#sound').addEventListener('click', () => { sound = !sound; audio.enabled = sound; if (sound) audio.ensure(); text('#sound', sound ? 'Sound on' : 'Sound off'); $('#sound').setAttribute('aria-pressed', String(sound)); });
+function setSound(enabled){sound=audio.setEnabled(enabled);text('#sound',sound?'Sound on':'Sound off');$('#sound').setAttribute('aria-pressed',String(sound));text('#studio-toggle',sound?'Mute sound':'Enable sound');text('#sound-status',enabled&&!sound?'Audio is unavailable in this browser. The desk remains fully playable.':sound?'Sound on. Rider previews and event cues use the same original score.':'Muted. Every event is still shown visually.');}
+$('#sound').addEventListener('click',()=>setSound(!sound));
+$('#open-sound-studio').addEventListener('click',()=>{soundWasPaused=game.paused;act({type:'pause',paused:true});$('#sound-dialog').showModal();});
+function closeSound(){$('#sound-dialog').close();act({type:'pause',paused:soundWasPaused});}
+$('#close-sound').addEventListener('click',closeSound);$('#sound-dialog').addEventListener('cancel',event=>{event.preventDefault();closeSound();});
+$('#studio-toggle').addEventListener('click',()=>setSound(!sound));
+$('#sound-volume').addEventListener('input',event=>audio.setVolume(Number(event.target.value)/100));
+$('#sound-mix').addEventListener('change',event=>audio.setMix(event.target.value));
+$('#task-rhythms').addEventListener('change',event=>audio.setRhythms(event.target.checked));
+document.querySelectorAll('[data-rhythm]').forEach(button=>button.addEventListener('click',()=>{setSound(true);audio.previewRhythm(Number(button.dataset.rhythm));}));
+document.querySelectorAll('[data-listen]').forEach(button=>button.addEventListener('click',()=>{setSound(true);audio.cancel();audio.cue('rider',{rider:button.dataset.listen});}));
 $('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true }); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
 $('#continue-shift').addEventListener('click', () => $('#intro').close());
 document.querySelectorAll('[data-start]').forEach(button => button.addEventListener('click', () => {
   saveEnabled=true;
   const seed = game.tick === 0 ? game.seed : createSeed(); begin(button.dataset.start, seed);
   saveShift();
-  if (sound) audio.ensure();
+  if (sound) {audio.ensure();audio.cue('start');}
 }));
 $('#help').addEventListener('click', () => { helpWasPaused = game.paused; act({ type: 'pause', paused: true }); $('#help-dialog').showModal(); });
 function closeHelp() { $('#help-dialog').close(); act({ type: 'pause', paused: helpWasPaused }); }
@@ -394,7 +450,7 @@ window.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => {
   if (!game) return;
   accumulator = 0; lastTime = performance.now();
-  if (document.hidden) { act({ type: 'pause', paused: true }); saveShift();audio.ctx?.suspend(); }
+  if (document.hidden) { act({ type: 'pause', paused: true }); saveShift();audio.suspend(); }
   else { game.flash('The desk paused while you were away. Resume when ready.', 8); render(); }
 });
 window.addEventListener('pagehide', () => { game?.dispatch({ type: 'pause', paused: true });saveShift(); });

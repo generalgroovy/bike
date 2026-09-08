@@ -11,11 +11,12 @@ const datasets = [
   ['boundary','alkis_land','landesgrenze'],
   ['regions','alkis_ortsteile','ortsteile'], ['boroughs','alkis_bezirke','bezirksgrenzen'],
   ['streets','detailnetz','c_strassenabschnitte'], ['addresses','adressen_berlin','adressen_berlin'],
-  ['parks','gruenanlagen','gruenanlagen'], ['landcover','lc_alkis','LandCoverUnit']
+  ['parks','gruenanlagen','gruenanlagen'], ['landcover','lc_alkis','LandCoverUnit'],
+  ['buildings','alkis_gebaeude','gebaeude']
 ];
 await mkdir(folder,{recursive:true});
 async function sha(path) {const hash=createHash('sha256');for await(const bytes of createReadStream(path))hash.update(bytes);return hash.digest('hex');}
-for (const [name,service,type] of datasets.filter(([name])=>!requested.length||requested.includes(name))) {
+for (const [name,service,type] of datasets.filter(([name])=>requested.length?requested.includes(name):name!=='buildings')) {
   const target=join(folder,`${name}.geojson`),metadataPath=join(folder,`${name}.source.json`);
   try {const existing=JSON.parse(await readFile(metadataPath,'utf8'));if(await sha(target)===existing.sha256){console.log(`${name}: verified cached ${existing.features}`);continue;}}catch{}
   const endpoint=`https://gdi.berlin.de/services/wfs/${service}`,pages=join(folder,`${name}-pages`);

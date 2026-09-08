@@ -6,11 +6,11 @@
 
 **Play the current concept:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
-Current concept: **one geographic city and one radio desk**, full-city ruleset `berlin-dispatch-v4`. Three autonomous couriers, three cargo families, OPEN / LOCAL / PRIORITY, one roadworks forecast, one upgrade, and a closing review. Start across Berlin or in any of its 97 localities. Couriers pass on offers they cannot finish; queue estimates expose the time tradeoff. Shifts save locally and restore paused. The retained released build remains at the site root. See the [full-city report](docs/BERLIN_FULL_CITY.md) for current scope, validation and next steps.
+Current concept: **one geographic city and one radio desk**, full-city ruleset `berlin-dispatch-v5`. Three autonomous couriers, cargo-aware handoffs, OPEN / LOCAL / PRIORITY, bonuses and client negotiations with visible consequences. The full Berlin map includes official building footprints loaded as you zoom. A paper-map identity and the original **Spokes & Postcards** score connect rider personalities and events. Shifts save locally and restore paused; earlier rulesets remain replayable. See the [Berlin acceptance guide](docs/BERLIN_ACCEPTANCE.md) for the current implementation, evidence and player/mobile acceptance gate.
 
 ## Berlin concept playtest
 
-Serve this directory over HTTP (`python -m http.server 8080`) and open `index.html` or `playtest.html`. Both open the same desk. Read [the current state, map build, validation and next steps](docs/BERLIN_FULL_CITY.md). No map API key or build step is required to play.
+Serve this directory over HTTP (`python -m http.server 8080`) and open `index.html` or `playtest.html`. Both open the same desk. Read [the current state, map build, validation and next steps](docs/BERLIN_ACCEPTANCE.md). No map API key or build step is required to play.
 
 The default operating area follows Berlin's official boundary, covering 890.668 km². Its 43,473 street sections, 45,618 sampled reachable address points, 12 boroughs, 97 localities, parks, water and built-up areas use a shared metric projection. Choose a starting locality before the shift; map controls change the camera without moving riders. The original Inner Ring map and v1–v3 replay support remain available. [Map sources and accuracy limits](map-data.html) distinguish source geometry from game abstractions.
 

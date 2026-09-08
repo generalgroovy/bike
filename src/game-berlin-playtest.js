@@ -3,11 +3,13 @@ import { BASE_GAME_METHODS } from './game-core.js';
 import { RIDER_SYSTEM } from './game-riders.js';
 import { installGeographicMotion } from './game-geographic-motion.js';
 import { CityAddressIndex } from './city-address-index.js';
+import { installPlaytestRealism } from './playtest-realism.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
 export const GEOGRAPHIC_RULESET = 'berlin-dispatch-v3';
-export const FULL_CITY_RULESET = 'berlin-dispatch-v4';
-export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET, FULL_CITY_RULESET]);
+export const FULL_CITY_RULESET = 'berlin-dispatch-v5';
+export const FULL_CITY_RULESETS = Object.freeze(['berlin-dispatch-v4', FULL_CITY_RULESET]);
+export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET, ...FULL_CITY_RULESETS]);
 export const PLAYTEST_CITY = 'berlin-curated-v12';
 export const FIXED_STEP = 1 / 60;
 export const SHIFT_MODES = Object.freeze({
@@ -35,8 +37,9 @@ export class BerlinPlaytest extends Game {
     this.mode = mode;
     this.fullCity = this.cityData?.metadata.scope === 'full-city';
     this.ruleset = ruleset ?? (this.fullCity ? FULL_CITY_RULESET : this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
-    if (!(this.fullCity ? [FULL_CITY_RULESET] : this.cityData ? GEOGRAPHIC_RULESETS.filter(id=>id!==FULL_CITY_RULESET) : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
-    this.feasibleOffers = [GEOGRAPHIC_RULESET,FULL_CITY_RULESET].includes(this.ruleset);
+    if (!(this.fullCity ? FULL_CITY_RULESETS : this.cityData ? ['berlin-dispatch-v2',GEOGRAPHIC_RULESET] : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
+    this.refined = this.ruleset === FULL_CITY_RULESET;
+    this.feasibleOffers = [GEOGRAPHIC_RULESET,...FULL_CITY_RULESETS].includes(this.ruleset);
     if (this.fullCity) {
       this.startRegion = mode === 'training' && (!startRegion || startRegion === 'citywide') ? 'mitte' : startRegion ?? 'citywide';
       const starts = this.startRegion === 'citywide' ? ['mitte','spandau','koepenick'] : [this.startRegion];
@@ -343,6 +346,7 @@ export class BerlinPlaytest extends Game {
         recorded = { type: 'radio', jobId: action.jobId, channel: action.channel };
         break;
       case 'bonus': ok = this.sweetenJob(action.jobId); recorded = { type: 'bonus', jobId: action.jobId }; break;
+      case 'client-call': ok = this.refined && this.extendJob(action.jobId); recorded = { type: 'client-call', jobId: action.jobId }; break;
       case 'upgrade': ok = this.applyUpgrade(action.id); recorded = { type: 'upgrade', id: action.id }; break;
       case 'pause':
         if (typeof action.paused !== 'boolean') return false;
@@ -438,6 +442,7 @@ export class BerlinPlaytest extends Game {
 }
 
 installGeographicMotion(BerlinPlaytest);
+installPlaytestRealism(BerlinPlaytest);
 
 export function replayRun(record, {city}={}) {
   const rulesets = city?GEOGRAPHIC_RULESETS:[PLAYTEST_RULESET], cityId = city?.metadata.id??PLAYTEST_CITY;

@@ -4,6 +4,7 @@ import { drawEntities } from './render-entities.js';
 import { loadBerlinRuntime } from './berlin-runtime.js';
 import { mapZoomBand,mapZoomRank } from './map-zoom.js';
 import { drawGeographicMap } from './render-geographic.js';
+import { BuildingDetails } from './building-details.js';
 
 function prepareEdges(game){
   const edges=[];
@@ -46,6 +47,7 @@ export class Renderer extends Camera{
     this.berlinVisible=[];
     this.disposed=false;
     this.runtimeAbort=new AbortController();
+    this.buildingDetails=game.fullCity?new BuildingDetails(game.cityData.metadata.id,this.runtimeAbort.signal,()=>{if(!this.disposed)this.draw(true);}):null;
     Renderer.lastInstance=this;
     // Rails are reparented after main starts; CSS layout changes need not emit
     // a window resize. Keep the backing store aligned with the actual canvas.

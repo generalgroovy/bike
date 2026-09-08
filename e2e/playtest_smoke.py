@@ -247,6 +247,10 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def test_still_map_is_cached_while_riders_keep_animating(self):
         self.start()
+        if self.city == 'berlin':
+            self.page.wait_for_function("async()=>{const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;r.draw();const b=r.buildingDetails;return r.scale<2||(b?.state==='ready'&&b.pending.size===0&&b.queue.length===0&&[...b.wanted].every(id=>b.cache.has(id)));}",timeout=30000)
+        # Start after layout and the final asynchronous tile paint have settled.
+        self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
         frames = self.camera('r.renderStats.frames')
         paints = self.camera('r.renderStats.mapRepaints')
         self.page.wait_for_timeout(250)

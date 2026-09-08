@@ -80,7 +80,9 @@ function drawPortrait(r,rider,radius,onBreak){const c=r.ctx,image=riderPortraitI
 
 function drawCouriers(r){
   const zoomBand=band(r),c=r.ctx,g=r.game,reduced=reducedMotion();
-  for(const rider of g.couriers){
+  // Focused portraits stay visible when riders share a real starting address.
+  const riders=[...g.couriers].sort((a,b)=>Number(a.id===g.selectedCourierId||a.id===g.hoveredCourierId)-Number(b.id===g.selectedCourierId||b.id===g.hoveredCourierId));
+  for(const rider of riders){
     const selected=g.selectedCourierId===rider.id,hovered=g.hoveredCourierId===rider.id,focused=selected||hovered,onBreak=rider.phase==='break'||!rider.radioOn,thinking=g.deliberationProgress(rider),task=g.courierTaskProgress(rider),radius=r.px(focused?15.4:12.6);
     c.save();c.translate(rider.x,rider.y);drawMilestoneCue(r,rider,radius,reduced);drawMotionCue(r,rider,radius,reduced);
     if(rider.deliberation&&!onBreak){c.beginPath();c.arc(0,0,radius+r.px(6),-Math.PI/2,-Math.PI/2+Math.PI*2*thinking);c.strokeStyle='#313535';c.lineWidth=r.px(1.8);c.stroke();if(!reduced){const pulse=.5+.5*Math.sin(performance.now()/130);c.beginPath();c.arc(0,0,radius+r.px(8+pulse*3),0,Math.PI*2);c.strokeStyle=rider.color;c.globalAlpha=.08+.08*pulse;c.stroke();c.globalAlpha=1;}}
@@ -89,6 +91,9 @@ function drawCouriers(r){
     c.beginPath();c.arc(0,0,radius+r.px(2),0,Math.PI*2);c.fillStyle='#fffaf0';c.fill();c.strokeStyle=onBreak?'#999b97':rider.color;c.lineWidth=r.px(focused?3.2:2.2);c.stroke();
     drawHeadingChevron(r,rider,radius,onBreak);
     drawPortrait(r,rider,radius,onBreak);
+    if(g.fullCity){const others=g.couriers.filter(other=>other.id!==rider.id&&Math.hypot(other.x-rider.x,other.y-rider.y)<r.px(8)).length;
+      if(others){c.fillStyle='#fffaf0';c.strokeStyle=rider.color;c.lineWidth=r.px(1);c.beginPath();c.roundRect(radius*.4,radius*.35,r.px(16),r.px(11),r.px(3));c.fill();c.stroke();c.fillStyle='#294640';c.font=`800 ${r.px(7)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText(`+${others}`,radius*.4+r.px(8),radius*.35+r.px(5.5));}
+    }
     if(onBreak){c.beginPath();c.arc(radius*.62,-radius*.62,r.px(5),0,Math.PI*2);c.fillStyle='#696c68';c.fill();c.fillStyle='#fffaf0';c.font=`900 ${r.px(5)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText('Ⅱ',radius*.62,-radius*.62);}
     const showName=focused||zoomBand==='street'||zoomBand==='detail';if(showName){c.font=`800 ${r.px(8.2)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.strokeStyle='#f4eedf';c.lineWidth=r.px(2.8);c.strokeText(rider.name,0,radius+r.px(12));c.fillStyle=onBreak?'#777a76':'#303535';c.fillText(rider.name,0,radius+r.px(12));}
     c.restore();

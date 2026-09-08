@@ -50,7 +50,8 @@ function stroke(c,path,color,width,dash=[]) {c.strokeStyle=color;c.lineWidth=wid
 
 export function drawGeographicMap(r) {
   const layers=r.geographicLayers??prepare(r),g=r.game,s=r.scale;
-  const hot=g.demandRegion(),key=[r.viewWidth,r.viewHeight,r.dpr,s,r.offsetX,r.offsetY,hot.id,r.focusRegionId].join(':');
+  const buildingPaths=r.buildingDetails?.visible(r.visibleWorldBounds(0),s)??[];
+  const hot=g.demandRegion(),key=[r.viewWidth,r.viewHeight,r.dpr,s,r.offsetX,r.offsetY,hot.id,r.focusRegionId,r.buildingDetails?.revision].join(':');
   if (layers.key!==key) {
     const paintStart=performance.now(),visible=r.visibleWorldBounds(30);
     const visibleTiles=layers.tiles?.filter(tile=>overlaps(tile.bounds,visible));
@@ -59,7 +60,7 @@ export function drawGeographicMap(r) {
     const roads=(name,color,width,dash=[])=>{for(const path of paths(name))stroke(c,path,color,width,dash);};
     const canvas=layers.canvas;canvas.width=r.canvas.width;canvas.height=r.canvas.height;
     const c=canvas.getContext('2d');c.setTransform(r.dpr,0,0,r.dpr,0,0);
-    c.fillStyle='#e3e5df';c.fillRect(0,0,r.viewWidth,r.viewHeight);
+    c.fillStyle='#dde3db';c.fillRect(0,0,r.viewWidth,r.viewHeight);
     c.translate(r.offsetX,r.offsetY);c.scale(s,s);
     c.fillStyle='#f4f0e6';c.fill(layers.boundary,'evenodd');
     c.save();c.clip(layers.boundary,'evenodd');
@@ -67,6 +68,7 @@ export function drawGeographicMap(r) {
     if (hotRegion) {c.fillStyle='#eee6cf';c.fill(hotRegion.path,'evenodd');}
     fill('vegetation','#d4dfc7');fill('parks','#c9d9b8');fill('water','#a9d3d5');
     if (s>.4) fill('buildings','#dfd8c9');
+    if(buildingPaths.length)for(const path of buildingPaths){c.fillStyle='#cbbb9f';c.fill(path);stroke(c,path,'#a99477',Math.min(.5/s,.7));}
     c.lineCap='round';c.lineJoin='round';
     if(s>.2)roads('restricted','#b5b6ac',Math.max(.7/s,1.5),[3/s,3/s]);
     if(s>(g.fullCity ? .25 : .09))roads('local','#c8c4b8',Math.max(.45/s,1.3));

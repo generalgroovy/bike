@@ -24,6 +24,8 @@ jobs:
           node-version: 24
       - name: Test
         run: npm test
+      - name: Verify official building detail packs
+        run: node tools/validate-building-details.mjs
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 10

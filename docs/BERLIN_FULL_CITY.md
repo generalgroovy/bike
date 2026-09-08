@@ -2,6 +2,8 @@
 
 Implementation snapshot: 7 September 2026. Full-city ruleset `berlin-dispatch-v4`; map `berlin-city-v1-b81f2dddf012`.
 
+This records the initial full-city expansion. See the [Berlin acceptance build](BERLIN_ACCEPTANCE.md) for the current v5 handoffs, client negotiations, building detail and original score.
+
 [Play across Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=standard&district=citywide&seed=BERLIN-1) · [Guided first shift](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=training&district=mitte&seed=BERLIN-1) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring)
 
 ## Current state

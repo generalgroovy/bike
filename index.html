@@ -28,11 +28,11 @@
   <main class="desk-layout">
     <section class="work-panel" aria-labelledby="work-title">
       <div class="panel-heading"><div><span class="eyebrow">YOUR NEXT DECISION</span><h1 id="work-title">On the desk <span id="work-count">1</span></h1></div></div>
-      <p class="queue-explainer">Choose what the team hears. Finish estimates include the ride to pickup.</p>
+      <p class="queue-explainer">Read the time. Make the offer. Let a rider choose.</p>
       <p id="radio-hint" class="radio-hint" role="status"></p>
       <div id="work-list"></div>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
-      <div class="work-footer"><span id="scope-name">⌁ BERLIN · FULL CITY</span><small id="seed-label"></small><span id="flow-count"></span><span id="save-state" role="status">Your shift saves on this device.</span><a id="scope-link" href="?city=inner-ring">Play the original Inner Ring</a></div>
+      <div class="work-footer"><span id="scope-name">⌁ BERLIN · FULL CITY</span><small id="seed-label"></small><span id="flow-count"></span><button id="open-sound-studio" class="text-button">♫ Sound &amp; music</button><small id="listening-now">Sound off</small><span id="save-state" role="status">Your shift saves on this device.</span><a id="scope-link" href="?city=inner-ring">Play the original Inner Ring</a></div>
     </section>
 
     <section class="city-panel" aria-label="Berlin dispatch map">
@@ -43,6 +43,8 @@
       <div class="map-attribution"><a id="map-credits" href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · map sources and accuracy</a></div>
       <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
+      <div id="delivery-receipt" class="delivery-receipt" role="status" hidden><span class="receipt-stamp">DELIVERED ✓</span><strong id="receipt-title"></strong><span id="receipt-address"></span><small id="receipt-result"></small></div>
+      <div id="map-detail-status" class="map-detail-status" role="status"></div>
       <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
       <div class="map-bottom"><span id="notice" role="status"></span><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
     </section>
@@ -61,6 +63,8 @@
           <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open"><strong>OPEN</strong><small>1 slot · everyone</small></button><button data-radio="local"><strong>LOCAL</strong><small>1 slot · nearby</small></button><button data-radio="priority"><strong>PRIORITY</strong><small>2 slots · attention</small></button></div>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
           <button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
+          <div id="client-negotiation"><button id="client-call">Call client for more time</button><small id="client-call-detail" class="muted"></small></div>
+          <details id="decision-details" class="decision-details"><summary>Who might take it — and why?</summary><p class="decision-disclaimer">A current estimate. Riders compare every live call and may choose another.</p><div id="rider-outlook"></div><div id="channel-effects"></div></details>
         </div>
       </section>
     </aside>
@@ -87,9 +91,24 @@
     <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
     <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
     <p>Tap a rider portrait to locate them. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
+    <p id="refined-help">In full Berlin, riders stop to collect and hand over cargo. Finish estimates include both stops. You can renegotiate an unclaimed job once: up to 20 seconds more, for a 20% fee concession (at least €3). This reduces the job's pay and cannot push past closing time.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
     <p class="muted">Space: pause · + / −: zoom · 0: fit map · Escape: clear selection. Drag to pan. Contracts can always be selected from the queue.</p>
     <button id="close-help" class="primary">Back to the desk</button>
+  </dialog>
+
+  <dialog id="sound-dialog">
+    <span class="eyebrow">THE SOUND OF THE DESK</span><h2>Spokes &amp; Postcards.</h2>
+    <p>Hear the city working. Three courier signatures, little parcel melodies and a shared, gentle pulse.</p>
+    <label class="sound-field">Mix <select id="sound-mix"><option value="score">City score + field cues</option><option value="events">Field cues only</option></select></label>
+    <label class="sound-field">Volume <input id="sound-volume" type="range" min="0" max="100" value="35"></label>
+    <label class="sound-check"><input id="task-rhythms" type="checkbox" checked> Hear task pressure</label>
+    <p class="fine-print">Less time or a smaller delivery buffer makes a task repeat faster. The three most pressing jobs come forward; the lead is louder. A client extension can give its melody breathing room.</p>
+    <div class="rhythm-previews" aria-label="Preview task rhythms"><button data-rhythm="0">½ · Plenty</button><button data-rhythm="1">¼ · Watch</button><button data-rhythm="2">⅛ · Tight</button><button data-rhythm="3">¹⁄₁₆ · Urgent</button></div>
+    <p class="fine-print">Light parcels pluck, delicate parcels chime, heavy parcels hum. A volunteer brings their own instrument. Left and right follow the current map view. Collection taps twice, handover holds a note, delivery resolves the rider's phrase; failure falls gently away. Pedal notes dip on a slowed street.</p>
+    <div class="sound-portraits"><button data-listen="Kira">Kira · bicycle bell</button><button data-listen="Mauro">Mauro · bass pluck</button><button data-listen="Brian">Brian · soft reed</button></div>
+    <p id="sound-status" class="fine-print" role="status">Sound starts only when you enable it or preview a phrase. Gameplay is fully readable while muted.</p>
+    <div class="review-actions"><button id="studio-toggle">Enable sound</button><button id="close-sound" class="primary">Back to the desk</button></div>
   </dialog>
 
   <dialog id="upgrade-dialog"><span class="eyebrow">HALFWAY THROUGH</span><h2>A little help for the team.</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>

@@ -94,7 +94,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         for width in [390,320]:
             self.page.set_viewport_size({'width':width,'height':844})
             self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
-            self.assertTrue(self.page.evaluate("()=>{const receipt=document.querySelector('#delivery-receipt').getBoundingClientRect(),guide=document.querySelector('#coach-panel').getBoundingClientRect();return receipt.bottom<=guide.top&&receipt.left>=0&&receipt.right<=innerWidth;}"),'phone receipt must not be hidden behind its guide')
+            self.assertTrue(self.page.evaluate("()=>{const receipt=document.querySelector('#delivery-receipt').getBoundingClientRect(),guide=document.querySelector('#coach-panel').getBoundingClientRect(),controls=document.querySelector('.map-controls').getBoundingClientRect();return receipt.bottom<=guide.top&&controls.bottom<=receipt.top&&receipt.left>=0&&receipt.right<=innerWidth;}"),'phone receipt must clear its guide and map controls')
 
     def test_score_preview_mix_volume_and_mute_do_not_change_the_simulation(self):
         self.start()

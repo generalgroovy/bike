@@ -1,7 +1,7 @@
 const {app,BrowserWindow,Menu,protocol,session,shell,dialog,powerMonitor}=require('electron');
 const path=require('node:path');
 const {mkdirSync,readFileSync}=require('node:fs');
-const {ORIGIN,createResourceHandler,externalLink,appNavigation}=require('./resources.cjs');
+const {ORIGIN,createResourceHandler,externalLink,appNavigation,resourceName}=require('./resources.cjs');
 app.setName('Send It');app.setAppUserModelId('com.generalgroovy.sendit');
 const profile=process.env.SEND_IT_DATA_DIR?path.resolve(process.env.SEND_IT_DATA_DIR):path.join(app.getPath('appData'),'Send It Berlin');
 mkdirSync(profile,{recursive:true});app.setPath('userData',profile);
@@ -16,9 +16,13 @@ async function pauseAndSave(){
 }
 function protect(win){
   const wc=win.webContents;
+  const returnToDesk=()=>{if(desk&&!desk.isDestroyed()){desk.restore();desk.show();desk.focus();}if(win!==desk)win.close();};
   wc.on('will-attach-webview',event=>event.preventDefault());
-  wc.on('will-navigate',(event,url)=>{if(!appNavigation(url)){event.preventDefault();if(externalLink(url))shell.openExternal(url);}});
-  wc.setWindowOpenHandler(({url})=>{if(appNavigation(url))showSources();else if(externalLink(url))shell.openExternal(url);return{action:'deny'};});
+  wc.on('will-navigate',(event,url)=>{
+    if(win!==desk&&appNavigation(url)&&resourceName(url)!=='map-data.html'){event.preventDefault();returnToDesk();}
+    else if(!appNavigation(url)){event.preventDefault();if(externalLink(url))shell.openExternal(url);}
+  });
+  wc.setWindowOpenHandler(({url})=>{if(appNavigation(url)){if(resourceName(url)==='map-data.html')showSources();else returnToDesk();}else if(externalLink(url))shell.openExternal(url);return{action:'deny'};});
 }
 function showSources(){
   pauseAndSave().catch(()=>{});

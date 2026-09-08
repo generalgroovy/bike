@@ -24,6 +24,9 @@ async function launch(){
 const state=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId]),jobs:g.deliveries.map(d=>[d.id,d.status])};});
 try{
   await launch();
+  result.runtime=await app.evaluate(({app})=>({version:app.getVersion(),packaged:app.isPackaged,electron:process.versions.electron}));
+  assert.equal(result.runtime.version,JSON.parse(await readFile(path.join(root,'package.json'),'utf8')).version);
+  if(exe)assert.equal(result.runtime.packaged,true);
   assert.ok(page.url().startsWith('sendit://app/'));
   assert.deepEqual(await page.evaluate(()=>[typeof require,typeof process]),['undefined','undefined']);
   result.checks.push('local custom origin loads with sandboxed renderer and no Node integration');
@@ -71,8 +74,10 @@ try{
   const sources=await newWindow;
   await expect(sources.locator('h1')).toContainText('One city');
   await sources.screenshot({path:path.join(folder,'map-sources.png')});
-  await sources.close();await page.bringToFront();
-  result.checks.push('offline map provenance opens from the app menu');
+  const sourceClosed=sources.waitForEvent('close');
+  await sources.locator('a').first().click();await sourceClosed;await page.bringToFront();
+  assert.equal(app.windows().length,1);
+  result.checks.push('offline map provenance returns to the original desk without creating a second game');
   // Test Chromium downloads using the same blob mechanism as the review button.
   const downloadPath=path.join(profile,'shift-export.json');
   await app.evaluate(({session},dest)=>session.defaultSession.once('will-download',(_e,item)=>item.setSavePath(dest)),downloadPath);

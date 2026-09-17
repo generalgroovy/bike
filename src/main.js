@@ -1,6 +1,9 @@
 import { Game,DELIVERY_TYPES,RADIO_CHANNELS } from './game.js';
 import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
+import { createCargoIconElement,cargoVisual } from './cargo-icons.js';
+import { assessRoute,formatRouteMargin } from './route-assessment.js';
+import { createRiderPortraitElement,preloadRiderPortraits } from './rider-identity.js';
 
 const FIXED_STEP=1/60,$=selector=>document.querySelector(selector),canvas=$('#game-canvas');
 const stats={score:$('#score'),cash:$('#cash'),rep:$('#rep'),seed:$('#seed'),active:$('#active-count'),called:$('#called-count'),slots:$('#radio-slots'),trait:$('#trait'),traitDesc:$('#trait-desc'),contract:$('#contract'),contractDesc:$('#contract-desc'),focus:$('#focus'),focusMax:$('#focus-max'),city:$('#city-stage'),cityProgress:$('#city-progress'),cityNext:$('#city-next')};
@@ -15,6 +18,7 @@ const setText=(el,value)=>{if(!el)return;const text=String(value??'');if(el.text
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 function formatTime(seconds){const value=Math.max(0,Math.ceil(seconds));return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;}
 function formatKm(world){return `${Math.max(.1,world/100).toFixed(1)} km`;}
+function formatMeters(meters){return `${Math.max(.1,(Number(meters)||0)/1000).toFixed(1)} km`;}
 function readLocal(key,fallback=''){try{return localStorage.getItem(key)??fallback;}catch{return fallback;}}
 function writeLocal(key,value){try{localStorage.setItem(key,String(value));}catch{}}
 function currentSeed(){const raw=new URLSearchParams(location.search).get('seed');if(!raw)return createSeed();const cleaned=raw.toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,32);return cleaned||createSeed();}
@@ -24,25 +28,28 @@ function closeDialog(dialog){if(!dialog)return;if(dialog.open&&typeof dialog.clo
 function clearDynamic(){for(const el of taskEls.values())el.remove();for(const el of riderEls.values())el.remove();for(const el of goalEls.values())el.remove();taskEls.clear();riderEls.clear();goalEls.clear();}
 
 function start(seed=currentSeed()){
-  game=new Game({seed});renderer=new Renderer(canvas,game);lastTime=performance.now();accumulator=0;lastUiRender=0;shownUpgradeAt=-1;tooltipOwner=null;clearDynamic();closeDialog(upgradeModal);closeDialog(gameoverModal);inspector.hidden=true;hideTip();syncUrl(seed);renderUI(true);
+  renderer?.dispose();preloadRiderPortraits();game=new Game({seed});renderer=new Renderer(canvas,game);lastTime=performance.now();accumulator=0;lastUiRender=0;shownUpgradeAt=-1;tooltipOwner=null;clearDynamic();closeDialog(upgradeModal);closeDialog(gameoverModal);inspector.hidden=true;hideTip();syncUrl(seed);renderUI(true);
   const first=readLocal('sendit.help.v5')!=='1';if(first)toggleHelp(true,true);else helpPanel.hidden=true;
 }
 
 function createTaskElement(d){
   const el=document.createElement('article');el.className='task-card';el.dataset.delivery=d.id;
-  el.innerHTML=`<button class="task-select" data-select><span class="task-glyph"></span><span class="task-main"><span class="task-top"><strong class="task-id"></strong><em class="task-special" hidden></em><time class="task-time"></time></span><span class="task-route pickup"></span><span class="task-route drop"></span><span class="task-meta"></span></span></button><div class="task-actions"><button data-channel="open" data-tip="OPEN · 1 bandwidth · neutral broadcast">O</button><button data-channel="priority" data-tip="PRIORITY · 2 bandwidth · stronger rider attention">!</button><button data-channel="local" data-tip="LOCAL · 1 bandwidth · favours nearby riders">L</button><button data-channel="off" data-tip="OFF · remove this job from radio">×</button><span class="task-claimed" hidden>RIDER COMMITTED</span></div>`;
+  el.innerHTML=`<button class="task-select" data-select><span class="task-glyph"></span><span class="task-main"><span class="task-top"><strong class="task-id"></strong><em class="task-special" hidden></em><time class="task-time"></time></span><span class="task-route pickup"></span><span class="task-route drop"></span><span class="task-meta"><span class="task-distance"></span><span class="task-difficulty"></span><span class="task-state"></span></span></span></button><div class="task-actions"><button data-channel="open" data-tip="OPEN · 1 bandwidth · neutral broadcast">O</button><button data-channel="priority" data-tip="PRIORITY · 2 bandwidth · stronger rider attention">!</button><button data-channel="local" data-tip="LOCAL · 1 bandwidth · favours nearby riders">L</button><button data-channel="off" data-tip="OFF · remove this job from radio">×</button><span class="task-claimed" hidden>RIDER COMMITTED</span></div>`;
+  const icon=createCargoIconElement(d.type,{title:cargoVisual(d.type).label});if(icon)el.querySelector('.task-glyph').append(icon);
   deliveriesEl.append(el);taskEls.set(d.id,el);return el;
 }
 function likelyRiders(d,limit=2){return game.availableRiders().map(c=>({c,score:game.courierChoiceScore(c,d,false)})).filter(x=>Number.isFinite(x.score)).sort((a,b)=>b.score-a.score).slice(0,limit);}
 function updateTaskElement(el,d){
-  const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,claimed=d.status==='claimed',channel=d.called?d.channel:'off',likely=likelyRiders(d,1)[0]?.c,insight=game.deliveryDispatchInsight?.(d);
-  el.style.setProperty('--type',type.color);el.dataset.channel=channel;el.dataset.claimed=String(claimed);el.dataset.urgent=String(remaining<18);el.dataset.risk=insight?.state??'';el.classList.toggle('selected',game.selectedDeliveryId===d.id);
-  setText(el.querySelector('.task-glyph'),d.pickedUp?'◎':type.glyph);setText(el.querySelector('.task-id'),d.id.toUpperCase());
+  const type=DELIVERY_TYPES[d.type],cargo=cargoVisual(d.type),assessment=assessRoute(game,d),remaining=d.deadlineAt-game.elapsed,claimed=d.status==='claimed',channel=d.called?d.channel:'off',likely=likelyRiders(d,1)[0]?.c,insight=game.deliveryDispatchInsight?.(d);
+  el.style.setProperty('--type',cargo.color);el.style.setProperty('--cargo',cargo.color);el.style.setProperty('--distance',assessment?.distanceColor??'#4f7fc4');el.style.setProperty('--difficulty',assessment?.difficultyColor??'#d3a33f');el.dataset.channel=channel;el.dataset.claimed=String(claimed);el.dataset.urgent=String(remaining<18);el.dataset.risk=insight?.state??'';el.dataset.distance=assessment?.distanceBand??'';el.dataset.difficulty=assessment?.difficultyBand??'';el.classList.toggle('selected',game.selectedDeliveryId===d.id);
+  setText(el.querySelector('.task-id'),d.id.toUpperCase());
   const special=el.querySelector('.task-special');special.hidden=!d.specialLabel;if(d.specialLabel)setText(special,d.specialLabel);
   const time=el.querySelector('.task-time');setText(time,formatTime(remaining));time.classList.toggle('urgent',remaining<18);
   setText(el.querySelector('.pickup'),`P ${d.pickupAddress}`);setText(el.querySelector('.drop'),`D ${d.dropoffAddress}`);
   const state=claimed?`${game.courierById(d.courierId)?.name??'rider'} riding`:d.called?`${RADIO_CHANNELS[d.channel]?.short??'LIVE'}`:likely?`likely ${likely.name}`:'no free rider';
-  setText(el.querySelector('.task-meta'),`${formatKm(d.plannedDistance)} · €${d.reward} · ${state}`);
+  setText(el.querySelector('.task-distance'),`${formatMeters(assessment?.distanceMeters??d.plannedDistance*10)} · ${assessment?.distanceLabel??'MID'}`);
+  setText(el.querySelector('.task-difficulty'),assessment?.difficultyLabel??'NORMAL');
+  setText(el.querySelector('.task-state'),`${formatRouteMargin(assessment?.slackSeconds)} · ${state}`);
   for(const button of el.querySelectorAll('[data-channel]')){const id=button.dataset.channel;button.hidden=claimed||(id==='off'&&!d.called);button.classList.toggle('active',d.called&&d.channel===id);}
   el.querySelector('.task-claimed').hidden=!claimed;
 }
@@ -54,14 +61,15 @@ function syncTasks(){
 
 function createRiderElement(c){
   const el=document.createElement('button');el.className='rider-card';el.dataset.courier=c.id;
-  el.innerHTML=`<span class="rider-icon"></span><span class="rider-main"><span class="rider-name"></span><span class="rider-profile"></span><span class="rider-location"></span></span><span class="rider-status"></span><span class="rider-task"><b></b><span class="meter"><i></i></span><em></em></span><span class="rider-energy"><b>ENERGY</b><span class="meter"><i></i></span><em></em></span>`;
+  el.innerHTML=`<span class="rider-face"></span><span class="rider-main"><span class="rider-name"></span><span class="rider-profile"></span><span class="rider-location"></span></span><span class="rider-status"></span><span class="rider-task"><b></b><span class="meter"><i></i></span><em></em></span><span class="rider-energy"><b>ENERGY</b><span class="meter"><i></i></span><em></em></span>`;
+  const portrait=createRiderPortraitElement(c);if(portrait)el.querySelector('.rider-face').append(portrait);
   couriersEl.append(el);riderEls.set(c.id,el);return el;
 }
 function riderLocation(c){const n=game.nodeById(c.nodeId);if(n?.addressLabel)return n.addressLabel;if(c.path?.length>c.pathIndex){const next=game.nodeById(c.path[c.pathIndex]),edge=game.edgeByIds(c.nodeId,next?.id);if(edge?.streetName)return edge.streetName;}return game.districts.find(d=>d.id===n?.districtId)?.name??'Berlin';}
 function updateRiderElement(el,c){
   const onBreak=c.phase==='break'||!c.radioOn,busy=c.phase==='pickup'||c.phase==='dropoff',thinking=Boolean(c.deliberation),progress=busy?game.courierTaskProgress(c):thinking?game.deliberationProgress(c):0,energy=clamp(1-c.fatigue,0,1),eta=game.courierETA(c),d=c.deliveryId?game.deliveryById(c.deliveryId):null;
-  el.style.setProperty('--rider',c.color);el.dataset.break=String(onBreak);el.classList.toggle('selected',game.selectedCourierId===c.id);
-  setText(el.querySelector('.rider-icon'),onBreak?'Ⅱ':c.experience.level);setText(el.querySelector('.rider-name'),c.name);setText(el.querySelector('.rider-profile'),`${c.personality.icon} ${c.personality.title} · L${c.experience.level}`);setText(el.querySelector('.rider-location'),riderLocation(c));
+  el.style.setProperty('--rider',c.color);el.dataset.break=String(onBreak);el.dataset.state=onBreak?'break':busy?'riding':thinking?'thinking':'listening';el.classList.toggle('selected',game.selectedCourierId===c.id);
+  setText(el.querySelector('.rider-name'),c.name);setText(el.querySelector('.rider-profile'),`${c.personality.icon} ${c.personality.title} · L${c.experience.level}`);setText(el.querySelector('.rider-location'),riderLocation(c));
   let status='LISTENING',statusClass='listening',taskLabel='READY',taskEta='—';
   if(onBreak){status='BREAK';statusClass='break';taskLabel='RADIO OFF';taskEta=formatTime(game.breakRemaining(c));}
   else if(busy){status='RIDING';statusClass='busy';taskLabel=`${d?.id.toUpperCase()??'JOB'} · ${c.phase==='pickup'?'PICKUP':'DROP'}`;taskEta=eta==null?'—':formatTime(eta);}
@@ -95,8 +103,9 @@ function renderEvent(){
 
 function renderInspector(){
   const d=game.deliveryById(game.selectedDeliveryId);if(!d||!game.activeDeliveries().includes(d)){inspector.hidden=true;return;}inspector.hidden=false;
-  const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=(insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · '))||'no free rider';
-  setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
+  const type=DELIVERY_TYPES[d.type],cargo=cargoVisual(d.type),assessment=assessRoute(game,d),remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=(insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · '))||'no free rider';
+  if(inspectGlyph.dataset.cargo!==d.type){inspectGlyph.replaceChildren();const icon=createCargoIconElement(d.type,{className:'cargo-icon inspector-cargo-icon',title:cargo.label});if(icon)inspectGlyph.append(icon);inspectGlyph.dataset.cargo=d.type;}
+  inspectGlyph.style.color=cargo.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left · ${formatRouteMargin(assessment?.slackSeconds)}`);setText(inspectDistance,`${formatMeters(assessment?.distanceMeters??d.plannedDistance*10)} · ${assessment?.distanceLabel??'MID'} · ${assessment?.difficultyLabel??'NORMAL'}`);inspectDistance.style.setProperty('--distance',assessment?.distanceColor??'#4f7fc4');inspectDistance.style.setProperty('--difficulty',assessment?.difficultyColor??'#d3a33f');setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
 }
 
 function renderUI(force=false){
@@ -123,8 +132,8 @@ function showTip(title,lines,x,y,owner=null){hoverTip.replaceChildren();const st
 function hideTip(owner=null){if(owner&&tooltipOwner!==owner)return;hoverTip.hidden=true;hoverTip.replaceChildren();tooltipOwner=null;}
 function channelSummary(insight){if(!insight)return null;return ['open','local','priority'].map(id=>{const item=insight.channels[id];return `${id==='open'?'O':id==='local'?'L':'!'} ${item.bestRider?.name??'—'} ${item.fit}`;}).join(' · ');}
 function taskTip(d,x,y){
-  if(!d)return;const type=DELIVERY_TYPES[d.type],insight=game.deliveryDispatchInsight?.(d),nearest=likelyRiders(d,2).map(v=>v.c.name).join(', ')||'none free';
-  showTip(`${d.id.toUpperCase()} · ${type.label}${d.specialLabel?` · ${d.specialLabel}`:''}`,[`${d.pickupAddress} → ${d.dropoffAddress}`,`${formatKm(d.plannedDistance)} · €${d.reward} · ${formatTime(d.deadlineAt-game.elapsed)} left`,insight?`${insight.label} · ${insight.slack} · best ${insight.bestFinisher?.name??'none'}`:`Likely riders: ${nearest}`,channelSummary(insight),insight?`${insight.recommendation.action}: ${insight.recommendation.reason}`:null,d.specialDesc,d.plannedStreets?.slice(0,6).join(' → ')],x,y,`task:${d.id}`);
+  if(!d)return;const type=DELIVERY_TYPES[d.type],assessment=assessRoute(game,d),insight=game.deliveryDispatchInsight?.(d),nearest=likelyRiders(d,2).map(v=>v.c.name).join(', ')||'none free';
+  showTip(`${d.id.toUpperCase()} · ${type.label}${d.specialLabel?` · ${d.specialLabel}`:''}`,[`${d.pickupAddress} → ${d.dropoffAddress}`,`${formatMeters(assessment?.distanceMeters??d.plannedDistance*10)} · ${assessment?.distanceLabel??'MID'} · ${assessment?.difficultyLabel??'NORMAL'} · ${formatTime(d.deadlineAt-game.elapsed)} left`,`${formatRouteMargin(assessment?.slackSeconds)} · event ${Math.round((assessment?.eventExposure??0)*100)}% · bike lane ${Math.round((assessment?.bikeLaneShare??0)*100)}%`,insight?`${insight.label} · ${insight.slack} · best ${insight.bestFinisher?.name??'none'}`:`Likely riders: ${nearest}`,channelSummary(insight),insight?`${insight.recommendation.action}: ${insight.recommendation.reason}`:null,d.specialDesc,d.plannedStreets?.slice(0,6).join(' → ')],x,y,`task:${d.id}`);
 }
 function riderTip(c,x,y){
   if(!c)return;const d=c.deliveryId?game.deliveryById(c.deliveryId):null,predicted=game.predictCall(c),progress=Math.round(game.courierTaskProgress(c)*100),energy=Math.round((1-c.fatigue)*100),insight=game.riderDispatchInsight?.(c),calls=insight?.calls?.map(item=>`${item.delivery.id.toUpperCase()} ${item.fit.toLowerCase()} · ${item.reason}`).join(' | ');
@@ -140,7 +149,7 @@ canvas.addEventListener('pointerleave',()=>{if(!drag){game.hoveredDeliveryId=nul
 canvas.addEventListener('pointerup',event=>{if(!drag||drag.id!==event.pointerId)return;drag=null;canvas.releasePointerCapture(event.pointerId);canvas.classList.remove('dragging');setTimeout(()=>{suppressCanvasClick=false;},0);});
 canvas.addEventListener('click',event=>{if(suppressCanvasClick)return;const rect=canvas.getBoundingClientRect(),point=renderer.screenToWorld(event.clientX-rect.left,event.clientY-rect.top),entity=game.nearestEntity(point.x,point.y,24/renderer.scale);if(!entity)return;if(entity.type==='delivery')inspectDelivery(entity.id);else{game.selectCourier(entity.id);game.selectedDeliveryId=null;renderUI();}});
 
-deliveriesEl.addEventListener('click',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;const d=game.deliveryById(card.dataset.delivery);if(!d)return;const channel=event.target.closest('[data-channel]');if(channel){game.setChannel(d.id,channel.dataset.channel);renderUI();return;}inspectDelivery(d.id);});
+deliveriesEl.addEventListener('click',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;const d=game.deliveryById(card.dataset.delivery);if(!d)return;const channel=event.target.closest('button[data-channel]');if(channel){game.setChannel(d.id,channel.dataset.channel);renderUI();return;}inspectDelivery(d.id);});
 deliveriesEl.addEventListener('pointerover',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;game.hoveredDeliveryId=card.dataset.delivery;taskTip(game.deliveryById(card.dataset.delivery),event.clientX,event.clientY);});
 deliveriesEl.addEventListener('pointermove',event=>{if(game.hoveredDeliveryId)tipPosition(event.clientX,event.clientY);});
 deliveriesEl.addEventListener('pointerout',event=>{const card=event.target.closest('[data-delivery]');if(card&&event.relatedTarget&&!card.contains(event.relatedTarget)){game.hoveredDeliveryId=null;hideTip(`task:${card.dataset.delivery}`);}});
@@ -162,7 +171,7 @@ $('#pause').addEventListener('click',()=>{game.paused=!game.paused;renderUI();})
 $('#new-run').addEventListener('click',()=>start(createSeed()));$('#same-seed').addEventListener('click',()=>start(game.seed));$('#random-seed').addEventListener('click',()=>start(createSeed()));
 $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();});$('#zoom-out').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();});$('#zoom-reset').addEventListener('click',()=>{renderer.resetView();updateZoomLabel();});
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
-window.addEventListener('keydown',event=>{if(upgradeModal.open||gameoverModal.open)return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape')toggleHelp(false);return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
+window.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey||event.altKey||event.repeat||event.target?.closest?.('input,textarea,select,[contenteditable=true]'))return;if(upgradeModal.open||gameoverModal.open)return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape')toggleHelp(false);return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(['+','='].includes(event.key)){event.preventDefault();renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();}if(['-','_'].includes(event.key)){event.preventDefault();renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
 window.addEventListener('resize',()=>renderer.resize());
 
 start();requestAnimationFrame(frame);

@@ -56,15 +56,12 @@ test('API key remains browser-local and no production key is committed',()=>{
   assert.match(js,/Restrict it in Google Cloud/);
 });
 
-test('Google mode statically layers exact basemap below transparent game canvas',()=>{
-  const html=read('../index.html'),css=read('../ui-v12-google-map.css'),map=read('../src/render-map.js');
-  assert.ok(html.indexOf('id="google-map"')<html.indexOf('id="game-canvas"'));
-  assert.match(html,/ui-v12-google-map\.css/);
-  assert.match(html,/src\/google-basemap\.js/);
-  assert.match(css,/\.google-map\{position:absolute;inset:0;z-index:0/);
-  assert.match(css,/html\[data-basemap=google\] #game-canvas[^}]*pointer-events:none/s);
-  assert.match(map,/if\(googleBasemapActive\(\)\)return/);
-  assert.match(map,/drawOperationalDisruptions/);
+test('native v13 entry point does not load the historical Google bridge or key prompt',()=>{
+  const html=read('../index.html');
+  assert.doesNotMatch(html,/<script[^>]*src=["']src\/google-basemap\.js/);
+  assert.doesNotMatch(html,/ui-v12-google-map\.css|id="google-map"|Google vector basemap/);
+  assert.match(html,/id="map-source"/);
+  assert.match(html,/ui-v13-native\.css/);
 });
 
 test('Google mode reserves attribution space and exposes public privacy and terms',()=>{
@@ -87,15 +84,17 @@ test('Google mode keeps native game fallback and supports overview district stre
   assert.match(css,/data-google-zoom-band=detail/);
 });
 
-test('game overlays progressively disclose detail instead of cluttering every Google zoom level',()=>{
-  const entities=read('../src/render-entities.js');
-  assert.match(entities,/function googleBand\(/);
-  assert.match(entities,/googleBand\(\)==='overview'/);
-  assert.match(entities,/band==='overview'/);
-  assert.match(entities,/band==='district'/);
-  assert.match(entities,/band==='street'/);
-  assert.match(entities,/band==='detail'/);
+test('game overlays progressively disclose detail from renderer zoom semantics without Google authority',()=>{
+  const entities=read('../src/render-entities.js'),zoom=read('../src/map-zoom.js');
+  assert.match(entities,/function band\(r\)/);
+  assert.match(entities,/r\.mapBand\?\?mapZoomBand\(r\.zoom\)/);
+  assert.doesNotMatch(entities,/data-google-zoom-band|googleZoomBand/);
+  assert.match(entities,/zoomBand==='overview'/);
+  assert.match(entities,/zoomBand==='district'/);
+  assert.match(entities,/zoomBand==='street'/);
+  assert.match(entities,/zoomBand==='detail'/);
   assert.match(entities,/showLabel/);
   assert.match(entities,/showName/);
-  assert.match(entities,/googleDetailAtLeast\('street'\)/);
+  assert.match(entities,/mapZoomAtLeast\(band\(r\),'street'\)/);
+  assert.match(zoom,/overview.*district.*street.*detail/s);
 });

@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,3 +24,41 @@ jobs:
           node-version: 24
       - name: Test
         run: npm test
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install browser test tooling
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Native browser acceptance
+        run: python e2e/browser_smoke.py
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: send-it-browser-evidence
+          path: reports/browser/
+          retention-days: 7
+          if-no-files-found: warn
+  preview:
+    needs: [test, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v6
+      - name: Package tested source and offline preview
+        run: |
+          mkdir -p "$RUNNER_TEMP/send-it-preview"
+          git archive --format=tar HEAD > "$RUNNER_TEMP/send-it-preview/source.tar"
+          git rev-parse HEAD > "$RUNNER_TEMP/send-it-preview/COMMIT.txt"
+      - name: Upload tested preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: send-it-tested-preview
+          path: ${{ runner.temp }}/send-it-preview/
+          retention-days: 7
+          if-no-files-found: error

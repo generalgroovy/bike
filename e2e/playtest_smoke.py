@@ -65,8 +65,13 @@ class PlaytestAcceptance(unittest.TestCase):
         return self.page.evaluate("async () => {const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;return (" + expression + ");}")
 
     def start(self, mode='training'):
-        self.page.locator(f'[data-start="{mode}"]').click()
+        self.page.locator('#shift-length').select_option(mode)
+        self.page.locator('#prepare-shift').click()
         expect(self.page.locator('#intro')).to_be_hidden()
+
+    def open_offer_options(self):
+        if not self.page.locator('#offer-options').evaluate('(el)=>el.open'):
+            self.page.locator('#offer-options summary').click()
 
     def tearDown(self):
         try:
@@ -83,7 +88,7 @@ class PlaytestAcceptance(unittest.TestCase):
     def test_guided_first_delivery_uses_real_time_and_shows_courier_choice(self):
         self.start()
         expect(self.page.locator('#coach')).to_contain_text('first call')
-        self.page.locator('.quick-call').click()
+        self.page.locator('[data-radio="open"]').click()
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         self.page.locator('#pause').click()
@@ -95,7 +100,7 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def test_radio_bonus_and_keyboard_actions_are_accessible_and_do_not_assign(self):
         self.start()
-        self.page.locator('.quick-call').focus()
+        self.page.locator('[data-radio="open"]').focus()
         self.page.keyboard.press('Space')
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game('g.paused'))
@@ -104,7 +109,7 @@ class PlaytestAcceptance(unittest.TestCase):
             self.assertEqual(self.game('g.radioUsed()'), cost)
             self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         fee = self.game('g.deliveries[0].reward')
-        self.page.locator('#bonus').click()
+        self.open_offer_options();self.page.locator('#bonus').click()
         expect(self.page.locator('#cash')).to_have_text('€5')
         expect(self.page.locator('#bonus')).to_be_disabled()
         self.assertEqual(self.game('g.deliveries[0].reward'), fee)
@@ -125,7 +130,7 @@ class PlaytestAcceptance(unittest.TestCase):
         for width, height in [(1440, 900), (1280, 720), (1024, 768), (850, 900), (390, 844), (360, 780), (320, 568)]:
             with self.subTest(width=width):
                 self.page.set_viewport_size({'width': width, 'height': height})
-                self.page.wait_for_timeout(180)
+                self.page.wait_for_function("async()=>{const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;return Math.abs(r.canvas.getBoundingClientRect().width-r.viewWidth)<1;}",timeout=10000)
                 self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
                 metrics = self.camera('({css:r.canvas.getBoundingClientRect().width,view:r.viewWidth,backing:r.canvas.width,dpr:r.dpr})')
                 self.assertAlmostEqual(metrics['css'], metrics['view'], delta=1)
@@ -215,7 +220,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.assertEqual(self.camera('r.zoom'), 1)
         self.assertEqual(self.page.locator('#region-view').input_value(), '')
         self.page.goto(self.base + f'/index.html?mode=standard&seed=BERLIN-1&city={self.city}')
-        expect(self.page.locator('#intro')).to_be_visible()
+        expect(self.page.locator('#intro')).to_be_visible(timeout=30000)
         self.assertEqual(self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])'), before)
         self.assertEqual(self.game('g.cityData.metadata.crs'), 'EPSG:25833')
 
@@ -260,15 +265,18 @@ class PlaytestAcceptance(unittest.TestCase):
     def test_timing_advice_and_full_radio_explain_the_next_decision(self):
         self.start('standard')
         expect(self.page.locator('.job-timing').first).to_contain_text('to finish')
-        self.page.locator('.quick-call').nth(0).click()
-        self.page.locator('.quick-call').nth(1).click()
-        self.page.locator('.quick-call').nth(2).click()
+        for index in range(3):
+            self.page.locator('.job-select').nth(index).click()
+            self.page.locator('[data-radio="open"]').click()
         expect(self.page.locator('#radio-hint')).to_contain_text('Radio full')
         self.game('(g.spawnDelivery(),true)')
-        expect(self.page.locator('.quick-call').last).to_have_text('Radio full')
-        expect(self.page.locator('.quick-call').last).to_be_disabled()
-        self.page.locator('.quick-call').first.click()
-        expect(self.page.locator('.quick-call').last).to_be_enabled()
+        expect(self.page.locator('.job-select')).to_have_count(4)
+        self.page.locator('.job-select').last.click()
+        expect(self.page.locator('[data-radio="open"]')).to_be_disabled()
+        self.page.locator('.job-select').first.click()
+        self.page.locator('#withdraw').click()
+        self.page.locator('.job-select').last.click()
+        expect(self.page.locator('[data-radio="open"]')).to_be_enabled()
         self.game('(g.deliveries[0].deadlineAt=g.elapsed+.5,true)')
         self.page.locator('.job-select').first.click()
         expect(self.page.locator('.job-timing').first).to_contain_text('Too little time')
@@ -287,6 +295,53 @@ class PlaytestAcceptance(unittest.TestCase):
         expect(self.page.locator('#coach')).to_be_visible()
         self.page.locator('#fit-map').click()
         self.assertEqual(self.camera('r.zoom'), 1)
+
+
+    def test_one_decision_panel_tracks_the_job_lifecycle(self):
+        self.start()
+        expect(self.page.locator('.quick-call')).to_have_count(0)
+        expect(self.page.locator('#work-list button')).to_have_count(1)
+        expect(self.page.locator('#selected-stage')).to_have_text('Not broadcast')
+        before=self.game('JSON.stringify(g.exportRun())')
+        self.page.locator('.job-select').click()
+        self.assertEqual(self.game('JSON.stringify(g.exportRun())'),before)
+        expect(self.page.locator('.job-select')).to_have_attribute('aria-pressed','true')
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#selected-stage')).to_have_text('On air')
+        expect(self.page.locator('#radio-effect')).to_contain_text('One radio slot')
+        expect(self.page.locator('#desk-state')).to_have_text('Ready')
+        self.page.locator('#pause').click()
+        expect(self.page.locator('#desk-state')).to_have_text('Live')
+        expect(self.page.locator('#job-actions')).to_be_hidden(timeout=10000)
+        expect(self.page.locator('#selected-state')).to_contain_text('volunteered')
+        self.page.locator('#pause').click()
+        expect(self.page.locator('#desk-state')).to_have_text('Paused')
+        self.assertTrue(self.game("g.deliveries[0].status==='claimed'"))
+
+    def test_finished_job_stays_understandable_and_next_job_can_be_selected(self):
+        self.start('standard')
+        self.game('(g.failDelivery(g.deliveries[0]),true)')
+        expect(self.page.locator('#selected-stage')).to_have_text('Missed deadline')
+        expect(self.page.locator('#job-actions')).to_be_hidden()
+        expect(self.page.locator('#next-job')).to_be_enabled()
+        self.page.locator('#next-job').click()
+        expect(self.page.locator('#selected-stage')).to_have_text('Not broadcast')
+        self.assertNotEqual(self.game('g.selectedDeliveryId'),'d0')
+        self.page.keyboard.press('Escape')
+        expect(self.page.locator('#contract-title')).to_have_text('Choose a job')
+        expect(self.page.locator('#contract-detail')).to_be_hidden()
+
+    def test_single_setup_action_and_sticky_mobile_time_controls(self):
+        expect(self.page.locator('[data-start]')).to_have_count(1)
+        self.start('standard')
+        self.assertEqual(self.game('g.mode'),'standard')
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.page.locator('.mobile-desk-nav a').nth(1).click()
+        self.page.locator('.job-select').first.click()
+        self.assertEqual(self.page.locator('#contract-title').evaluate('(el)=>el===document.activeElement'),True)
+        for selector in ['#pause','#clock','#contract-title']:
+            self.assertTrue(self.page.locator(selector).evaluate('(el)=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}'),selector)
+        self.assertTrue(self.game('g.paused'))
 
 
 if __name__ == '__main__':

@@ -50,9 +50,9 @@ try{
   assert.equal(await page.evaluate(async()=>{const {DeskScore}=await import('/src/playtest-score.js');return DeskScore.lastInstance.voices.size;}),0);
   await page.locator('#close-sound').click();assert.deepEqual(await state(),before);
   result.checks.push('three rider themes, four task rhythms and exact mute work without changing simulation');
-  await page.locator('.job-select').click();await page.locator('#client-call').click();
+  await page.locator('.job-select').click();await page.locator('#offer-options summary').click();await page.locator('#client-call').click();
   await expect(page.locator('#client-call-detail')).toContainText('fee reduced');
-  await page.locator('.quick-call').click();await page.locator('#pause').click();
+  await page.locator('[data-radio=open]').click();await page.locator('#pause').click();
   await expect(page.locator('.job-status')).toContainText('is on it',{timeout:12000});
   await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:30000});
   await page.locator('#pause').click();

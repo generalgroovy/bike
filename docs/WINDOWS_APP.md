@@ -4,9 +4,9 @@ The Windows 64-bit desktop app packages the existing Berlin acceptance game with
 
 ## Play
 
-- **Portable:** double-click `Send-It-0.14.0-Windows-Portable.exe`. It extracts its bundled runtime to a temporary directory and opens the desk.
-- **Installed:** run `Send-It-0.14.0-Windows-Setup.exe`, choose a location, then open **Send It** from Start or its desktop shortcut. The installer is per-user and does not require elevation.
-- Choose a locality and a guided or standard shift. Broadcast an offer, then start time. Couriers make their own decisions.
+- **Portable:** double-click `Send-It-0.15.0-Windows-Portable.exe`. It extracts its bundled runtime to a temporary directory and opens the desk.
+- **Installed:** run `Send-It-0.15.0-Windows-Setup.exe`, choose a location, then open **Send It** from Start or its desktop shortcut. The installer is per-user and does not require elevation.
+- Choose a locality and shift length, then Prepare shift. Select a job, broadcast from its decision panel, and start the clock at the top. Couriers make their own decisions. See [the unified desk guide](UNIFIED_DESK.md).
 - Enable sound to hear **Spokes & Postcards**, or use **Sound & music** for rider/rhythm previews and mix controls. Everything is playable while muted.
 - The app includes full Berlin, the original Inner Ring, all 926 building-detail tiles, courier portraits and the synthesized score. Close-up detail still uses a bounded cache, reading files from the app package.
 
@@ -43,6 +43,6 @@ The `Test` workflow now includes a Windows job that builds both formats and exer
 
 The existing game and browser regression suites remain separate. Native packaging does not establish player enjoyment or physical-phone acceptance and does not alter rider assignment authority.
 
-These acceptance builds are **unsigned**. This development PC's Device Guard policy blocked the downloaded Electron runtime before the app could launch, so local native acceptance is unavailable under that policy. GitHub's Windows-runner results must be reported separately; they do not prove this PC will allow the executable. Distribution to a policy-managed device requires a publisher signature or an application allowance accepted by that device's administrator. The app does not change Windows security policy.
+These acceptance builds are **unsigned**. An earlier development Electron runtime was blocked by this PC's Device Guard policy; the packaged 0.14 portable app subsequently launched normally. Verify each exact packaged build separately. GitHub's Windows-runner results must be reported separately; they do not prove this PC will allow the executable. Distribution to a policy-managed device requires a publisher signature or an application allowance accepted by that device's administrator. The app does not change Windows security policy.
 
 Implementation follows Electron's [custom protocol API](https://www.electronjs.org/docs/latest/api/protocol/) and [renderer isolation guidance](https://www.electronjs.org/docs/latest/tutorial/security), with electron-builder's [Windows packaging targets](https://www.electron.build/v26/docs/win/). The game renderer is sandboxed, has no Node integration, and can fetch only its bundled origin. Native code handles app lifecycle, menus and normal file downloads.

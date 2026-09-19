@@ -39,13 +39,14 @@ class CityAcceptance(desk.PlaytestAcceptance):
 
     def test_saved_shift_survives_reload_and_resumes_paused(self):
         self.start()
-        self.page.locator('.quick-call').click()
+        self.page.locator('[data-radio="open"]').click()
         self.page.locator('#pause').click()
         expect(self.page.locator('.job-status')).to_contain_text('is on it', timeout=8000)
         self.page.locator('#pause').click()
         before=self.game('({tick:g.tick,seed:g.seed,jobs:g.deliveries.map(d=>[d.id,d.status]),positions:g.couriers.map(c=>[c.x,c.y]),cash:g.cash})')
         expect(self.page.locator('#save-state')).to_contain_text('Saved on this device')
         self.page.reload()
+        expect(self.page.locator('#intro')).to_be_visible(timeout=30000)
         expect(self.page.locator('#resume-saved')).to_be_visible()
         self.page.locator('#resume-saved').click()
         expect(self.page.locator('#intro')).to_be_hidden()
@@ -72,8 +73,9 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.page.locator('#decision-details summary').click()
         expect(self.page.locator('#rider-outlook .outlook-row')).to_have_count(3)
         expect(self.page.locator('#channel-effects')).to_contain_text('Travel time is unchanged')
+        self.page.locator('.parcel-details summary').click()
         expect(self.page.locator('#selected-handling')).to_contain_text('collection')
-        self.page.locator('#client-call').click()
+        self.open_offer_options();self.page.locator('#client-call').click()
         expect(self.page.locator('#client-call')).to_be_disabled()
         expect(self.page.locator('#client-call-detail')).to_contain_text('fee reduced')
         self.assertEqual(self.game('g.deliveries[0].deadlineAt'),before['deadline']+20)
@@ -83,7 +85,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
 
     def test_handoffs_are_visible_and_delivery_receipt_is_readable_while_muted(self):
         self.start()
-        self.page.locator('.quick-call').click();self.page.locator('#pause').click()
+        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
         expect(self.page.locator('.job-timing')).to_contain_text('Collecting',timeout=15000)
         self.assertTrue(self.game("g.couriers.some(c=>c.phase==='loading')"))
         expect(self.page.locator('.job-timing')).to_contain_text('Handing over',timeout=25000)
@@ -94,7 +96,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         for width in [390,320]:
             self.page.set_viewport_size({'width':width,'height':844})
             self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
-            self.assertTrue(self.page.evaluate("()=>{const receipt=document.querySelector('#delivery-receipt').getBoundingClientRect(),guide=document.querySelector('#coach-panel').getBoundingClientRect(),controls=document.querySelector('.map-controls').getBoundingClientRect();return receipt.bottom<=guide.top&&controls.bottom<=receipt.top&&receipt.left>=0&&receipt.right<=innerWidth;}"),'phone receipt must clear its guide and map controls')
+            self.assertTrue(self.page.evaluate("()=>{const receipt=document.querySelector('#delivery-receipt').getBoundingClientRect(),controls=document.querySelector('.map-controls').getBoundingClientRect();return !document.querySelector('.city-panel #coach-panel')&&controls.bottom<=receipt.top&&receipt.left>=0&&receipt.right<=innerWidth;}"),'phone receipt must clear map controls, with the guide outside the map')
 
     def test_score_preview_mix_volume_and_mute_do_not_change_the_simulation(self):
         self.start()
@@ -134,8 +136,8 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.page.locator('#sound').click();self.page.locator('#pause').click()
         self.page.wait_for_function("async()=>{const {DeskScore}=await import('/src/playtest-score.js');return DeskScore.lastInstance.listened[0]?.division==='1/16';}")
         expect(self.page.locator('#listening-now')).to_contain_text('D0 · 1/16')
-        self.page.locator('#pause').click();self.page.locator('#client-call').click()
-        self.page.locator('.quick-call').click();self.page.locator('#pause').click()
+        self.page.locator('#pause').click();self.open_offer_options();self.page.locator('#client-call').click()
+        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
         self.page.wait_for_function("async()=>{const {DeskScore}=await import('/src/playtest-score.js');return DeskScore.lastInstance.listened[0]?.pressure<3;}")
         expect(self.page.locator('.job-status')).to_contain_text('is on it',timeout=8000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=25000)
@@ -165,7 +167,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         while self.camera('r.scale')<2:self.page.locator('#zoom-in').click()
         expect(self.page.locator('#map-detail-status')).to_contain_text('Building detail unavailable',timeout=10000)
         expect(self.page.locator('#fatal-error')).to_be_hidden()
-        self.page.locator('.quick-call').click();self.page.locator('#pause').click()
+        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
         expect(self.page.locator('#delivery-target')).to_have_text('1 / 5 delivered',timeout=30000)
         self.page.locator('#pause').click()
 

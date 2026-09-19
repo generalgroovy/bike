@@ -4,10 +4,10 @@ The Windows 64-bit desktop app packages the existing Berlin acceptance game with
 
 ## Play
 
-- **Portable:** double-click `Send-It-0.15.0-Windows-Portable.exe`. It extracts its bundled runtime to a temporary directory and opens the desk.
-- **Installed:** run `Send-It-0.15.0-Windows-Setup.exe`, choose a location, then open **Send It** from Start or its desktop shortcut. The installer is per-user and does not require elevation.
+- **Portable:** double-click `Send-It-0.16.0-Windows-Portable.exe`. It extracts its bundled runtime to a temporary directory and opens the desk.
+- **Installed:** run `Send-It-0.16.0-Windows-Setup.exe`, choose a location, then open **Send It** from Start or its desktop shortcut. The installer is per-user and does not require elevation.
 - Choose a locality and shift length, then Prepare shift. Select a job, broadcast from its decision panel, and start the clock at the top. Couriers make their own decisions. See [the unified desk guide](UNIFIED_DESK.md).
-- Enable sound to hear **Spokes & Postcards**, or use **Sound & music** for rider/rhythm previews and mix controls. Everything is playable while muted.
+- Enable sound to hear **Spokes & Postcards**, or use **Menu → Sound & music** for rider/rhythm previews and mix controls. Everything is playable while muted.
 - The app includes full Berlin, the original Inner Ring, all 926 building-detail tiles, courier portraits and the synthesized score. Close-up detail still uses a bounded cache, reading files from the app package.
 
 ## Saves and app controls

@@ -101,6 +101,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
     def test_score_preview_mix_volume_and_mute_do_not_change_the_simulation(self):
         self.start()
         before=self.game('({tick:g.tick,positions:g.couriers.map(c=>[c.x,c.y]),cash:g.cash})')
+        self.page.locator('#desk-menu > summary').click()
         self.page.locator('#open-sound-studio').click()
         expect(self.page.locator('#sound-dialog')).to_be_visible()
         score=lambda expr:self.page.evaluate("async()=>{const {DeskScore}=await import('/src/playtest-score.js');const s=DeskScore.lastInstance;return ("+expr+");}")

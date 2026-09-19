@@ -11,50 +11,52 @@
 </head>
 <body>
   <header class="masthead">
-    <div class="wordmark" aria-label="Send It Berlin desk"><span>↗</span> SEND IT<span class="edition">THE BERLIN DESK</span></div>
+    <div class="wordmark" aria-label="Send It Berlin desk"><span>↗</span> SEND IT</div>
     <div class="desk-stats" aria-label="Shift status">
       <div><small>REPUTATION</small><strong id="reputation">100</strong><meter id="rep-meter" min="0" max="100" value="100">100</meter></div>
       <div><small>CASH</small><strong id="cash">€10</strong></div>
       <div><small>RADIO</small><strong id="radio-count">0 / 3</strong></div>
     </div>
-    <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><button id="help">How to play</button><button id="new-shift">New shift</button></nav>
+    <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><details id="desk-menu" class="desk-menu"><summary>Menu</summary><div class="menu-sheet">
+      <button id="help">How to play</button><button id="open-sound-studio">Sound &amp; music</button><button id="new-shift">New shift</button>
+      <div class="session-meta"><strong id="scope-name"></strong><small id="seed-label"></small><small id="phase-name"></small><span id="flow-count"></span><small id="listening-now"></small><span id="save-state" role="status"></span><span id="map-detail-status"></span></div>
+    </div></details></nav>
   </header>
 
   <div class="shift-bar">
-    <div class="shift-context"><span id="desk-state" class="state-badge" data-state="ready">Ready</span><div><strong id="phase-name">Find your rhythm</strong><span id="phase-detail">Prepare an offer, then start the clock.</span></div></div>
+    <div class="shift-context"><span id="desk-state" class="state-badge" data-state="ready">Ready</span><span id="phase-detail" class="sr-only"></span></div>
     <div class="shift-target"><span id="delivery-target">0 / 5 delivered</span><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock" aria-label="Time until the shift ends">3:00</strong><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
   </div>
 
   <main class="desk-layout">
     <section class="work-panel" aria-labelledby="work-title">
-      <div class="panel-heading"><div><span class="eyebrow">THE JOB LIST</span><h1 id="work-title">Your jobs <span id="work-count">1</span></h1></div></div>
+      <div class="panel-heading"><div><h1 id="work-title">Jobs <span id="work-count">1</span></h1></div></div>
       <p class="queue-explainer" id="queue-summary">Select a job to see its route and make an offer.</p>
-      <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
+
       <div id="work-list"></div>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
-      <div class="work-footer"><span id="scope-name">⌁ BERLIN · FULL CITY</span><small id="seed-label"></small><span id="flow-count"></span><button id="open-sound-studio" class="text-button">♫ Sound &amp; music</button><small id="listening-now">Sound off</small><span id="save-state" role="status">Your shift saves on this device.</span></div>
     </section>
 
     <section class="city-panel" aria-label="Berlin dispatch map">
       <div class="map-surface">
       <canvas id="game-canvas" aria-label="Couriers and contracts on the Berlin map. All contracts are also available in the work queue."></canvas>
-      <div class="map-caption"><span class="eyebrow" id="scope-eyebrow">BERLIN / FULL CITY</span><strong>A city in motion.</strong><small id="demand-region">Demand favors Mitte</small></div>
+      <div class="map-caption"><small id="demand-region">Demand favors Mitte</small></div>
       <label class="region-picker">Map view <select id="region-view" aria-label="Map region"><option value="">Whole Inner Ring</option><option value="route" disabled>Selected route</option></select></label>
       <div class="map-scale"><span id="map-scale-label">1 km</span><i id="map-scale-bar"></i><small>N ↑</small></div>
-      <div class="map-attribution"><a id="map-credits" href="map-data.html" target="_blank" rel="noopener">Berlin Open Data · map sources and accuracy</a></div>
+      <div class="map-attribution"><a id="map-credits" href="map-data.html" target="_blank" rel="noopener">Map credits</a></div>
       <div class="map-controls" aria-label="Map controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map">Fit map</button></div>
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
       <div id="delivery-receipt" class="delivery-receipt" role="status" hidden><span class="receipt-stamp">DELIVERED ✓</span><strong id="receipt-title"></strong><span id="receipt-address"></span><small id="receipt-result"></small></div>
-      <div id="map-detail-status" class="map-detail-status" role="status"></div>
+
       <div class="map-bottom"><span id="notice" role="status"></span></div>
       </div>
-      <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><h2 id="team-title">Your riders <small>They choose their jobs</small></h2></div><div id="team-list"></div></section>
+      <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><h2 id="team-title">Riders</h2></div><div id="team-list"></div></section>
     </section>
 
     <aside class="details-panel">
 
       <section class="contract-section" aria-labelledby="contract-title">
-        <div class="panel-heading"><div><span class="eyebrow">SELECTED JOB</span><h2 id="contract-title" tabindex="-1">Choose a job</h2></div></div>
+        <div class="panel-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div></div>
         <p id="selection-empty" class="empty">Choose a job from the list or map. Its status, route and decisions appear here.</p>
         <div id="contract-detail" hidden>
           <div class="job-progress" aria-label="Delivery progress"><span data-step="0">Offer</span><span data-step="1">Pickup</span><span data-step="2">Delivery</span><span data-step="3">Done</span></div>
@@ -64,15 +66,15 @@
           <div class="contract-facts"><strong id="selected-time"></strong><span id="selected-distance"></span></div>
           <div class="region-route"><span id="selected-regions"></span><button id="find-route">Find route ↗</button></div>
           <p id="selected-state" class="explanation"></p>
-          <div id="job-actions"><p id="offer-instruction" class="action-heading">Who should hear this offer?</p><p id="radio-hint" class="radio-hint" role="status"></p>
-          <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>OPEN · 1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>LOCAL · 1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
-          <p id="radio-effect" class="muted"></p>
+          <div id="job-actions"><p id="offer-instruction" class="action-heading">Broadcast</p><p id="radio-hint" class="radio-hint" role="status"></p>
+          <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
+          <span id="radio-effect" class="sr-only"></span>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
           <details id="offer-options" class="offer-options"><summary>Improve the offer <small>Bonus or more time</small></summary><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
           <div id="client-negotiation"><button id="client-call">Call client for more time</button><small id="client-call-detail" class="muted"></small></div>
           </details></div>
           <div id="job-outcome" hidden><button id="next-job" class="primary">Choose the next job</button></div>
-          <details id="decision-details" class="decision-details"><summary>Who might take it — and why?</summary><p class="decision-disclaimer">A current estimate. Riders compare every live call and may choose another.</p><div id="rider-outlook"></div><div id="channel-effects"></div></details>
+          <details id="decision-details" class="decision-details"><summary>Rider estimates</summary><p class="decision-disclaimer">A current estimate. Riders compare every live call and may choose another.</p><p id="timing-detail" class="fine-print"></p><div id="rider-outlook"></div><div id="channel-effects"></div></details>
           <details class="parcel-details"><summary>Parcel &amp; handling</summary><p id="selected-handling"></p></details>
         </div>
       </section>
@@ -80,20 +82,18 @@
   </main>
 
   <dialog id="intro" class="welcome">
-    <span class="eyebrow">SEND IT / BERLIN</span><h2>Good work starts<br>with a good call.</h2>
-    <p>Three couriers. A shared radio. You choose which jobs they hear.<br><strong>They choose which jobs to take.</strong></p>
-    <div class="welcome-steps"><span><b>01</b> Read a contract</span><span><b>02</b> Put it on the radio</span><span><b>03</b> Watch the team respond</span></div>
-    <p id="city-summary" class="city-summary"></p>
-    <label id="start-region-field" class="start-region-field">Where does your team start?<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select><small>Citywide shifts spread three couriers across Berlin. A first shift starts together in Mitte. Choose a locality to start together there.</small></label>
+    <h2>New shift</h2>
+    <label id="start-region-field" class="start-region-field">Starting locality<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select></label>
     <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
-    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">First shift · 3 minutes · 5 deliveries</option><option value="standard">Full shift · 9 minutes · 24 deliveries</option></select><small>Same city, riders and decisions. The first shift opens gently and includes guidance.</small></label>
+    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 5 deliveries</option><option value="standard">9 minutes · 24 deliveries</option></select></label>
     <button id="prepare-shift" class="primary" data-start="training">Prepare shift ↗</button>
-    <p class="fine-print">Finish with reputation left and reach the delivery target. At closing, new work stops; unfinished jobs count as misses when the timer ends. Pause whenever you need.</p>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
   </dialog>
 
   <dialog id="help-dialog">
-    <span class="eyebrow">A LITTLE RADIO ETIQUETTE</span><h2>You broadcast. Riders decide.</h2>
+    <h2>How to play</h2>
+    <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
+    <p id="city-summary" class="fine-print"></p><span id="scope-eyebrow" class="sr-only"></span>
     <p>Select a job in the list, then use its decision panel. <strong>All riders / OPEN</strong> lets all listening couriers consider a job. <strong>LOCAL</strong> favors nearby riders. <strong>PRIORITY</strong> attracts more attention and uses two slots. None of them assigns a rider.</p>
     <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
     <p>Read each job's finish estimate before its deadline. <strong>Time to spare</strong> leaves a buffer; <strong>Tight window</strong> needs an early call; <strong>Too little time</strong> means the current estimate cannot fit. <strong>After current work</strong> depends on a busy or resting rider becoming available. These are estimates, not promises.</p>

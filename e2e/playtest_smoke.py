@@ -3,6 +3,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import json
+import re
 import threading
 import unittest
 
@@ -189,6 +190,7 @@ class PlaytestAcceptance(unittest.TestCase):
         expect(self.page.locator('#upgrade-dialog')).to_be_hidden()
         self.assertEqual(self.game('g.radioSlots'), 4)
         self.camera('(window.previousRenderer=r,true)')
+        self.page.locator('#desk-menu > summary').click()
         self.page.locator('#new-shift').click()
         self.start('standard')
         self.assertTrue(self.page.evaluate('previousRenderer.disposed'))
@@ -201,6 +203,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.locator('#fit-map').click()
         self.assertEqual(self.camera('r.zoom'), 1)
         self.page.locator('#pause').click()
+        self.page.locator('#desk-menu > summary').click()
         self.page.locator('#help').click()
         self.assertTrue(self.game('g.paused'))
         self.page.locator('#close-help').click()
@@ -289,7 +292,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.game('(g.deliveries[0].deadlineAt=g.elapsed+.5,true)')
         self.page.locator('.job-select').first.click()
         expect(self.page.locator('.job-timing').first).to_contain_text('Too little time')
-        expect(self.page.locator('#selected-state')).to_contain_text('cannot extend the deadline')
+        expect(self.page.locator('#selected-state')).to_have_attribute('title', re.compile('cannot extend the deadline'))
         self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         self.assertTrue(self.game('g.paused'))
 
@@ -297,11 +300,15 @@ class PlaytestAcceptance(unittest.TestCase):
         self.start()
         self.assertGreater(self.camera('r.zoom'), 2)
         self.assertEqual(self.page.locator('#region-view').input_value(), 'route')
+        expect(self.page.locator('#coach')).to_be_hidden()
+        self.page.locator('#desk-menu > summary').click()
+        self.page.locator('#help').click()
         expect(self.page.locator('#coach')).to_be_visible()
         self.page.locator('#coach-panel summary').click()
         expect(self.page.locator('#coach')).to_be_hidden()
         self.page.locator('#coach-panel summary').click()
         expect(self.page.locator('#coach')).to_be_visible()
+        self.page.locator('#close-help').click()
         self.page.locator('#fit-map').click()
         self.assertEqual(self.camera('r.zoom'), 1)
 

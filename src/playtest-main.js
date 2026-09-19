@@ -125,7 +125,7 @@ function renderQueue() {
     card.querySelector('.job-select').setAttribute('aria-label', `Inspect ${d.id.toUpperCase()}: ${d.pickupAddress} to ${d.dropoffAddress}, €${d.reward}, ${time(d.deadlineAt-game.elapsed)} left. ${timing.textContent}`);
   }
   text('#work-count', jobs.length);
-  text('#queue-summary', `${jobs.filter(d=>d.status==='waiting').length} waiting · ${jobs.filter(d=>d.status==='claimed').length} with riders. Select a job to see its decisions.`);
+  text('#queue-summary', `${jobs.filter(d=>d.status==='waiting').length} waiting · ${jobs.filter(d=>d.status==='claimed').length} riding`);
   $('#empty-queue').hidden = jobs.length > 0;
 }
 
@@ -183,13 +183,13 @@ function renderSelection() {
   if (!d) {
     const rider = game.courierById(game.selectedCourierId);
     text('#contract-title', rider ? rider.name : 'Choose a job');
-    text('#selection-empty', rider ? `${riderCards.get(rider.id)?.querySelector('p').textContent ?? 'Listening for work'}. Energy ${Math.round((1-rider.fatigue)*100)}%. ${rider.lastDecision}. Broadcast a job to make an offer; this rider chooses whether to take it.` : 'Choose a job from the list or map. Its status, route and decisions appear here.');
+    text('#selection-empty', rider ? `${riderCards.get(rider.id)?.querySelector('p').textContent ?? 'Listening for work'}. Energy ${Math.round((1-rider.fatigue)*100)}%. ${rider.lastDecision}.` : 'Select a job or rider on the map.');
     return;
   }
   const state = jobState(game, d), waiting = d.status === 'waiting';
   text('#contract-title', `Job ${d.id.toUpperCase()}`);
   text('#selected-stage', state.label); $('#selected-stage').dataset.state = state.id;
-  text('#selected-owner', game.courierById(d.courierId)?.name ?? 'Rider chooses');
+  text('#selected-owner', game.courierById(d.courierId)?.name ?? '');
   for (const step of document.querySelectorAll('[data-step]')) {
     step.dataset.current = String(Number(step.dataset.step) === state.step);
     step.dataset.done = String(Number(step.dataset.step) < state.step);
@@ -197,7 +197,7 @@ function renderSelection() {
     else step.removeAttribute('aria-current');
   }
   $('#job-actions').hidden = !waiting || game.gameOver;
-  $('#job-outcome').hidden = !state.terminal;
+  $('#job-outcome').hidden = !state.terminal || game.gameOver || !game.activeDeliveries().length;
   $('#next-job').disabled = game.gameOver || !game.activeDeliveries().length;
   const cargo = $('#selected-cargo');
   if (cargo.dataset.type !== d.type) {
@@ -215,9 +215,11 @@ function renderSelection() {
   const rider = game.courierById(d.courierId);
   let explanation = state.terminal ? state.detail : rider ? `${rider.name} volunteered · ~${time(game.courierETA(rider))} to finish. ${riderActivity(game,rider)?.detail??state.detail}` : state.detail;
   if (advice) explanation = `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} to finish` : ''}. ${advice.detail}`;
-  text('#selected-state', explanation);
+  text('#selected-state', advice ? `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} to finish` : ''}` : explanation);
+  $('#selected-state').title = explanation;
+  text('#timing-detail', explanation);
   $('#selected-state').dataset.state = advice?.state ?? state.id;
-  text('#offer-instruction', d.called ? 'Change who hears this offer' : 'Who should hear this offer?');
+  text('#offer-instruction', d.called ? 'Broadcast · on air' : 'Broadcast');
   text('#radio-effect', d.called ? `${CHANNEL_EFFECTS[d.channel]} Riders choose.` : 'Riders decide. Priority adds attention, never speed. Choose a broadcast above.');
   for (const button of document.querySelectorAll('[data-radio]')) {
     const channel = button.dataset.radio, cost = channel === 'priority' ? 2 : 1;
@@ -278,12 +280,13 @@ function render() {
   text('#reputation', Math.ceil(game.reputation)); $('#rep-meter').value = game.reputation;
   text('#cash', `€${game.cash}`); text('#radio-count', `${game.radioUsed()} / ${game.radioSlots}`);
   const freeSlots = game.radioSlots - game.radioUsed();
-  text('#radio-hint', freeSlots === 0 ? 'Radio full. Withdraw a call or wait for a volunteer.' : `${freeSlots} ${freeSlots === 1 ? 'slot' : 'slots'} free · a volunteer frees the frequency.`);
+  text('#radio-hint', freeSlots === 0 ? 'Radio full. Withdraw a call or wait for a volunteer.' : `${freeSlots} ${freeSlots === 1 ? 'slot' : 'slots'} free`);
   $('#radio-hint').dataset.full = String(freeSlots === 0);
   text('#phase-name', phase.label); text('#phase-detail', status.detail);
+  $('.shift-context').title = status.detail;
   const demand=game.demandRegion();
   text('#demand-region',game.closing?'Finishing the queue':`Demand favors ${demand.name}`);
-  text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'Build a clean delivery streak');
+  text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'');
   text('#map-detail-status',renderer.buildingDetails?.status(renderer.scale)??'');
   text('#mobile-job-count',game.activeDeliveries().length);
   const metersPerPixel=city.metadata.metersPerUnit/renderer.scale;
@@ -296,7 +299,8 @@ function render() {
   $('#pause').disabled = game.gameOver; text('#speed', `${game.speed}×`); $('#speed').disabled = game.gameOver;
   text('#seed-label', game.mode === 'training' ? '3-minute first shift' : '9-minute full shift');
   text('#session-identity', `Shift ${game.seed} · ${game.ruleset}`);
-  text('#notice', game.elapsed <= game.noticeUntil ? game.notice : '');
+  const introductoryNotice = game.notice === 'Choose a contract. Put it on the radio. Let a courier decide.';
+  text('#notice', !introductoryNotice && game.elapsed <= game.noticeUntil ? game.notice : '');
   const ev = game.currentEvent;
   $('#event-banner').hidden = !ev;
   if (ev) {
@@ -378,6 +382,21 @@ $('#sound-mix').addEventListener('change',event=>audio.setMix(event.target.value
 $('#task-rhythms').addEventListener('change',event=>audio.setRhythms(event.target.checked));
 document.querySelectorAll('[data-rhythm]').forEach(button=>button.addEventListener('click',()=>{setSound(true);audio.previewRhythm(Number(button.dataset.rhythm));}));
 document.querySelectorAll('[data-listen]').forEach(button=>button.addEventListener('click',()=>{setSound(true);audio.cancel();audio.cue('rider',{rider:button.dataset.listen});}));
+// Keep secondary controls out of the working desk, without hover-only navigation.
+const deskMenu = $('#desk-menu');
+deskMenu.addEventListener('click', event => {
+  if (event.target.closest('button')) deskMenu.open = false;
+});
+document.addEventListener('pointerdown', event => {
+  if (!deskMenu.contains(event.target)) deskMenu.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && deskMenu.open) {
+    deskMenu.open = false;
+    deskMenu.querySelector('summary').focus();
+    event.stopPropagation();
+  }
+});
 $('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true }); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
 $('#continue-shift').addEventListener('click', () => $('#intro').close());
 $('#shift-length').addEventListener('change', () => { $('#prepare-shift').dataset.start = $('#shift-length').value; });
@@ -506,7 +525,8 @@ try {
   city=await (inner?loadInnerRing:loadBerlinCity)({signal:AbortSignal.timeout(120000)});
   text('#scope-name',inner?'⌁ BERLIN · INNER RING':'⌁ BERLIN · FULL CITY');
   text('#scope-eyebrow',inner?'BERLIN / INNER RING':'BERLIN / FULL CITY');
-  text('#map-credits',inner?'Berlin Open Data · © OpenStreetMap contributors · map details':'Berlin Open Data · map sources and accuracy');
+  text('#map-credits',inner?'© OpenStreetMap · Berlin Open Data':'Berlin Open Data');
+  $('#map-credits').title = 'Map sources, attribution and accuracy';
   $('#region-view').options[0].textContent=inner?'Whole Inner Ring':'Whole Berlin';
   text('#scope-link',inner?'Explore the full city':'Play the original Inner Ring');$('#scope-link').href=inner?'?city=berlin':'?city=inner-ring';
   text('#city-summary',`${city.metadata.areaKm2.toLocaleString()} km² · ${city.regions.length} official localities · one connected operating map`);

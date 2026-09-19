@@ -42,6 +42,7 @@ try{
   await page.screenshot({path:path.join(folder,'berlin.png')});
   result.checks.push('building detail and courier portraits render from bundled assets while offline');
   const before=await state();
+  await page.locator('#desk-menu > summary').click();
   await page.locator('#open-sound-studio').click();
   for(const rider of ['Kira','Mauro','Brian'])await page.locator(`[data-listen=${rider}]`).click();
   for(let i=0;i<4;i++)await page.locator(`[data-rhythm="${i}"]`).click();

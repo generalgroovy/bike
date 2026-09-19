@@ -64,6 +64,15 @@ class PlaytestAcceptance(unittest.TestCase):
     def camera(self, expression):
         return self.page.evaluate("async () => {const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;return (" + expression + ");}")
 
+    def wait_instance(self, module, name, expression, timeout=30000):
+        # wait_for_function treats a Promise itself as truthy. Import once, then
+        # poll a synchronous boolean so a still-loading map cannot pass early.
+        handle = self.page.evaluate_handle("async()=> (await import('/src/" + module + ".js'))." + name)
+        try:
+            self.page.wait_for_function("Type=>{const instance=Type.lastInstance;return (" + expression + ");}", arg=handle, timeout=timeout)
+        finally:
+            handle.dispose()
+
     def start(self, mode='training'):
         self.page.locator('#shift-length').select_option(mode)
         self.page.locator('#prepare-shift').click()
@@ -130,7 +139,7 @@ class PlaytestAcceptance(unittest.TestCase):
         for width, height in [(1440, 900), (1280, 720), (1024, 768), (850, 900), (390, 844), (360, 780), (320, 568)]:
             with self.subTest(width=width):
                 self.page.set_viewport_size({'width': width, 'height': height})
-                self.page.wait_for_function("async()=>{const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;return Math.abs(r.canvas.getBoundingClientRect().width-r.viewWidth)<1;}",timeout=10000)
+                self.wait_instance('render','Renderer','Math.abs(instance.canvas.getBoundingClientRect().width-instance.viewWidth)<1',timeout=10000)
                 self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
                 metrics = self.camera('({css:r.canvas.getBoundingClientRect().width,view:r.viewWidth,backing:r.canvas.width,dpr:r.dpr})')
                 self.assertAlmostEqual(metrics['css'], metrics['view'], delta=1)
@@ -253,7 +262,7 @@ class PlaytestAcceptance(unittest.TestCase):
     def test_still_map_is_cached_while_riders_keep_animating(self):
         self.start()
         if self.city == 'berlin':
-            self.page.wait_for_function("async()=>{const {Renderer}=await import('/src/render.js');const r=Renderer.lastInstance;r.draw();const b=r.buildingDetails;return r.scale<2||(b?.state==='ready'&&b.pending.size===0&&b.queue.length===0&&[...b.wanted].every(id=>b.cache.has(id)));}",timeout=30000)
+            self.wait_instance('render','Renderer',"(()=>{instance.draw();const b=instance.buildingDetails;return instance.scale<2||(b?.state==='ready'&&b.pending.size===0&&b.queue.length===0&&[...b.wanted].every(id=>b.cache.has(id)));})()")
         # Start after layout and the final asynchronous tile paint have settled.
         self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
         frames = self.camera('r.renderStats.frames')

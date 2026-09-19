@@ -37,7 +37,7 @@ try{
   assert.equal(await page.locator('#start-region option').count(),98);
   result.checks.push('complete Berlin and all locality choices load with networking offline');
   await page.locator('.rider-locate').first().click();
-  await page.waitForFunction(async()=>{const {Renderer}=await import('/src/render.js');const b=Renderer.lastInstance.buildingDetails;return b?.cache.size>0&&!b.pending.size&&!b.queue.length;});
+  await expect.poll(()=>page.evaluate(async()=>{const {Renderer}=await import('/src/render.js');const b=Renderer.lastInstance.buildingDetails;return !!(b?.cache.size>0&&!b.pending.size&&!b.queue.length);}),{timeout:30000}).toBe(true);
   await expect(page.locator('#map-detail-status')).toContainText('Official building footprints');
   await page.screenshot({path:path.join(folder,'berlin.png')});
   result.checks.push('building detail and courier portraits render from bundled assets while offline');
@@ -65,7 +65,7 @@ try{
   result.checks.push('closing and relaunching the app restores the exact saved shift, paused');
   await page.locator('#pause').click();
   await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].minimize());
-  await page.waitForFunction(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.paused;});
+  await expect.poll(()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.paused;})).toBe(true);
   await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.restore();w.focus();});
   result.checks.push('minimize pauses and saves the running desk');
   // Exercise the real native-menu callback and its separate sandboxed window.

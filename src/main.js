@@ -131,7 +131,18 @@ function riderTip(c,x,y){
   showTip(`${c.name} · ${c.experience.title}`,[`${c.personality.icon} ${c.personality.title}: ${c.personality.desc}`,`Location: ${riderLocation(c)}`,d?`${d.id.toUpperCase()} · ${progress}% · ETA ${formatTime(game.courierETA(c)??0)}`:predicted?`Likely to consider ${predicted.delivery.id.toUpperCase()}`:'Listening',`Energy ${energy}%${c.phase==='break'?` · back ${formatTime(game.breakRemaining(c))}`:''}`,calls?`Live fit: ${calls}`:null],x,y,`rider:${c.id}`);
 }
 
-function toggleHelp(show=!helpPanel.hidden,first=false){if(show){helpPauseWas=first?false:game.paused;game.paused=true;helpPanel.hidden=false;}else{helpPanel.hidden=true;writeLocal('sendit.help.v5','1');game.paused=helpPauseWas;}renderUI();}
+let helpReturnFocus=null;
+function toggleHelp(show=helpPanel.hidden,first=false){
+  if(show){
+    if(helpPanel.hidden)helpReturnFocus=document.activeElement;
+    helpPauseWas=first?false:game.paused;game.paused=true;helpPanel.hidden=false;
+    $('#help-close').focus();
+  }else{
+    helpPanel.hidden=true;writeLocal('sendit.help.v5','1');game.paused=helpPauseWas;
+    (helpReturnFocus?.isConnected&&helpReturnFocus!==document.body?helpReturnFocus:$('#help-toggle')).focus();
+  }
+  renderUI();
+}
 
 canvas.addEventListener('wheel',event=>{event.preventDefault();const rect=canvas.getBoundingClientRect();renderer.zoomAt(event.clientX-rect.left,event.clientY-rect.top,event.deltaY<0?1.14:.88);updateZoomLabel();},{passive:false});
 canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;drag={id:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY};canvas.setPointerCapture(event.pointerId);canvas.classList.add('dragging');hideTip();});

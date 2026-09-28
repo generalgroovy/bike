@@ -17,7 +17,7 @@ copy is merged into the released game sources.
 After a successful push-triggered `Test` workflow on the playtest branch,
 the deployment workflow publishes the exact tested source SHA. Only runs
 from this repository and that branch qualify. A main push or manual run
-checks out the latest preview branch and runs its Node and both Chromium
+checks out the latest preview branch and runs its Node and three Chromium
 suites before publishing. Failed tests prevent deployment.
 
 To refresh manually, use Actions > Deploy GitHub Pages > Run workflow on

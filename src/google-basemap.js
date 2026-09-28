@@ -1,3 +1,4 @@
+import { isGameShortcut } from './keyboard-shortcuts.js';
 import { Game } from './game.js';
 import { Renderer } from './render.js';
 import { gameBoundsToGeo,gameToLatLng,latLngToGame,scaleForGoogleZoom } from './geo-reference.js';
@@ -110,7 +111,7 @@ function interceptMapButton(id,action){const el=document.querySelector(id);if(!e
 interceptMapButton('#zoom-in',()=>moveZoom(.7));interceptMapButton('#zoom-out',()=>moveZoom(-.7));interceptMapButton('#zoom-reset',fitPlayable);
 toggleButton?.addEventListener('click',toggle);
 document.addEventListener('keydown',event=>{
-  if(event.ctrlKey||event.metaKey||event.altKey)return;const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(!isGameShortcut(event))return;
   if(event.key==='g'||event.key==='G'){event.preventDefault();event.stopImmediatePropagation();toggle();return;}
   if(!active)return;
   if(event.key==='0'){event.preventDefault();event.stopImmediatePropagation();fitPlayable();}

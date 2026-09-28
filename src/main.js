@@ -1,6 +1,7 @@
 import { Game,DELIVERY_TYPES,RADIO_CHANNELS } from './game.js';
 import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
+import { isGameShortcut } from './keyboard-shortcuts.js';
 
 const FIXED_STEP=1/60,$=selector=>document.querySelector(selector),canvas=$('#game-canvas');
 const stats={score:$('#score'),cash:$('#cash'),rep:$('#rep'),seed:$('#seed'),active:$('#active-count'),called:$('#called-count'),slots:$('#radio-slots'),trait:$('#trait'),traitDesc:$('#trait-desc'),contract:$('#contract'),contractDesc:$('#contract-desc'),focus:$('#focus'),focusMax:$('#focus-max'),city:$('#city-stage'),cityProgress:$('#city-progress'),cityNext:$('#city-next')};
@@ -173,7 +174,7 @@ $('#pause').addEventListener('click',()=>{game.paused=!game.paused;renderUI();})
 $('#new-run').addEventListener('click',()=>start(createSeed()));$('#same-seed').addEventListener('click',()=>start(game.seed));$('#random-seed').addEventListener('click',()=>start(createSeed()));
 $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();});$('#zoom-out').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();});$('#zoom-reset').addEventListener('click',()=>{renderer.resetView();updateZoomLabel();});
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
-window.addEventListener('keydown',event=>{if(upgradeModal.open||gameoverModal.open)return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape')toggleHelp(false);return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
+window.addEventListener('keydown',event=>{if(!isGameShortcut(event,{allowHelp:true}))return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape')toggleHelp(false);return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
 window.addEventListener('resize',()=>renderer.resize());
 
 start();requestAnimationFrame(frame);

@@ -1,3 +1,4 @@
+import { isGameShortcut } from './keyboard-shortcuts.js';
 import './ui-stability.js';
 import './ui-vibe.js';
 import { Game } from './game.js';
@@ -58,7 +59,7 @@ function toggleRight(){rightCollapsed=!rightCollapsed;write('sendit.rightRail.v1
 applyDensity();applyRails();applyFocus();
 
 densityButton.addEventListener('click',toggleDensity);focusButton.addEventListener('click',toggleFocus);leftToggle.addEventListener('click',toggleLeft);rightToggle.addEventListener('click',toggleRight);
-document.addEventListener('keydown',event=>{if(event.ctrlKey||event.metaKey||event.altKey)return;const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;if(event.key==='d'||event.key==='D'){toggleDensity();event.preventDefault();}else if(event.key==='m'||event.key==='M'){toggleFocus();event.preventDefault();}else if(event.key==='q'||event.key==='Q'){toggleLeft();event.preventDefault();}else if(event.key==='r'||event.key==='R'){toggleRight();event.preventDefault();}});
+document.addEventListener('keydown',event=>{if(!isGameShortcut(event))return;if(event.key==='d'||event.key==='D'){toggleDensity();event.preventDefault();}else if(event.key==='m'||event.key==='M'){toggleFocus();event.preventDefault();}else if(event.key==='q'||event.key==='Q'){toggleLeft();event.preventDefault();}else if(event.key==='r'||event.key==='R'){toggleRight();event.preventDefault();}});
 
 let last='';
 function render(){const game=Game.lastInstance;if(!game)return;adoptContext();const jobs=game.activeDeliveries(),risk=document.querySelectorAll('.task-card[data-risk="risk"],.task-card[data-risk="tight"]').length,live=jobs.filter(d=>d.called).length,ready=game.couriers.filter(c=>c.radioOn&&c.phase==='idle').length,riding=game.couriers.filter(c=>c.phase==='pickup'||c.phase==='dropoff').length,rest=game.couriers.length-ready-riding,radioUsed=game.radioUsed(),key=[risk,live,ready,riding,rest,jobs.length,radioUsed,game.radioSlots].join('|');if(key===last)return;last=key;riskCount.textContent=String(risk);riskCount.dataset.level=risk?'danger':'good';liveCount.textContent=String(live);readyEl.textContent=String(ready);ridingEl.textContent=String(riding);restEl.textContent=String(rest);root.dataset.queuePressure=risk>=4?'high':risk>=2?'medium':'low';root.dataset.radioState=radioUsed>=game.radioSlots?'full':'available';}

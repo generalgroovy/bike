@@ -2,6 +2,7 @@ import { Game,DELIVERY_TYPES,RADIO_CHANNELS } from './game.js';
 import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
 import { isGameShortcut } from './keyboard-shortcuts.js';
+import { DispatchCoach } from './dispatch-coach.js';
 
 const FIXED_STEP=1/60,$=selector=>document.querySelector(selector),canvas=$('#game-canvas');
 const stats={score:$('#score'),cash:$('#cash'),rep:$('#rep'),seed:$('#seed'),active:$('#active-count'),called:$('#called-count'),slots:$('#radio-slots'),trait:$('#trait'),traitDesc:$('#trait-desc'),contract:$('#contract'),contractDesc:$('#contract-desc'),focus:$('#focus'),focusMax:$('#focus-max'),city:$('#city-stage'),cityProgress:$('#city-progress'),cityNext:$('#city-next')};
@@ -11,6 +12,7 @@ const inspector=$('#job-inspector'),inspectGlyph=$('#inspect-glyph'),inspectId=$
 const helpPanel=$('#help-panel'),hoverTip=$('#hover-tip'),upgradeModal=$('#upgrade-modal'),upgradeChoices=$('#upgrade-choices'),gameoverModal=$('#gameover-modal'),summaryEl=$('#run-summary'),bestEl=$('#best-score'),reviewMetrics=$('#review-metrics'),reviewAdvice=$('#review-advice'),reviewTimeline=$('#review-timeline');
 const taskEls=new Map(),riderEls=new Map(),goalEls=new Map();
 let game,renderer,lastTime=performance.now(),accumulator=0,lastUiRender=0,shownUpgradeAt=-1,drag=null,suppressCanvasClick=false,helpPauseWas=false,tooltipOwner=null;
+let coach=new DispatchCoach(),coachEnabled=false,coachPaused=false;
 
 const setText=(el,value)=>{if(!el)return;const text=String(value??'');if(el.textContent!==text)el.textContent=text;};
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -25,8 +27,20 @@ function closeDialog(dialog){if(!dialog)return;if(dialog.open&&typeof dialog.clo
 function clearDynamic(){for(const el of taskEls.values())el.remove();for(const el of riderEls.values())el.remove();for(const el of goalEls.values())el.remove();taskEls.clear();riderEls.clear();goalEls.clear();}
 
 function start(seed=currentSeed()){
+  coach=new DispatchCoach();coachEnabled=readLocal('sendit.coach.v1')!=='off';coachPaused=coachEnabled;
   game=new Game({seed});renderer=new Renderer(canvas,game);lastTime=performance.now();accumulator=0;lastUiRender=0;shownUpgradeAt=-1;tooltipOwner=null;clearDynamic();closeDialog(upgradeModal);closeDialog(gameoverModal);inspector.hidden=true;hideTip();syncUrl(seed);renderUI(true);
-  const first=readLocal('sendit.help.v5')!=='1';if(first)toggleHelp(true,true);else helpPanel.hidden=true;
+  helpPanel.hidden=true;
+  if(coachEnabled){game.paused=true;renderUI();}
+}
+
+function renderCoach(){
+  const panel=$('#dispatch-coach');panel.hidden=!coachEnabled;
+  if(!coachEnabled)return;
+  const state=coach.observe(game),action=$('#coach-action');
+  setText($('#coach-copy'),state.text);
+  action.hidden=!state.action&&!game.paused;
+  setText(action,game.paused?'Resume shift':state.action||'');
+  action.dataset.delivery=state.deliveryId||'';
 }
 
 function createTaskElement(d){
@@ -113,6 +127,7 @@ function syncPlaybackControls(){
 }
 
 function renderUI(force=false){
+  renderCoach();
   if(renderer.syncPlayableStage()){updateZoomLabel();force=true;}
   setText(stats.score,Math.round(game.score).toLocaleString());setText(stats.cash,game.cash);setText(stats.rep,Math.round(game.reputation));stats.rep.dataset.level=game.reputation<35?'danger':game.reputation<65?'warn':'good';setText(stats.seed,game.seed);setText(stats.active,game.activeDeliveries().length);setText(stats.called,game.radioUsed());setText(stats.slots,game.radioSlots);setText(stats.trait,game.runTrait.title);setText(stats.traitDesc,game.runTrait.desc);setText(stats.contract,game.runContract.title);setText(stats.contractDesc,game.runContract.desc);setText(stats.focus,game.dispatchFocus);setText(stats.focusMax,game.dispatchFocusMax);setText(noticeEl,game.elapsed<=game.noticeUntil?game.notice:'');syncPlaybackControls();syncProgression();renderEvent();syncTasks();syncRiders();syncGoals();renderInspector();if(force)updateZoomLabel();
 }
@@ -182,11 +197,19 @@ inspector.addEventListener('click',event=>{const button=event.target.closest('[d
 $('#inspect-close').addEventListener('click',()=>{game.selectedDeliveryId=null;renderUI();});
 eventAdvisory.addEventListener('click',()=>{if(game.respondToCityEvent())renderUI();});
 upgradeChoices.addEventListener('click',event=>{const button=event.target.closest('[data-upgrade]');if(button&&game.applyUpgrade(button.dataset.upgrade)){closeDialog(upgradeModal);renderUI(true);}});
-$('#pause').addEventListener('click',()=>{game.paused=!game.paused;renderUI();});document.querySelectorAll('[data-speed]').forEach(button=>button.addEventListener('click',()=>{game.speed=Number(button.dataset.speed);game.paused=false;renderUI();}));
+$('#pause').addEventListener('click',()=>{coachPaused=false;game.paused=!game.paused;renderUI();});document.querySelectorAll('[data-speed]').forEach(button=>button.addEventListener('click',()=>{coachPaused=false;game.speed=Number(button.dataset.speed);game.paused=false;renderUI();}));
 $('#new-run').addEventListener('click',()=>start(createSeed()));$('#same-seed').addEventListener('click',()=>start(game.seed));$('#random-seed').addEventListener('click',()=>start(createSeed()));
 $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();});$('#zoom-out').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();});$('#zoom-reset').addEventListener('click',()=>{renderer.resetView();updateZoomLabel();});
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
-window.addEventListener('keydown',event=>{if(!isGameShortcut(event,{allowHelp:true}))return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape'){event.preventDefault();toggleHelp(false);}return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
+$('#coach-action').addEventListener('click',()=>{
+  const id=$('#coach-action').dataset.delivery;
+  if(id)game.selectedDeliveryId=id;
+  coachPaused=false;game.paused=false;renderUI();
+  (taskEls.get(id)?.querySelector('[data-channel="open"]')||$('#pause')).focus();
+});
+$('#coach-dismiss').addEventListener('click',()=>{if(coachPaused)game.paused=false;coachPaused=false;coachEnabled=false;writeLocal('sendit.coach.v1','off');renderUI();$('#help-toggle').focus();});
+$('#coach-replay').addEventListener('click',()=>{toggleHelp(false);coach=new DispatchCoach();coachEnabled=true;writeLocal('sendit.coach.v1','on');renderUI();($('#coach-action').hidden?$('#coach-dismiss'):$('#coach-action')).focus();});
+window.addEventListener('keydown',event=>{if(!isGameShortcut(event,{allowHelp:true}))return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape'){event.preventDefault();toggleHelp(false);}return;}if([' ','1','2','3'].includes(event.key))coachPaused=false;if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
 window.addEventListener('resize',()=>renderer.resize());
 
 start();requestAnimationFrame(frame);

@@ -16,11 +16,13 @@ Open `http://localhost:8080`. Serve the files over HTTP; opening `index.html` di
 
 ## Play a shift
 
-1. Close the first-run help to start the clock.
+1. Choose **Resume shift** in the optional dispatch guide to start the clock and focus the first Open broadcast.
 2. Select a waiting contract and inspect its route, deadline and likely riders.
 3. Broadcast **OPEN** (one radio slot), **PRIORITY** (two slots), or **LOCAL** (one slot, favors nearby riders). **OFF** removes the call.
 4. Watch rider decisions and delivery progress. Use bonuses, client calls, rebroadcasts and event responses when their benefits justify the cost.
 5. Pause to assess deadlines, pressure and fatigue. Completed deliveries unlock upgrades and wider operating areas. Reputation reaching zero ends the run.
+
+The guide follows your first broadcast through the real rider claim and delivery outcome. Dismiss it to keep the desk clear; replay it from **Help > Dispatch guide**. Detailed reference stays in Help.
 
 Predictions are read-only estimates. They neither reserve riders nor guarantee completion.
 
@@ -43,7 +45,7 @@ Shortcuts ignore held-key repeats, text entry, browser modifier chords, and open
 
 The URL's `seed` parameter reproduces the initial run. **Same seed** restarts it; **New run** changes it. A seed is not a saved in-progress shift. Reloading or closing the page loses current run progress.
 
-The browser stores the best score, help dismissal, sound preference, queue sorting, rail layout and density. Storage failure falls back to session defaults. There is no account or cloud save. Pause before leaving an active tab if you need to preserve the current moment.
+The browser stores the best score, dispatch-guide/help dismissal, sound preference, queue sorting, rail layout and density. Storage failure falls back to session defaults. There is no account or cloud save. Pause before leaving an active tab if you need to preserve the current moment.
 
 ## Maps and networking
 

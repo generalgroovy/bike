@@ -33,3 +33,9 @@ html[data-basemap=game] .google-map-badge{display:none}
 @media(max-height:700px){html[data-basemap=google] .job-inspector{bottom:32px!important}html[data-basemap=google] .time-tools{bottom:30px!important}}
 @media(prefers-reduced-motion:reduce){#basemap-toggle[aria-pressed=true]{box-shadow:none!important}}
 @media(prefers-contrast:more){html[data-basemap=google] .map-city,html[data-basemap=google] .map-context{background:#111!important;border-color:#fff!important;color:#fff!important;opacity:1!important}}
+/* Contextual first dispatch stays beside the live desk and can be dismissed. */
+.dispatch-coach{position:absolute;z-index:12;left:12px;bottom:54px;width:min(320px,calc(100% - 24px));padding:12px 42px 12px 14px;border:1px solid #35c2dc;border-radius:10px;background:#15212b;color:#f5f0e6;box-shadow:0 8px 24px #0006;font-size:13px;line-height:1.45}
+.dispatch-coach[hidden]{display:none}
+.dispatch-coach p{margin:0 0 8px}
+.dispatch-coach button{min-height:36px;padding:6px 10px;border:1px solid #607184;border-radius:6px;background:#253a47;color:#fff;font:inherit;cursor:pointer}
+#coach-dismiss{position:absolute;right:5px;top:5px;min-width:32px;min-height:32px;padding:3px}

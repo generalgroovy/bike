@@ -100,9 +100,21 @@ function renderInspector(){
   setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
 }
 
+function syncPlaybackControls(){
+  const pause=$('#pause'),action=game.paused?'Resume':'Pause';
+  setText(pause,game.paused?'▶':'Ⅱ');
+  pause.setAttribute('aria-label',action);
+  pause.title=`${action} (Space)`;
+  document.querySelectorAll('[data-speed]').forEach(button=>{
+    const active=!game.paused&&Number(button.dataset.speed)===game.speed;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+}
+
 function renderUI(force=false){
   if(renderer.syncPlayableStage()){updateZoomLabel();force=true;}
-  setText(stats.score,Math.round(game.score).toLocaleString());setText(stats.cash,game.cash);setText(stats.rep,Math.round(game.reputation));stats.rep.dataset.level=game.reputation<35?'danger':game.reputation<65?'warn':'good';setText(stats.seed,game.seed);setText(stats.active,game.activeDeliveries().length);setText(stats.called,game.radioUsed());setText(stats.slots,game.radioSlots);setText(stats.trait,game.runTrait.title);setText(stats.traitDesc,game.runTrait.desc);setText(stats.contract,game.runContract.title);setText(stats.contractDesc,game.runContract.desc);setText(stats.focus,game.dispatchFocus);setText(stats.focusMax,game.dispatchFocusMax);setText(noticeEl,game.elapsed<=game.noticeUntil?game.notice:'');setText($('#pause'),game.paused?'▶':'Ⅱ');document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',!game.paused&&Number(b.dataset.speed)===game.speed));syncProgression();renderEvent();syncTasks();syncRiders();syncGoals();renderInspector();if(force)updateZoomLabel();
+  setText(stats.score,Math.round(game.score).toLocaleString());setText(stats.cash,game.cash);setText(stats.rep,Math.round(game.reputation));stats.rep.dataset.level=game.reputation<35?'danger':game.reputation<65?'warn':'good';setText(stats.seed,game.seed);setText(stats.active,game.activeDeliveries().length);setText(stats.called,game.radioUsed());setText(stats.slots,game.radioSlots);setText(stats.trait,game.runTrait.title);setText(stats.traitDesc,game.runTrait.desc);setText(stats.contract,game.runContract.title);setText(stats.contractDesc,game.runContract.desc);setText(stats.focus,game.dispatchFocus);setText(stats.focusMax,game.dispatchFocusMax);setText(noticeEl,game.elapsed<=game.noticeUntil?game.notice:'');syncPlaybackControls();syncProgression();renderEvent();syncTasks();syncRiders();syncGoals();renderInspector();if(force)updateZoomLabel();
 }
 
 function showUpgrade(){if(!game.upgradePending||shownUpgradeAt===game.nextUpgradeAt)return;shownUpgradeAt=game.nextUpgradeAt;upgradeChoices.replaceChildren();for(const u of game.getUpgradeChoices()){const button=document.createElement('button');button.dataset.upgrade=u.id;const strong=document.createElement('strong'),span=document.createElement('span');strong.textContent=u.title;span.textContent=u.desc;button.append(strong,span);upgradeChoices.append(button);}openDialog(upgradeModal);}
@@ -174,7 +186,7 @@ $('#pause').addEventListener('click',()=>{game.paused=!game.paused;renderUI();})
 $('#new-run').addEventListener('click',()=>start(createSeed()));$('#same-seed').addEventListener('click',()=>start(game.seed));$('#random-seed').addEventListener('click',()=>start(createSeed()));
 $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();});$('#zoom-out').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();});$('#zoom-reset').addEventListener('click',()=>{renderer.resetView();updateZoomLabel();});
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
-window.addEventListener('keydown',event=>{if(!isGameShortcut(event,{allowHelp:true}))return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape')toggleHelp(false);return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
+window.addEventListener('keydown',event=>{if(!isGameShortcut(event,{allowHelp:true}))return;if(event.key==='?'||event.key==='h'||event.key==='H'){event.preventDefault();toggleHelp(helpPanel.hidden);return;}if(!helpPanel.hidden){if(event.key==='Escape'){event.preventDefault();toggleHelp(false);}return;}if(event.key===' '){event.preventDefault();game.paused=!game.paused;renderUI();}if(event.key==='1'){game.speed=1;game.paused=false;}if(event.key==='2'){game.speed=2;game.paused=false;}if(event.key==='3'){game.speed=4;game.paused=false;}if(event.key==='0'){renderer.resetView();updateZoomLabel();}if(event.key==='Escape'){game.selectedDeliveryId=null;game.selectedCourierId=null;renderUI();}});
 window.addEventListener('resize',()=>renderer.resize());
 
 start();requestAnimationFrame(frame);

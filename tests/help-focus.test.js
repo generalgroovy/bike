@@ -15,3 +15,13 @@ test('help moves keyboard focus inside, restores it and preserves pause state',(
   assert.equal(helpPanel.hidden,true);assert.equal(focused,'origin');assert.equal(game.paused,false);
   game.paused=true;vm.runInContext('toggleHelp();toggleHelp()',context);assert.equal(game.paused,true);
 });
+
+test('Escape consumed by help is marked handled for an embedding workspace',()=>{
+  let keydown,closed=false;
+  const helpPanel={hidden:false};
+  const context=vm.createContext({window:{addEventListener(name,fn){if(name==='keydown')keydown=fn;}},isGameShortcut:()=>true,helpPanel,toggleHelp(show){closed=!show;helpPanel.hidden=!show;}});
+  vm.runInContext(source.slice(source.indexOf("window.addEventListener('keydown'"),source.indexOf("window.addEventListener('resize'")),context);
+  const event={key:'Escape',defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}};
+  keydown(event);
+  assert.equal(closed,true);assert.equal(event.defaultPrevented,true);
+});

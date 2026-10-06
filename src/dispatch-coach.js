@@ -6,7 +6,8 @@ export class DispatchCoach {
       const called=game.deliveries.find(d=>d.firstCalledAt!=null);
       if(called)this.deliveryId=called.id;
     }
-    const d=game.deliveryById(this.deliveryId)||game.deliveryById(game.selectedDeliveryId)||game.activeDeliveries().find(d=>d.status==='waiting');
+    let d=game.deliveryById(this.deliveryId)||game.deliveryById(game.selectedDeliveryId);
+    if(!d){const waiting=game.activeDeliveries().filter(d=>d.status==='waiting');d=waiting.find(d=>game.deliveryDispatchInsight?.(d)?.state==='safe')||waiting[0];}
     if(!d)return{phase:'empty',text:'New contracts will arrive. Pause whenever you need time to decide.'};
     const id=d.id.toUpperCase();
     if(d.status==='completed')return{phase:'complete',text:`${id} delivered. The rider chose the job; your broadcast made it available.`};

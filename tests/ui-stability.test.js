@@ -26,7 +26,8 @@ test('stability layer supplies immediate pointer feedback without changing simul
 test('main delegated click wiring remains present for contracts riders and map entities',()=>{
   const main=read('../src/main.js');
   assert.match(main,/deliveriesEl\.addEventListener\('click'/);
-  assert.match(main,/game\.setChannel\(d\.id,channel\.dataset\.channel\)/);
+  assert.match(main,/sendBroadcast\(d\.id,channel\.dataset\.channel\)/);
+  assert.match(read('../src/dispatch-controls.js'),/game\.setChannel\(id,channel\)/);
   assert.match(main,/couriersEl\.addEventListener\('click'/);
   assert.match(main,/game\.selectCourier\(card\.dataset\.courier\)/);
   assert.match(main,/canvas\.addEventListener\('click'/);

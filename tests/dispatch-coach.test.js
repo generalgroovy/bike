@@ -23,3 +23,19 @@ test('removed broadcasts and failed contracts get actionable feedback without in
  assert.equal(coach.observe(game).phase,'failed');assert.match(coach.observe(game).text,/better-fit broadcast/);
  d.claimedAt=3;assert.match(coach.observe(game).text,/more time/);
 });
+
+test('first guide suggests a feasible opening and still respects the player selection',()=>{
+ const game=new Game({seed:'SEND-IT-QUALITY'}),coach=new DispatchCoach(),first=coach.observe(game);
+ assert.equal(game.deliveryDispatchInsight(game.deliveryById(first.deliveryId)).state,'safe');
+ assert.equal(game.deliveryById(first.deliveryId).called,false);assert.equal(game.elapsed,0);
+ game.selectedDeliveryId=game.deliveries[0].id;
+ assert.equal(coach.observe(game).deliveryId,game.selectedDeliveryId);
+});
+
+test('guide handles no work and no initially safe option without starting time or inventing work',()=>{
+ const game=new Game({seed:'COACH-EMPTY'}),coach=new DispatchCoach();
+ for(const d of game.deliveries)d.deadlineAt=1;
+ assert.equal(coach.observe(game).phase,'choose');assert.equal(game.elapsed,0);
+ game.deliveries=[];assert.equal(coach.observe(game).phase,'empty');
+ assert.equal(game.radioUsed(),0);
+});

@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="ui-v10-stable-map.css">
 <link rel="stylesheet" href="ui-v11-kinetic.css">
 <link rel="stylesheet" href="ui-v12-google-map.css">
+<link rel="stylesheet" href="dispatch.css">
 </head>
 <body>
 <main class="app-shell">
@@ -66,9 +67,19 @@
       <div class="inspect-head"><span><b id="inspect-glyph">●</b><strong id="inspect-id">D0</strong><em id="inspect-special"></em></span><button id="inspect-close" aria-label="Close contract">×</button></div>
       <div class="inspect-route"><span><small>PICKUP</small><b id="inspect-pickup">—</b></span><i>→</i><span><small>DROP</small><b id="inspect-dropoff">—</b></span></div>
       <div class="inspect-facts"><span id="inspect-time">—</span><span id="inspect-distance">—</span><span id="inspect-reward">—</span><span id="inspect-likely">—</span></div>
+      <p id="inspect-planning" hidden>Paused · your first broadcast starts the shift.</p>
+      <div id="inspect-broadcasts" class="inspect-broadcasts" role="group" aria-label="Broadcast this contract">
+        <button data-broadcast="open"><strong>OPEN · 1 radio</strong><small></small></button>
+        <button data-broadcast="local"><strong>LOCAL · 1 radio</strong><small></small></button>
+        <button data-broadcast="priority"><strong>PRIORITY · 2 radio</strong><small></small></button>
+        <small class="broadcast-caveat">Estimates include other calls. Riders still decide.</small>
+        <button data-broadcast="off" hidden>Remove from radio</button>
+      </div>
       <div id="inspect-advice" class="inspect-advice"></div>
+      <details class="inspect-detail"><summary>Riders &amp; route</summary>
       <div id="inspect-streets" class="inspect-streets"></div>
       <div id="inspect-outlook" class="inspect-outlook" data-tip="NOW riders can hear this call immediately. BUSY/BREAK riders are only forecasts of when they could become relevant; they cannot be pre-assigned." hidden></div>
+      </details>
       <div class="dispatch-tools">
         <button data-tool="sweeten" data-tip="Spend €5 to add €9 payout and make this job more attractive to riders.">+€ BONUS</button>
         <button data-tool="extend" data-tip="Spend 1 focus to call the client and negotiate 20 extra seconds.">+20s CLIENT</button>
@@ -97,7 +108,7 @@
   <div class="help-head"><div><span class="eyebrow">REFERENCE</span><h2>How to dispatch</h2></div><button id="help-close" aria-label="Close help">×</button></div>
   <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which contracts are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
   <div class="help-grid">
-    <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p></section>
+    <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p><p>Select a contract to compare signals. “May choose this” counts free listeners who prefer this call over other live calls without random variation. Riders already considering another call are excluded. Estimates do not guarantee acceptance, reserve riders or promise an on-time finish. Removing a call releases its slots; switching replaces its current cost.</p></section>
     <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>
     <section><h3>Riders</h3><p>Task bar = completion.<br>Energy bar = fatigue reserve.<br>Grey = break / radio off.<br>Personality affects what they volunteer for.<br><b>Rider Outlook</b> shows who can hear now and who may become available soon.</p></section>
     <section><h3>Momentum</h3><p><b>FLOW</b> rises with clean deliveries and breaks on misses or service breaches.<br><b>CITY</b> shows the highest district load.<br><b>PHASE</b> shows the current predictable demand rhythm.</p></section>

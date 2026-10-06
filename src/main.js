@@ -3,6 +3,7 @@ import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
 import { isGameShortcut } from './keyboard-shortcuts.js';
 import { DispatchCoach } from './dispatch-coach.js';
+import { broadcastContract, renderBroadcastChoices } from './dispatch-controls.js';
 
 const FIXED_STEP=1/60,$=selector=>document.querySelector(selector),canvas=$('#game-canvas');
 const stats={score:$('#score'),cash:$('#cash'),rep:$('#rep'),seed:$('#seed'),active:$('#active-count'),called:$('#called-count'),slots:$('#radio-slots'),trait:$('#trait'),traitDesc:$('#trait-desc'),contract:$('#contract'),contractDesc:$('#contract-desc'),focus:$('#focus'),focusMax:$('#focus-max'),city:$('#city-stage'),cityProgress:$('#city-progress'),cityNext:$('#city-next')};
@@ -37,9 +38,10 @@ function renderCoach(){
   const panel=$('#dispatch-coach');panel.hidden=!coachEnabled;
   if(!coachEnabled)return;
   const state=coach.observe(game),action=$('#coach-action');
+  panel.hidden=state.phase==='choose'&&Boolean(game.selectedDeliveryId);
   setText($('#coach-copy'),state.text);
   action.hidden=!state.action&&!game.paused;
-  setText(action,game.paused?'Resume shift':state.action||'');
+  setText(action,coachPaused&&state.deliveryId?'Plan first dispatch':game.paused?'Resume shift':state.action||'');
   action.dataset.delivery=state.deliveryId||'';
 }
 
@@ -110,8 +112,18 @@ function renderEvent(){
 
 function renderInspector(){
   const d=game.deliveryById(game.selectedDeliveryId);if(!d||!game.activeDeliveries().includes(d)){inspector.hidden=true;return;}inspector.hidden=false;
+  $('#inspect-planning').hidden=!coachPaused;
   const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=(insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · '))||'no free rider';
   setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
+  renderBroadcastChoices($('#inspect-broadcasts'),game,d,insight);
+}
+
+function sendBroadcast(id,channel){
+  hideTip();
+  const changed=broadcastContract(game,id,channel,{resumeOnSuccess:coachPaused});
+  if(changed&&channel!=='off')coachPaused=false;
+  if(!changed)game.flash('Broadcast unavailable · check the contract and free radio slots.',4);
+  renderUI();
 }
 
 function syncPlaybackControls(){
@@ -144,7 +156,7 @@ function showGameOver(){
 
 function frame(now){const frameDt=Math.min(.25,(now-lastTime)/1000);lastTime=now;accumulator+=frameDt;let steps=0;while(accumulator>=FIXED_STEP&&steps<15){game.update(FIXED_STEP);accumulator-=FIXED_STEP;steps++;}if(steps===15)accumulator=0;if(renderer.syncPlayableStage())updateZoomLabel();renderer.draw();if(now-lastUiRender>=125){renderUI();lastUiRender=now;}showUpgrade();if(game.gameOver&&!gameoverModal.open)showGameOver();requestAnimationFrame(frame);}
 function updateZoomLabel(){setText($('#zoom-label'),`${Math.round(renderer.zoom*100)}%`);}
-function inspectDelivery(id){game.selectedDeliveryId=game.selectedDeliveryId===id?null:id;game.selectedCourierId=null;renderUI();}
+function inspectDelivery(id){hideTip();game.selectedDeliveryId=game.selectedDeliveryId===id?null:id;game.selectedCourierId=null;renderUI();}
 
 function tipPosition(x,y){const pad=12,rect=hoverTip.getBoundingClientRect(),left=Math.min(window.innerWidth-rect.width-pad,x+14),top=Math.min(window.innerHeight-rect.height-pad,y+14);hoverTip.style.left=`${Math.max(pad,left)}px`;hoverTip.style.top=`${Math.max(pad,top)}px`;}
 function showTip(title,lines,x,y,owner=null){hoverTip.replaceChildren();const strong=document.createElement('strong');strong.textContent=title;hoverTip.append(strong);for(const line of lines.filter(Boolean)){const div=document.createElement('small');div.textContent=line;div.style.display='block';hoverTip.append(div);}hoverTip.hidden=false;tooltipOwner=owner;requestAnimationFrame(()=>tipPosition(x,y));}
@@ -179,7 +191,7 @@ canvas.addEventListener('pointerleave',()=>{if(!drag){game.hoveredDeliveryId=nul
 canvas.addEventListener('pointerup',event=>{if(!drag||drag.id!==event.pointerId)return;drag=null;canvas.releasePointerCapture(event.pointerId);canvas.classList.remove('dragging');setTimeout(()=>{suppressCanvasClick=false;},0);});
 canvas.addEventListener('click',event=>{if(suppressCanvasClick)return;const rect=canvas.getBoundingClientRect(),point=renderer.screenToWorld(event.clientX-rect.left,event.clientY-rect.top),entity=game.nearestEntity(point.x,point.y,24/renderer.scale);if(!entity)return;if(entity.type==='delivery')inspectDelivery(entity.id);else{game.selectCourier(entity.id);game.selectedDeliveryId=null;renderUI();}});
 
-deliveriesEl.addEventListener('click',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;const d=game.deliveryById(card.dataset.delivery);if(!d)return;const channel=event.target.closest('[data-channel]');if(channel){game.setChannel(d.id,channel.dataset.channel);renderUI();return;}inspectDelivery(d.id);});
+deliveriesEl.addEventListener('click',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;const d=game.deliveryById(card.dataset.delivery);if(!d)return;const channel=event.target.closest('[data-channel]');if(channel){sendBroadcast(d.id,channel.dataset.channel);return;}inspectDelivery(d.id);});
 deliveriesEl.addEventListener('pointerover',event=>{const card=event.target.closest('[data-delivery]');if(!card)return;game.hoveredDeliveryId=card.dataset.delivery;taskTip(game.deliveryById(card.dataset.delivery),event.clientX,event.clientY);});
 deliveriesEl.addEventListener('pointermove',event=>{if(game.hoveredDeliveryId)tipPosition(event.clientX,event.clientY);});
 deliveriesEl.addEventListener('pointerout',event=>{const card=event.target.closest('[data-delivery]');if(card&&event.relatedTarget&&!card.contains(event.relatedTarget)){game.hoveredDeliveryId=null;hideTip(`task:${card.dataset.delivery}`);}});
@@ -194,6 +206,7 @@ document.addEventListener('pointermove',event=>{if(tooltipOwner instanceof Eleme
 document.addEventListener('pointerout',event=>{const target=event.target.closest?.('[data-tip]');if(target&&tooltipOwner===target&&(!event.relatedTarget||!target.contains(event.relatedTarget)))hideTip(target);});
 
 inspector.addEventListener('click',event=>{const button=event.target.closest('[data-tool]');if(!button)return;const d=game.deliveryById(game.selectedDeliveryId);if(!d)return;let changed=false;if(button.dataset.tool==='sweeten')changed=game.sweetenJob(d.id);if(button.dataset.tool==='extend')changed=game.extendJob(d.id);if(button.dataset.tool==='rebroadcast')changed=game.rebroadcastJob(d.id);if(changed)renderUI();});
+$('#inspect-broadcasts').addEventListener('click',event=>{const button=event.target.closest('[data-broadcast]');if(button&&!button.disabled)sendBroadcast(game.selectedDeliveryId,button.dataset.broadcast);});
 $('#inspect-close').addEventListener('click',()=>{game.selectedDeliveryId=null;renderUI();});
 eventAdvisory.addEventListener('click',()=>{if(game.respondToCityEvent())renderUI();});
 upgradeChoices.addEventListener('click',event=>{const button=event.target.closest('[data-upgrade]');if(button&&game.applyUpgrade(button.dataset.upgrade)){closeDialog(upgradeModal);renderUI(true);}});
@@ -202,10 +215,12 @@ $('#new-run').addEventListener('click',()=>start(createSeed()));$('#same-seed').
 $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,1.18);updateZoomLabel();});$('#zoom-out').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2,renderer.viewHeight/2,.84);updateZoomLabel();});$('#zoom-reset').addEventListener('click',()=>{renderer.resetView();updateZoomLabel();});
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
 $('#coach-action').addEventListener('click',()=>{
+  hideTip();
   const id=$('#coach-action').dataset.delivery;
   if(id)game.selectedDeliveryId=id;
-  coachPaused=false;game.paused=false;renderUI();
-  (taskEls.get(id)?.querySelector('[data-channel="open"]')||$('#pause')).focus();
+  if(!coachPaused||!id){coachPaused=false;game.paused=false;}
+  renderUI();
+  (id?$('#inspect-broadcasts [data-broadcast="open"]'):$('#pause')).focus();
 });
 $('#coach-dismiss').addEventListener('click',()=>{if(coachPaused)game.paused=false;coachPaused=false;coachEnabled=false;writeLocal('sendit.coach.v1','off');renderUI();$('#help-toggle').focus();});
 $('#coach-replay').addEventListener('click',()=>{toggleHelp(false);coach=new DispatchCoach();coachEnabled=true;writeLocal('sendit.coach.v1','on');renderUI();($('#coach-action').hidden?$('#coach-dismiss'):$('#coach-action')).focus();});

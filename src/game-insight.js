@@ -6,22 +6,30 @@ const slackLabel=margin=>!Number.isFinite(margin)?'NO VIABLE PATH':margin<0?`${M
 
 function channelRanking(game,delivery,channelId){
   const probe={...delivery,called:true,channel:channelId};
-  return game.availableRiders().map(rider=>({rider,score:game.courierChoiceScore(rider,probe,false)})).filter(item=>Number.isFinite(item.score)).sort((a,b)=>b.score-a.score);
+  const competing=game.calledDeliveries().filter(d=>d.id!==delivery.id);
+  return game.availableRiders().map(rider=>{
+    const score=game.courierChoiceScore(rider,probe,false);
+    const otherScore=Math.max(-Infinity,...competing.map(d=>game.courierChoiceScore(rider,d,false)));
+    const consideringOther=Boolean(rider.deliberation&&rider.deliberation.deliveryId!==delivery.id);
+    return{rider,score,prefers:!consideringOther&&score>=.3&&score>otherScore,consideringOther};
+  }).filter(item=>Number.isFinite(item.score)).sort((a,b)=>b.score-a.score);
 }
+function callsKey(game){return game.calledDeliveries().map(d=>`${d.id}:${d.channel}:${d.reward}:${d.bonusAppeal??0}:${d.deadlineAt}:${d.rebroadcastUntil??0}`).join(';');}
 function riderStateKey(game){return game.couriers.map(r=>`${r.id}:${r.phase}:${r.radioOn?1:0}:${r.nodeId}:${r.pathIndex}:${Math.round(r.x/8)}:${Math.round(r.y/8)}:${Math.round((r.fatigue??0)*20)}:${r.deliveryId??''}:${r.deliberation?.deliveryId??''}`).join(';');}
 function modifierKey(game){const m=game.modifiers;return`${m.speed??1}:${m.teamSkill??1}:${m.cargoAssist??0}:${m.localRepeater??0}:${m.breakRelief??0}`;}
 function insightKey(game,d){const ev=game.currentEvent;return`${Math.floor(game.elapsed*5)}|${game.cityLevel}|${game.routingRevision??0}|${modifierKey(game)}|${game.dispatchFocus}|${game.cash}|${game.radioUsed()}/${game.radioSlots}|${ev?.id??''}:${ev?.state??''}:${ev?.advisory?1:0}|${d.id}:${d.status}:${d.called?1:0}:${d.channel??''}:${d.pickedUp?1:0}:${Math.round(d.deadlineAt*5)}:${d.reward}:${d.sweetened?1:0}:${d.extended?1:0}:${Math.round((d.rebroadcastUntil??0)*5)}|${riderStateKey(game)}`;}
 
 Game.prototype.deliveryDispatchInsight=function(delivery){
   if(!delivery)return null;
-  const cache=this._dispatchInsightCache??(this._dispatchInsightCache=new Map()),key=insightKey(this,delivery),cached=cache.get(delivery.id);if(cached?.key===key)return cached.value;
+  const cache=this._dispatchInsightCache??(this._dispatchInsightCache=new Map()),key=`${insightKey(this,delivery)}|${callsKey(this)}`,cached=cache.get(delivery.id);if(cached?.key===key)return cached.value;
   const feasibility=delivery.status==='waiting'?this.deliveryFeasibility?.(delivery,{horizon:240}):null;
   const channels={};
   for(const id of Object.keys(RADIO_CHANNELS)){
     const ranking=channelRanking(this,delivery,id),best=ranking[0]??null;
-    channels[id]={id,cost:RADIO_CHANNELS[id].cost,bestRider:best?.rider??null,score:best?.score??-Infinity,fit:best?fitLabel(best.score):'NONE'};
+    const listeners=ranking.filter(item=>item.prefers),cost=RADIO_CHANNELS[id].cost;
+    channels[id]={id,cost,bestRider:best?.rider??null,score:best?.score??-Infinity,fit:best?fitLabel(best.score):'NONE',listeners:listeners.length,consideringOther:ranking.filter(item=>item.consideringOther).length,bestListener:listeners[0]?.rider??null,available:delivery.status==='waiting'&&delivery.deadlineAt>this.elapsed&&!this.gameOver&&this.radioUsed()-this.radioCost(delivery)+cost<=this.radioSlots};
   }
-  const current=delivery.called?channels[delivery.channel]:null,bestChannel=Object.values(channels).filter(item=>item.bestRider).sort((a,b)=>b.score-a.score)[0]??null;
+  const current=delivery.called?channels[delivery.channel]:null,bestChannel=Object.values(channels).filter(item=>item.bestRider&&item.available).sort((a,b)=>b.score-a.score)[0]??null;
   const deliberating=this.couriers.filter(rider=>rider.deliberation?.deliveryId===delivery.id).length;
   let recommendation={action:'HOLD',reason:'Keep bandwidth free until this contract needs attention.'};
   if(delivery.status==='claimed')recommendation={action:'OBSERVE',reason:'A rider already committed; protect the rest of the desk.'};
@@ -30,8 +38,8 @@ Game.prototype.deliveryDispatchInsight=function(delivery){
     else if(delivery.called&&deliberating===0&&this.dispatchFocus>0&&this.elapsed-(delivery.firstCalledAt??this.elapsed)>4)recommendation={action:'REBROADCAST',reason:'The call is live but no listening rider is actively considering it.'};
     else if(!delivery.called&&bestChannel){
       const open=channels.open,local=channels.local,priority=channels.priority;
-      if(local.bestRider&&local.score>open.score+.18)recommendation={action:'LOCAL',reason:`Local signal best matches ${local.bestRider.name} without extra bandwidth.`};
-      else if((feasibility?.state==='tight'||feasibility?.state==='risk')&&priority.bestRider)recommendation={action:'PRIORITY',reason:`Deadline pressure justifies stronger attention from ${priority.bestRider.name}.`};
+      if(local.available&&local.bestRider&&local.score>open.score+.18)recommendation={action:'LOCAL',reason:`Local signal best matches ${local.bestRider.name} without extra bandwidth.`};
+      else if((feasibility?.state==='tight'||feasibility?.state==='risk')&&priority.available&&priority.bestRider)recommendation={action:'PRIORITY',reason:`Deadline pressure justifies stronger attention from ${priority.bestRider.name}.`};
       else recommendation={action:'OPEN',reason:open.bestRider?`${open.bestRider.name} already has a workable neutral fit.`:'No free rider is listening yet; preserve options.'};
     }else if(delivery.called&&current?.bestRider)recommendation={action:delivery.channel.toUpperCase(),reason:`${current.bestRider.name} is the strongest current listener.`};
   }

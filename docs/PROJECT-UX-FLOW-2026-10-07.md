@@ -1,0 +1,11 @@
+# Send It — learning after the first outcome, 7 October 2026
+
+Baseline `b493dfdec3f9d0303e95ea6cae722c1f0c5c96bc` was clean and matched upstream main. Candidate branch: `codex/ux-flow-2026-10-07`. Intended URL: https://generalgroovy.github.io/bike/. Candidate work is not publication.
+
+Observed friction: the optional guide permanently followed the first broadcast. After the real delivery or failure it reported the result but offered no route into the next decision; the completed job also disappeared from the active inspector. The guide now connects that outcome to a real next waiting job.
+
+Show next job is offered only after a completed/failed tracked job and only when an unbroadcast, unexpired waiting job exists. It prefers a currently feasible job using the existing read-only estimate. Activating it revalidates the target, selects it, focuses the inspector's Open choice and follows that job through its own outcome. Running/paused state is preserved. No job is automatically broadcast, no rider is assigned, no time advances and no simulation randomness is consumed. A stale target refreshes the guide safely. Game-over and no-next-job states have accurate guidance. The existing first-broadcast start behavior and explicit Resume action remain unchanged.
+
+Owner validation: `npm.cmd test` passed **215 tests**, including three new guide/outcome/selection regressions. They cover completed and failed outcomes, immutable simulation and RNG state, waiting eligibility, expired/claimed/called/missing/game-over targets, and a real UI-handler harness preserving both running and deliberately paused states. Existing deterministic rider, dispatch, route, keyboard and pause-ownership checks remain intact. The CI browser journey now follows an actual deterministic first delivery, opens the next job while paused and verifies focus, pause preservation and no automatic broadcast at all four existing viewport sizes.
+
+Independent source review, browser CI and root composed-rendering acceptance have not yet closed at this owner handoff. No local browser automation was run by the owner. These checks do not prove human learning/fun, physical touch acceptance or optional live Google service behavior. Simulation/balance, saved preferences and reference depth are unchanged.

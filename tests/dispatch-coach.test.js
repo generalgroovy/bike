@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {DispatchCoach} from '../src/dispatch-coach.js';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 
 test('coach follows an actual broadcast and autonomous claim without changing the simulation',()=>{
  const game=new Game({seed:'COACH'}),coach=new DispatchCoach(),first=coach.observe(game);
@@ -38,4 +40,56 @@ test('guide handles no work and no initially safe option without starting time o
  assert.equal(coach.observe(game).phase,'choose');assert.equal(game.elapsed,0);
  game.deliveries=[];assert.equal(coach.observe(game).phase,'empty');
  assert.equal(game.radioUsed(),0);
+});
+
+test('completed and failed dispatches offer a real unbroadcast next job and follow it only on request',()=>{
+ for(const status of['completed','failed']){
+  const game=new Game({seed:'NEXT-DISPATCH'}),coach=new DispatchCoach(),first=coach.observe(game);
+  game.setChannel(first.deliveryId,'open');coach.observe(game);
+  const d=game.deliveryById(first.deliveryId);d.status=status;
+  const before=JSON.stringify({deliveries:game.deliveries,couriers:game.couriers,elapsed:game.elapsed,log:game.dispatchLog,rng:game.rng.state});
+  const next=coach.observe(game);
+  assert.equal(next.phase,status==='completed'?'complete':'failed');assert.equal(next.action,'Show next job');
+  assert.notEqual(next.deliveryId,d.id);assert.equal(game.deliveryById(next.deliveryId).called,false);
+  assert.equal(coach.deliveryId,d.id);
+  assert.equal(coach.followNext(game,next.deliveryId),true);
+  assert.equal(coach.observe(game).phase,'choose');assert.equal(coach.observe(game).deliveryId,next.deliveryId);
+  assert.equal(JSON.stringify({deliveries:game.deliveries,couriers:game.couriers,elapsed:game.elapsed,log:game.dispatchLog,rng:game.rng.state}),before);
+  game.setChannel(next.deliveryId,'local');assert.equal(coach.observe(game).phase,'live');
+ }
+});
+
+test('next-job offer excludes claimed, expired and already called work and rejects stale choices',()=>{
+ const game=new Game({seed:'NEXT-STALE'}),coach=new DispatchCoach(),[done,called,expired]=game.deliveries;
+ coach.deliveryId=done.id;done.status='completed';game.setChannel(called.id,'open');
+ for(const d of game.deliveries)if(d!==done&&d!==called)d.deadlineAt=game.elapsed;
+ assert.equal(coach.observe(game).next,undefined);
+ assert.match(coach.observe(game).text,/New jobs will arrive/);
+ for(const id of['missing',done.id,called.id,expired.id])assert.equal(coach.followNext(game,id),false);
+ assert.equal(coach.deliveryId,done.id);
+ expired.deadlineAt=game.elapsed+100;
+ assert.equal(coach.observe(game).deliveryId,expired.id);
+ expired.status='claimed';assert.equal(coach.followNext(game,expired.id),false);
+ expired.status='waiting';game.gameOver=true;assert.equal(coach.followNext(game,expired.id),false);
+ assert.equal(coach.observe(game).next,undefined);
+});
+
+test('Show next job opens the inspector without changing running or deliberate pause state',()=>{
+ const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ const handler=source.slice(source.indexOf("$('#coach-action').addEventListener"),source.indexOf("$('#coach-dismiss').addEventListener"));
+ for(const paused of[false,true]){
+  const game=new Game({seed:'NEXT-UI'}),coach=new DispatchCoach(),[done,next]=game.deliveries;
+  coach.deliveryId=done.id;done.status='completed';game.paused=paused;
+  const nodes=new Map();
+  const $=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{},hidden:false,addEventListener(_event,fn){this.click=fn;},focus(){this.focused=true;}});return nodes.get(id);};
+  $('#coach-action').dataset={delivery:next.id,next:'true'};
+  vm.runInNewContext(handler,{$,game,coach,coachPaused:false,hideTip(){},renderUI(){}});
+  $('#coach-action').click();
+  assert.equal(game.selectedDeliveryId,next.id);assert.equal(game.paused,paused);assert.equal(game.elapsed,0);
+  assert.equal(game.radioUsed(),0);assert.equal(game.deliveryById(next.id).called,false);
+  assert.equal($('#inspect-broadcasts [data-broadcast="open"]').focused,true);
+  next.status='claimed';game.selectedDeliveryId=null;$('#coach-action').click();
+  assert.equal(game.selectedDeliveryId,null);assert.equal(game.paused,paused);
+  assert.equal($('#coach-action').focused,true);
+ }
 });

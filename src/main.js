@@ -41,8 +41,9 @@ function renderCoach(){
   panel.hidden=state.phase==='choose'&&Boolean(game.selectedDeliveryId);
   setText($('#coach-copy'),state.text);
   action.hidden=!state.action&&!game.paused;
-  setText(action,coachPaused&&state.deliveryId?'Plan first dispatch':game.paused?'Resume shift':state.action||'');
+  setText(action,state.next?state.action:coachPaused&&state.deliveryId?'Plan first dispatch':game.paused?'Resume shift':state.action||'');
   action.dataset.delivery=state.deliveryId||'';
+  action.dataset.next=String(Boolean(state.next));
 }
 
 function createTaskElement(d){
@@ -218,7 +219,14 @@ $('#zoom-in').addEventListener('click',()=>{renderer.zoomAt(renderer.viewWidth/2
 $('#help-toggle').addEventListener('click',()=>toggleHelp(helpPanel.hidden));$('#help-close').addEventListener('click',()=>toggleHelp(false));$('#help-done').addEventListener('click',()=>toggleHelp(false));
 $('#coach-action').addEventListener('click',()=>{
   hideTip();
-  const id=$('#coach-action').dataset.delivery;
+  const action=$('#coach-action'),id=action.dataset.delivery;
+  if(action.dataset.next==='true'){
+    if(!coach.followNext(game,id)){renderUI();(action.hidden?$('#coach-dismiss'):action).focus();return;}
+    game.selectedDeliveryId=id;
+    renderUI();
+    $('#inspect-broadcasts [data-broadcast="open"]').focus();
+    return;
+  }
   if(id)game.selectedDeliveryId=id;
   if(!coachPaused||!id){coachPaused=false;game.paused=false;}
   renderUI();

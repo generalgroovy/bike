@@ -112,6 +112,24 @@ try:
                     page.locator("#inspect-close").click()
                     expect(page.locator("#job-inspector")).not_to_be_visible()
                     expect(page.locator(".map-tools")).to_be_visible()
+                    # Follow an actual deterministic delivery, then inspect the
+                    # next waiting job without auto-broadcasting or resuming.
+                    page.get_by_role("button", name="Plan first dispatch", exact=True).click()
+                    first_id = page.locator("#inspect-id").inner_text()
+                    page.locator('[data-broadcast="open"]').click()
+                    page.locator("#inspect-close").click()
+                    next_job = page.get_by_role("button", name="Show next job", exact=True)
+                    expect(next_job).to_be_visible(timeout=30000)
+                    expect(page.locator("#coach-copy")).to_contain_text(first_id + " delivered")
+                    page.locator("#pause").click()
+                    expect(page.locator("#playback-state")).to_have_text("Paused")
+                    page.screenshot(path=str(REPORTS / f"{label}-next-dispatch.png"))
+                    next_job.click()
+                    expect(page.locator("#job-inspector")).to_be_visible()
+                    assert page.locator("#inspect-id").inner_text() != first_id
+                    expect(page.locator('[data-broadcast="open"]')).to_be_focused()
+                    expect(page.locator("#playback-state")).to_have_text("Paused")
+                    expect(page.locator('[data-broadcast="open"]')).to_have_attribute("aria-pressed", "false")
                     assert not errors, errors
                     results.append({"viewport": label, "passed": True, "geometry": geometry, "viewPanel": panel, "pageErrors": errors})
                 except Exception:

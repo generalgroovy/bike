@@ -86,7 +86,7 @@ try:
                     expect(compact).to_have_attribute("aria-pressed", "true")
                     page.reload()
                     expect(page.locator("html")).to_have_attribute("data-density", "compact")
-                    expect(page.get_by_role("button", name="Highest payout first", exact=True)).to_have_attribute("aria-pressed", "true")
+                    expect(page.locator('[data-queue-sort="payout"]')).to_have_attribute("aria-pressed", "true")
                     view = page.locator(".view-options > summary")
                     view.click()
                     page.get_by_role("button", name="Compact layout (D)", exact=True).click()

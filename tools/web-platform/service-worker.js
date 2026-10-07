@@ -6,6 +6,14 @@ const CACHE = PREFIX + VERSION;
 const READY = new URL('__offline_ready__', ROOT).href;
 let downloading = null;
 let downloadFinished = Promise.resolve();
+async function report(port, data) {
+  // Notifications must not turn a completed cache transaction into a failure
+  // when a tab closes while we are reporting the result.
+  try { port.postMessage(data); } catch {}
+  try {
+    for (const client of await self.clients.matchAll()) client.postMessage({kind:'send-it-offline-status',...data});
+  } catch {}
+}
 
 async function readyCache() {
   const names = (await caches.keys()).filter(name => name.startsWith(PREFIX));
@@ -61,7 +69,8 @@ self.addEventListener('message', event => {
       if (event.data.type === 'cancel') {
         downloading?.abort();
         await downloadFinished;
-        port.postMessage({...await status(),error:'Download cancelled. Online play and saved shifts are unchanged.'});
+        const result = await status();
+        port.postMessage(result.current ? result : {...result,error:'Download cancelled. Online play and saved shifts are unchanged.'});
         return;
       }
       if (event.data.type !== 'download' || downloading) { port.postMessage(await status()); return; }
@@ -101,10 +110,10 @@ self.addEventListener('message', event => {
         signal.throwIfAborted();
         await existing.put(READY, new Response(JSON.stringify({version:VERSION,bytes:pack.bytes})));
         for (const name of await caches.keys()) if (name.startsWith(PREFIX) && name !== CACHE) await caches.delete(name);
-        port.postMessage({type:'status',ready:true,current:true,busy:false,bytes:pack.bytes});
+        await report(port,{type:'status',ready:true,current:true,busy:false,bytes:pack.bytes});
       } catch (error) {
         await caches.delete(CACHE);
-        port.postMessage({type:'status',ready:!!(await readyCache()),busy:false,bytes:0,error:error.name === 'AbortError' ? 'Download cancelled. Online play and saved shifts are unchanged.' : error.message});
+        await report(port,{type:'status',ready:!!(await readyCache()),busy:false,bytes:0,error:error.name === 'AbortError' ? 'Download cancelled. Online play and saved shifts are unchanged.' : error.message});
       } finally { downloading = null; finished(); }
     } catch (error) { port.postMessage({type:'status',ready:!!(await readyCache()),busy:!!downloading,bytes:0,error:error.message}); }
   })());

@@ -63,9 +63,10 @@ if (menu) {
     } catch (error) { downloading = false; status.textContent = error.message; download.textContent = 'Retry offline download'; download.disabled = false; }
   });
   document.querySelector('#desk-menu').addEventListener('toggle', () => {
-    if (document.querySelector('#desk-menu').open && registration && !downloading) send('status').catch(error => { status.textContent = error.message; });
+    if (document.querySelector('#desk-menu').open && registration) send('status').catch(error => { status.textContent = error.message; });
   });
   if ('serviceWorker' in navigator && isSecureContext) {
+    navigator.serviceWorker.addEventListener('message', ({data}) => { if (data?.kind === 'send-it-offline-status') show(data); });
     navigator.serviceWorker.register('./service-worker.js', {scope:'./', updateViaCache:'none'})
       .then(() => navigator.serviceWorker.ready)
       .then(async value => { registration = value; await send('status'); })

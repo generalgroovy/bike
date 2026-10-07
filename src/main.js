@@ -3,7 +3,7 @@ import { createSeed } from './rng.js';
 import { Renderer } from './render.js';
 import { isGameShortcut } from './keyboard-shortcuts.js';
 import { DispatchCoach } from './dispatch-coach.js';
-import { broadcastContract, renderBroadcastChoices } from './dispatch-controls.js';
+import { broadcastContract, renderBroadcastChoices, renderDispatchTools } from './dispatch-controls.js';
 
 const FIXED_STEP=1/60,$=selector=>document.querySelector(selector),canvas=$('#game-canvas');
 const stats={score:$('#score'),cash:$('#cash'),rep:$('#rep'),seed:$('#seed'),active:$('#active-count'),called:$('#called-count'),slots:$('#radio-slots'),trait:$('#trait'),traitDesc:$('#trait-desc'),contract:$('#contract'),contractDesc:$('#contract-desc'),focus:$('#focus'),focusMax:$('#focus-max'),city:$('#city-stage'),cityProgress:$('#city-progress'),cityNext:$('#city-next')};
@@ -47,7 +47,7 @@ function renderCoach(){
 
 function createTaskElement(d){
   const el=document.createElement('article');el.className='task-card';el.dataset.delivery=d.id;
-  el.innerHTML=`<button class="task-select" data-select><span class="task-glyph"></span><span class="task-main"><span class="task-top"><strong class="task-id"></strong><em class="task-special" hidden></em><time class="task-time"></time></span><span class="task-route pickup"></span><span class="task-route drop"></span><span class="task-meta"></span></span></button><div class="task-actions"><button data-channel="open" data-tip="OPEN · 1 bandwidth · neutral broadcast">O</button><button data-channel="priority" data-tip="PRIORITY · 2 bandwidth · stronger rider attention">!</button><button data-channel="local" data-tip="LOCAL · 1 bandwidth · favours nearby riders">L</button><button data-channel="off" data-tip="OFF · remove this job from radio">×</button><span class="task-claimed" hidden>RIDER COMMITTED</span></div>`;
+  el.innerHTML=`<button class="task-select" data-select><span class="task-glyph"></span><span class="task-main"><span class="task-top"><strong class="task-id"></strong><em class="task-special" hidden></em><time class="task-time"></time></span><span class="task-route pickup"></span><span class="task-route drop"></span><span class="task-meta"></span></span></button><div class="task-actions"><button data-channel="open" data-tip="OPEN · 1 radio slot · neutral broadcast">O</button><button data-channel="priority" data-tip="PRIORITY · 2 radio slots · stronger rider attention">!</button><button data-channel="local" data-tip="LOCAL · 1 radio slot · favours nearby riders">L</button><button data-channel="off" data-tip="OFF · remove this job from radio">×</button><span class="task-claimed" hidden>RIDER COMMITTED</span></div>`;
   deliveriesEl.append(el);taskEls.set(d.id,el);return el;
 }
 function likelyRiders(d,limit=2){return game.availableRiders().map(c=>({c,score:game.courierChoiceScore(c,d,false)})).filter(x=>Number.isFinite(x.score)).sort((a,b)=>b.score-a.score).slice(0,limit);}
@@ -114,7 +114,7 @@ function renderInspector(){
   const d=game.deliveryById(game.selectedDeliveryId);if(!d||!game.activeDeliveries().includes(d)){inspector.hidden=true;return;}inspector.hidden=false;
   $('#inspect-planning').hidden=!coachPaused;
   const type=DELIVERY_TYPES[d.type],remaining=d.deadlineAt-game.elapsed,insight=game.deliveryDispatchInsight?.(d),likely=(insight?.bestFinisher?.name??likelyRiders(d,2).map(x=>x.c.name).join(' · '))||'no free rider';
-  setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');const state=game.deliveryToolState(d.id);for(const button of inspector.querySelectorAll('[data-tool]'))button.disabled=!state?.[button.dataset.tool];
+  setText(inspectGlyph,type.glyph);inspectGlyph.style.color=type.color;setText(inspectId,d.id.toUpperCase());inspectSpecial.hidden=!d.specialLabel;setText(inspectSpecial,d.specialLabel??'');setText(inspectPickup,d.pickupAddress);setText(inspectDropoff,d.dropoffAddress);setText(inspectTime,`${formatTime(remaining)} left`);setText(inspectDistance,formatKm(d.plannedDistance));setText(inspectReward,`€${d.reward}`);setText(inspectLikely,insight?`${insight.label} · ${likely} · ${insight.slack}`:`likely: ${likely}`);setText(inspectAdvice,insight?`${insight.recommendation.action} · ${insight.recommendation.reason}`:'');inspectAdvice.dataset.state=insight?.state??'';setText(inspectStreets,d.plannedStreets?.length?d.plannedStreets.slice(0,8).join(' → '):'route pending');renderDispatchTools(inspector,game,d);
   renderBroadcastChoices($('#inspect-broadcasts'),game,d,insight);
 }
 
@@ -122,19 +122,21 @@ function sendBroadcast(id,channel){
   hideTip();
   const changed=broadcastContract(game,id,channel,{resumeOnSuccess:coachPaused});
   if(changed&&channel!=='off')coachPaused=false;
-  if(!changed)game.flash('Broadcast unavailable · check the contract and free radio slots.',4);
+  if(!changed)game.flash('Broadcast unavailable · check the job and free radio slots.',4);
   renderUI();
 }
 
 function syncPlaybackControls(){
   const pause=$('#pause'),action=game.paused?'Resume':'Pause';
-  setText(pause,game.paused?'▶':'Ⅱ');
+  setText(pause,action);
   pause.setAttribute('aria-label',action);
   pause.title=`${action} (Space)`;
+  setText($('#playback-state'),game.paused?'Paused':`Running · ${game.speed}×`);
   document.querySelectorAll('[data-speed]').forEach(button=>{
     const active=!game.paused&&Number(button.dataset.speed)===game.speed;
     button.classList.toggle('active',active);
     button.setAttribute('aria-pressed',String(active));
+    button.setAttribute('aria-label',`${button.dataset.speed}× speed${game.paused?' and resume':''}`);
   });
 }
 

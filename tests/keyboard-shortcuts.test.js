@@ -8,6 +8,7 @@ test('game shortcuts leave typing, native button activation and browser commands
   assert.equal(isGameShortcut({key:'h',target:{isContentEditable:true}}),false);
   assert.equal(isGameShortcut({key:'2',target:{closest:selector=>selector.startsWith('input')?{}:null}}),false);
   assert.equal(isGameShortcut({key:' ',target:{closest:selector=>selector.startsWith('button')?{}:null}}),false);
+  assert.equal(isGameShortcut({key:' ',target:{closest:selector=>selector.split(',').includes('summary')?{}:null}}),false);
   assert.equal(isGameShortcut({key:' ',target:{}}),true);
 });
 test('open dialogs and help isolate underlying game controls',()=>{

@@ -43,11 +43,11 @@
   <div class="top-actions"><button id="sound-toggle" class="ghost" aria-label="Toggle sound" data-tip="Musical UI and city cues. Audio begins after your first interaction.">♫ SOUND</button><button id="help-toggle" class="ghost" aria-label="Help">? HELP</button><button id="new-run" aria-label="New shift">NEW SHIFT</button></div>
 </header>
 
-<section class="task-rail" aria-label="Delivery contracts">
+<section class="task-rail" aria-label="Delivery jobs">
   <div class="task-summary">
-    <span class="eyebrow">WORK</span>
+    <span class="eyebrow">JOBS</span>
     <div><strong id="active-count">0</strong><small>ACTIVE</small></div>
-    <div class="bandwidth" data-tip="Live radio bandwidth. OPEN and LOCAL cost 1; PRIORITY costs 2."><strong><span id="called-count">0</span>/<span id="radio-slots">4</span></strong><small>RADIO</small></div>
+    <div class="bandwidth" data-tip="Radio slots in use. Open and Local use 1 slot; Priority uses 2. A rider accepting the job frees its slots."><strong><span id="called-count">0</span>/<span id="radio-slots">4</span></strong><small>RADIO SLOTS</small></div>
   </div>
   <div id="deliveries" class="task-strip"></div>
 </section>
@@ -64,15 +64,15 @@
       <button id="event-advisory" data-tip="Spend 1 focus to prepare for or respond to this event. Route and demand events have different counterplay.">RESPOND · 1 FOCUS</button>
     </div>
     <aside id="job-inspector" class="job-inspector" hidden>
-      <div class="inspect-head"><span><b id="inspect-glyph">●</b><strong id="inspect-id">D0</strong><em id="inspect-special"></em></span><button id="inspect-close" aria-label="Close contract">×</button></div>
+      <div class="inspect-head"><span><b id="inspect-glyph">●</b><strong id="inspect-id">D0</strong><em id="inspect-special"></em></span><button id="inspect-close" aria-label="Close job">×</button></div>
       <div class="inspect-route"><span><small>PICKUP</small><b id="inspect-pickup">—</b></span><i>→</i><span><small>DROP</small><b id="inspect-dropoff">—</b></span></div>
       <div class="inspect-facts"><span id="inspect-time">—</span><span id="inspect-distance">—</span><span id="inspect-reward">—</span><span id="inspect-likely">—</span></div>
       <p id="inspect-planning" hidden>Paused · your first broadcast starts the shift.</p>
-      <div id="inspect-broadcasts" class="inspect-broadcasts" role="group" aria-label="Broadcast this contract">
-        <button data-broadcast="open"><strong>OPEN · 1 radio</strong><small></small></button>
-        <button data-broadcast="local"><strong>LOCAL · 1 radio</strong><small></small></button>
-        <button data-broadcast="priority"><strong>PRIORITY · 2 radio</strong><small></small></button>
-        <small class="broadcast-caveat">Estimates include other calls. Riders still decide.</small>
+      <div id="inspect-broadcasts" class="inspect-broadcasts" role="group" aria-label="Broadcast this job">
+        <button data-broadcast="open"><strong>OPEN · 1 slot</strong><small></small></button>
+        <button data-broadcast="local"><strong>LOCAL · 1 slot</strong><small></small></button>
+        <button data-broadcast="priority"><strong>PRIORITY · 2 slots</strong><small></small></button>
+        <small class="broadcast-caveat">Slots stay busy until a rider accepts. Estimates include other jobs; riders still decide.</small>
         <button data-broadcast="off" hidden>Remove from radio</button>
       </div>
       <div id="inspect-advice" class="inspect-advice"></div>
@@ -81,14 +81,14 @@
       <div id="inspect-outlook" class="inspect-outlook" data-tip="NOW riders can hear this call immediately. BUSY/BREAK riders are only forecasts of when they could become relevant; they cannot be pre-assigned." hidden></div>
       </details>
       <div class="dispatch-tools">
-        <button data-tool="sweeten" data-tip="Spend €5 to add €9 payout and make this job more attractive to riders.">+€ BONUS</button>
-        <button data-tool="extend" data-tip="Spend 1 focus to call the client and negotiate 20 extra seconds.">+20s CLIENT</button>
-        <button data-tool="rebroadcast" data-tip="Spend 1 focus to push this live call back to every listening rider for 7 seconds.">REBROADCAST</button>
+        <button data-tool="sweeten" data-tip="Spend €5 to add €9 payout and make this job more attractive to riders."><strong>Add €9 bonus</strong><small>Costs €5</small></button>
+        <button data-tool="extend" data-tip="Spend 1 focus to call the client and negotiate 20 extra seconds."><strong>Client +20 sec</strong><small>Costs 1 focus</small></button>
+        <button data-tool="rebroadcast" data-tip="Spend 1 focus to push this live call back to every listening rider for 7 seconds."><strong>Rebroadcast</strong><small>Costs 1 focus</small></button>
       </div>
     </aside>
     <div id="notice" class="notice" role="status"></div>
     <div class="map-tools" aria-label="Map controls"><button id="zoom-out" title="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in">+</button><button id="zoom-reset" title="Fit active operating area">FIT</button></div>
-    <div class="time-tools" aria-label="Simulation controls"><button id="pause" title="Pause / resume (Space)">Ⅱ</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
+    <div class="time-tools" aria-label="Simulation controls"><span id="playback-state" role="status">Paused</span><button id="pause" title="Pause / resume (Space)">Resume</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div>
   </section>
 
   <aside class="team-dock">
@@ -106,15 +106,15 @@
 
 <aside id="help-panel" class="help-panel" hidden>
   <div class="help-head"><div><span class="eyebrow">REFERENCE</span><h2>How to dispatch</h2></div><button id="help-close" aria-label="Close help">×</button></div>
-  <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which contracts are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
+  <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which jobs are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
   <div class="help-grid">
-    <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p><p>Select a contract to compare signals. “May choose this” counts free listeners who prefer this call over other live calls without random variation. Riders already considering another call are excluded. Estimates do not guarantee acceptance, reserve riders or promise an on-time finish. Removing a call releases its slots; switching replaces its current cost.</p></section>
-    <section><h3>Dispatch tools</h3><p><b>Bonus</b> changes rider incentive.<br><b>Client call</b> buys time.<br><b>Rebroadcast</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>
+    <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p><p>Select a job to compare signals. “May choose this” counts free listeners who prefer this call over other live calls without random variation. Riders already considering another call are excluded. Estimates do not guarantee acceptance, reserve riders or promise an on-time finish. Removing a job from radio releases its slots; switching signals replaces the current cost. Broadcasting uses radio slots. Client calls, rebroadcasts and event responses spend focus.</p></section>
+    <section><h3>Dispatch tools</h3><p><b>Bonus · €5</b> adds €9 to a job’s payout.<br><b>Client call · 1 focus</b> buys 20 seconds.<br><b>Rebroadcast · 1 focus</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>
     <section><h3>Riders</h3><p>Task bar = completion.<br>Energy bar = fatigue reserve.<br>Grey = break / radio off.<br>Personality affects what they volunteer for.<br><b>Rider Outlook</b> shows who can hear now and who may become available soon.</p></section>
     <section><h3>Momentum</h3><p><b>FLOW</b> rises with clean deliveries and breaks on misses or service breaches.<br><b>CITY</b> shows the highest district load.<br><b>PHASE</b> shows the current predictable demand rhythm.</p></section>
     <section><h3>Sensory language</h3><p>Delivery sonar = waiting work.<br>Faster rider trails burn brighter and play higher notes.<br>Pressure adds low pulses.<br>Radio, goals, events and FLOW each have a distinct motif in the same musical key.</p></section>
     <section><h3>Map</h3><p><b>G</b> toggles the optional live Google vector basemap. First use asks for a Maps JavaScript API key stored only in this browser. Google owns geographic pan/zoom while active; the game remains a transparent deterministic overlay.</p></section>
-    <section><h3>Operator UI</h3><p><b>Q</b> contracts rail · <b>R</b> rider rail · <b>D</b> density · <b>M</b> full map focus.<br>The queue defaults to attention-first sorting; all UI controls shape information, never rider authority.</p></section>
+    <section><h3>Operator UI</h3><p><b>View</b> holds Compact layout, Map only and shift details.<br><b>Q</b> jobs rail · <b>R</b> rider rail · <b>D</b> density · <b>M</b> full map focus.<br>The queue defaults to attention-first sorting; all UI controls shape information, never rider authority.</p></section>
   </div>
   <div class="legend-grid">
     <div><strong>CARGO</strong><span>▲ Food</span><span>● Parcel</span><span>■ Docs</span><span>⬢ Grocery</span><span>◆ Fragile</span><span>✿ Flowers</span><span>⌑ Keys</span><span>✚ Medical</span><span>♨ Catering</span><span>❄ Cold</span></div>

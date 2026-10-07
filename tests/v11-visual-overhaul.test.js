@@ -52,7 +52,7 @@ test('dynamic polish respects reduced motion and high contrast',()=>{
 
 test('help and shell agree on the current rail and map-focus controls',()=>{
   const html=read('../index.html'),shell=read('../src/ui-shell.js');
-  assert.match(html,/<b>Q<\/b> contracts rail/);
+  assert.match(html,/<b>Q<\/b> jobs rail/);
   assert.match(html,/<b>R<\/b> rider rail/);
   assert.match(html,/<b>M<\/b> full map focus/);
   assert.match(shell,/event\.key==='q'/);

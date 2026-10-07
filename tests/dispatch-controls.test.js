@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
-import {broadcastChoice,broadcastContract,renderBroadcastChoices} from '../src/dispatch-controls.js';
+import {broadcastChoice,broadcastContract,renderBroadcastChoices,renderDispatchTools} from '../src/dispatch-controls.js';
 
 test('replacing a signal budgets its existing slots and denied attempts preserve pause',()=>{
   const game=new Game({seed:'RADIO-PLANNING'}),[a,b,c]=game.activeDeliveries();
@@ -90,4 +90,23 @@ test('inspector reuses controls and exposes live pressed, availability and uncer
   game.radioSlots=1;renderBroadcastChoices(root,game,d,game.deliveryDispatchInsight(d));
   assert.equal(buttons[2].disabled,true);assert.equal(buttons[2].detail.textContent,'Radio full');
   d.status='claimed';renderBroadcastChoices(root,game,d,null);assert.equal(root.hidden,true);
+});
+
+test('tool prices and blocked reasons track resources and job state without replacing controls',()=>{
+  const game=new Game({seed:'TOOL-CLARITY'}),d=game.activeDeliveries()[0];
+  const buttons=['sweeten','extend','rebroadcast'].map(id=>({dataset:{tool:id},detail:{textContent:''},querySelector(){return this.detail;}}));
+  const root={querySelectorAll:()=>buttons};
+  game.cash=0;game.dispatchFocus=0;
+  renderDispatchTools(root,game,d);
+  assert.deepEqual(buttons.map(b=>b.detail.textContent),['Need €5','Need 1 focus','Broadcast first']);
+  assert.ok(buttons.every(b=>b.disabled));
+  game.cash=5;game.dispatchFocus=2;game.setChannel(d.id,'open');
+  renderDispatchTools(root,game,d);
+  assert.deepEqual(buttons.map(b=>b.detail.textContent),['Costs €5','Costs 1 focus','Costs 1 focus']);
+  assert.ok(buttons.every(b=>!b.disabled));
+  game.sweetenJob(d.id);game.extendJob(d.id);renderDispatchTools(root,game,d);
+  assert.deepEqual(buttons.slice(0,2).map(b=>b.detail.textContent),['Bonus already added','Time already added']);
+  assert.equal(buttons[2].disabled,false);
+  d.status='claimed';renderDispatchTools(root,game,d);
+  assert.ok(buttons.every(b=>b.disabled&&b.detail.textContent==='Job already taken'));
 });

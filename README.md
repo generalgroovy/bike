@@ -2,9 +2,13 @@
 
 A single-player browser game about dispatching autonomous bicycle couriers across a deterministic Berlin map. Select a job, choose what to broadcast, and watch riders decide. You influence information and incentives; you do not assign a rider directly.
 
-[Play the released game](https://generalgroovy.github.io/bike/). The [Berlin preview](https://generalgroovy.github.io/bike/preview/) comes from a separate playtest branch; its features and tests do not automatically describe this main-branch source.
+[Play Send It](https://generalgroovy.github.io/bike/). The default website opens the same full-Berlin desk shipped in the Windows app: the same map, riders, decisions, compact interface and musical score. Existing preview and shared shift links continue to work. The [classic desk](https://generalgroovy.github.io/bike/classic.html) preserves the earlier game and its recent guide refinements.
 
-## Run locally
+**Browser controls:** Menu → Fullscreen expands the game. Menu → Download offline saves the complete city, including building detail and music (about 186 MB). Wait for **Available offline**, then bookmark the game or use your browser's install/Add to Home Screen action. Reopen that bookmark or installed app without a connection. A failed or cancelled download is never marked ready. Browser storage remains device-specific and can be cleared or evicted; it is separate from Windows saves.
+
+The published desktop-quality runtime comes from `feature/berlin-playtest`; this main checkout maintains the classic source and publication tooling. The publisher checks source fingerprints and builds one canonical modern game under `preview/berlin/`, with no separate browser gameplay fork. [Web/Windows parity and deployment](docs/PAGES_PREVIEW.md).
+
+## Run the classic source locally
 
 Use a modern browser, Python 3 for the convenience server, and Node.js 24+ for development tests. There are no npm dependencies to install.
 

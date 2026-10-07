@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const [releasedArg, previewArg, outputArg] = process.argv.slice(2);
 if (!releasedArg || !previewArg || !outputArg || process.argv.length !== 5)
@@ -26,28 +28,52 @@ function copyApplication(source, target) {
     mkdirSync(dirname(to), { recursive: true });
     copyFileSync(from, to);
   }
-  return files.length;
+  return files;
 }
 
 if (!existsSync(resolve(preview, 'playtest.html'))) throw new Error('Preview checkout lacks the Berlin playtest');
 const releasedSha = sha(released), previewSha = sha(preview);
 const releasedFiles = copyApplication(released, output);
+// Preserve the current classic game, including its improvements and storage,
+// while making the same runtime shipped on Windows the public default.
+copyFileSync(resolve(output, 'index.html'), resolve(output, 'classic.html'));
 const previewTarget = resolve(output, 'preview/berlin');
 const previewFiles = copyApplication(preview, previewTarget);
+const desktopVersion = JSON.parse(readFileSync(resolve(preview, 'package.json'), 'utf8')).version;
+const runtimeFiles = previewFiles.filter(name => /^(src|assets|generated)\//.test(name) || ['index.html', 'playtest.html', 'playtest.css', 'map-data.html'].includes(name));
+const integrity = runtimeFiles.map(name => {
+  const bytes = readFileSync(resolve(previewTarget, name));
+  return { path: name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+});
+writeFileSync(resolve(previewTarget, 'desktop-source.json'), JSON.stringify({commit:previewSha,version:desktopVersion,files:integrity},null,2)+'\n');
+function entry(target, classic) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#172a2d"><title>Send It — Berlin</title><meta name="description" content="The full Berlin courier desk: the same game, map, riders and music as the Windows app."></head><body><script>const next=new URL(${JSON.stringify(target)},location.href);next.search=location.search;next.hash=location.hash;location.replace(next.href);</script><noscript>JavaScript is required to play.</noscript><p><a href="${target}">Open Send It</a> · <a href="${classic}">Classic desk</a></p></body></html>\n`;
+}
+writeFileSync(resolve(output, 'index.html'), entry('preview/berlin/', 'classic.html'));
 writeFileSync(resolve(output, '.nojekyll'), '');
 writeFileSync(resolve(previewTarget, 'build.json'), JSON.stringify({
   branch: 'feature/berlin-playtest', commit: previewSha, releasedCommit: releasedSha,
   playtest: 'index.html', legacy: 'legacy.html', mapData: 'map-data.html',
-  scope: 'full-city', innerRing: 'index.html?city=inner-ring'
+  scope: 'full-city', innerRing: 'index.html?city=inner-ring', desktopVersion,
+  desktopSource: 'desktop-source.json'
 }, null, 2) + '\n');
-writeFileSync(resolve(output, 'preview/index.html'), `<!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>Send It - Berlin preview</title>
-<style>body{font:18px/1.6 system-ui;margin:0;background:#f6f3e9;color:#172a2d}main{max-width:680px;margin:8vh auto;padding:28px}h1{line-height:1.15;font-size:40px}a{color:inherit}nav{display:grid;gap:14px;margin:30px 0}nav a{display:block;padding:18px 22px;border:1px solid #b9cbbf;border-radius:10px;text-decoration:none}nav a:first-child{background:#172a2d;color:#fffdf4}small{font-size:13px;overflow-wrap:anywhere}</style>
-<main><small>SEND IT / BERLIN / PLAYABLE PREVIEW</small><h1>Try the Berlin desk.</h1>
-<p>Three couriers. A shared radio. You choose which jobs they hear; they choose which jobs to take.</p>
-<nav><a href="berlin/?city=berlin&amp;mode=standard&amp;district=citywide">Play Send It: Full Berlin<br><small>97 localities · real street routes · saved shifts</small></a></nav>
-<p>Read the city, choose the calls, and watch three independent riders respond. Start across Berlin or together in any locality. Streets, routes, addresses, waterways and all 12 boroughs share the full official city boundary.</p>
-<p><a href="berlin/?city=inner-ring">Original Inner Ring scenario</a> · <a href="berlin/map-data.html">Map sources, accuracy and downloads</a>. Physical-phone validation and further expansion follow playtesting.</p>
-<small>Build <a href="https://github.com/generalgroovy/bike/commit/${previewSha}">${previewSha.slice(0, 7)}</a> · <a href="../">Released game</a> · <a href="berlin/build.json">Build details</a></small></main></html>\n`);
-console.log(JSON.stringify({ releasedSha, previewSha, releasedFiles, previewFiles, output }));
+const browserBuild = `${releasedSha.slice(0,12)}-${previewSha.slice(0,12)}`;
+const platform = fileURLToPath(new URL('./web-platform/', import.meta.url));
+for (const name of ['web-platform.js', 'service-worker.js'])
+  writeFileSync(resolve(previewTarget,name), readFileSync(resolve(platform,name),'utf8').replaceAll('__SEND_IT_BUILD__',browserBuild));
+const icon = readFileSync(resolve(preview, 'desktop/icon.png'));
+writeFileSync(resolve(previewTarget,'app-icon.png'),icon);
+writeFileSync(resolve(previewTarget,'app.webmanifest'),JSON.stringify({
+  id:'./',name:'Send It — Berlin',short_name:'Send It',start_url:'./',scope:'./',display:'standalone',
+  background_color:'#f6f3e9',theme_color:'#172a2d',description:'The full Berlin courier desk.',
+  icons:[{src:'app-icon.png',sizes:`${icon.readUInt32BE(16)}x${icon.readUInt32BE(20)}`,type:'image/png',purpose:'any'}]
+},null,2)+'\n');
+const gameDocument = readFileSync(resolve(previewTarget,'index.html'),'utf8');
+writeFileSync(resolve(previewTarget,'index.html'),gameDocument.replace('</head>','<!-- Browser platform: shared game below is unchanged. -->\n<link rel="manifest" href="app.webmanifest">\n</head>').replace('</body>','<script type="module" src="web-platform.js"></script>\n</body>'));
+const offlineFiles = [...runtimeFiles,'web-platform.js','service-worker.js','app-icon.png','app.webmanifest','build.json'].map(path => {
+  const bytes=readFileSync(resolve(previewTarget,path));
+  return {path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};
+});
+writeFileSync(resolve(previewTarget,'offline-pack.json'),JSON.stringify({version:browserBuild,bytes:offlineFiles.reduce((sum,file)=>sum+file.bytes,0),files:offlineFiles})+'\n');
+writeFileSync(resolve(output, 'preview/index.html'), entry('berlin/', '../classic.html'));
+console.log(JSON.stringify({ releasedSha, previewSha, releasedFiles: releasedFiles.length, previewFiles: previewFiles.length, desktopVersion, output }));

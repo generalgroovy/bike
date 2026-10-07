@@ -21,7 +21,7 @@ if (menu) {
   status.setAttribute('role', 'status');
   const meta = menu.querySelector('.session-meta');
   menu.insertBefore(fullscreen, meta); menu.insertBefore(download, meta); menu.insertBefore(status, meta);
-  let registration, downloading = false;
+  let registration, downloading = false, ownsDownload = false, commandVersion = 0;
   const show = result => {
     if (result.type === 'progress') {
       status.textContent = `Saving Berlin offline · ${result.done} / ${result.total} files`;
@@ -33,6 +33,7 @@ if (menu) {
     status.textContent = result.error || (result.ready ? 'Ready offline. Reopen this game from your bookmark. Clearing site data removes the download and saved shifts.' : 'Optional: saves the full city, building detail and music on this device.');
   };
   async function send(type) {
+    const command = commandVersion;
     const worker = registration?.active;
     if (!worker) throw new Error('Offline setup is not ready. Try again shortly.');
     return new Promise((resolve, reject) => {
@@ -41,7 +42,7 @@ if (menu) {
       let timer = setTimeout(() => { channel.port1.close(); reject(new Error('Offline request timed out. Reopen Menu to retry.')); }, 60000);
       channel.port1.onmessage = ({data}) => {
         clearTimeout(timer);
-        show(data);
+        if (command === commandVersion) show(data);
         if (data.type === 'progress') {
           timer = setTimeout(() => { channel.port1.close(); reject(new Error('Download stalled. Cancel and retry when connected.')); }, 60000);
         } else { channel.port1.close(); resolve(data); }
@@ -52,6 +53,8 @@ if (menu) {
   download.addEventListener('click', async event => {
     // Keep progress visible in Menu; no request is made until the player chooses it.
     event.stopPropagation();
+    const command = ++commandVersion;
+    ownsDownload = true;
     try {
       if (downloading) await send('cancel');
       else {
@@ -60,13 +63,15 @@ if (menu) {
         await send('download');
         if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
       }
-    } catch (error) { downloading = false; status.textContent = error.message; download.textContent = 'Retry offline download'; download.disabled = false; }
+    } catch (error) {
+      if (command === commandVersion) { downloading = false; status.textContent = error.message; download.textContent = 'Retry offline download'; download.disabled = false; }
+    } finally { if (command === commandVersion) ownsDownload = false; }
   });
   document.querySelector('#desk-menu').addEventListener('toggle', () => {
-    if (document.querySelector('#desk-menu').open && registration) send('status').catch(error => { status.textContent = error.message; });
+    if (document.querySelector('#desk-menu').open && registration && !ownsDownload) send('status').catch(error => { status.textContent = error.message; });
   });
   if ('serviceWorker' in navigator && isSecureContext) {
-    navigator.serviceWorker.addEventListener('message', ({data}) => { if (data?.kind === 'send-it-offline-status') show(data); });
+    navigator.serviceWorker.addEventListener('message', ({data}) => { if (data?.kind === 'send-it-offline-status' && !ownsDownload) show(data); });
     navigator.serviceWorker.register('./service-worker.js', {scope:'./', updateViaCache:'none'})
       .then(() => navigator.serviceWorker.ready)
       .then(async value => { registration = value; await send('status'); })

@@ -75,8 +75,9 @@ self.addEventListener('message', event => {
       }
       if (event.data.type !== 'download' || downloading) { port.postMessage(await status()); return; }
       // Lock before the first await: two tabs must never write the same pack concurrently.
-      downloading = new AbortController();
-      const signal = downloading.signal;
+      const controller = new AbortController();
+      downloading = controller;
+      const signal = controller.signal;
       let finished;
       downloadFinished = new Promise(resolve => { finished = resolve; });
       try {
@@ -106,15 +107,19 @@ self.addEventListener('message', event => {
           }
         });
         try { await Promise.all(jobs); }
-        catch (error) { downloading.abort(); await Promise.allSettled(jobs); throw error; }
+        catch (error) { controller.abort(); await Promise.allSettled(jobs); throw error; }
         signal.throwIfAborted();
         await existing.put(READY, new Response(JSON.stringify({version:VERSION,bytes:pack.bytes})));
         for (const name of await caches.keys()) if (name.startsWith(PREFIX) && name !== CACHE) await caches.delete(name);
+        if (downloading === controller) downloading = null;
+        finished();
         await report(port,{type:'status',ready:true,current:true,busy:false,bytes:pack.bytes});
       } catch (error) {
         await caches.delete(CACHE);
+        if (downloading === controller) downloading = null;
+        finished();
         await report(port,{type:'status',ready:!!(await readyCache()),busy:false,bytes:0,error:error.name === 'AbortError' ? 'Download cancelled. Online play and saved shifts are unchanged.' : error.message});
-      } finally { downloading = null; finished(); }
+      } finally { if (downloading === controller) downloading = null; finished(); }
     } catch (error) { port.postMessage({type:'status',ready:!!(await readyCache()),busy:!!downloading,bytes:0,error:error.message}); }
   })());
 });

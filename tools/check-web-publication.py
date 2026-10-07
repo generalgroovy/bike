@@ -75,7 +75,12 @@ try:
     expect(page.locator('#web-offline-status')).to_contain_text('cancelled',timeout=30000)
     checks.append('Cancellation is recoverable')
     page.locator('#web-offline').click()
-    expect(page.locator('#web-offline')).to_have_text('Available offline',timeout=240000)
+    try:
+        expect(page.locator('#web-offline')).to_have_text('Available offline',timeout=240000)
+    except Exception:
+        page.screenshot(path=str(reports/'download-failure.png'))
+        print('Offline status:',page.locator('#web-offline-status').text_content(),flush=True)
+        raise
     expect(page.locator('#web-offline')).to_be_disabled()
     assert game('JSON.stringify(g.exportRun())')==before
     checks.append('Complete hash-verified city download does not mutate the run')

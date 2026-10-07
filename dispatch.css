@@ -122,3 +122,5 @@ html[data-basemap=google] .job-inspector{bottom:96px!important;max-height:calc(1
  .task-summary{align-content:start!important}.task-rail{max-height:none!important}
  .map-stage:has(.dispatch-coach:not([hidden]))>:is(.map-context,.kinetic-hud,.event-chip,.notice){visibility:hidden!important;pointer-events:none!important}
 }
+#inspect-close,#coach-dismiss{min-width:44px!important;min-height:44px!important}
+.dispatch-coach{padding-right:58px}

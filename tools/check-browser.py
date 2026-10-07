@@ -67,11 +67,15 @@ try:
                     view.press("Space")
                     expect(page.locator(".view-options")).to_have_attribute("open", "")
                     expect(page.locator("#playback-state")).to_have_text("Paused")
+                    page.locator(".view-sort > summary").click()
+                    payout = page.get_by_role("button", name="Highest payout first", exact=True)
+                    payout.click()
+                    expect(payout).to_have_attribute("aria-pressed", "true")
                     panel = page.locator(".view-options-panel").bounding_box()
                     assert panel and panel["x"] >= 0 and panel["x"] + panel["width"] <= width + 1, panel
                     assert panel["y"] + panel["height"] <= height + 1, panel
                     page.screenshot(path=str(REPORTS / f"{label}-view.png"))
-                    view.press("Escape")
+                    payout.press("Escape")
                     expect(page.locator(".view-options")).not_to_have_attribute("open", "")
                     expect(view).to_be_focused()
                     # A second view checks the stored choice, while fresh contexts
@@ -82,6 +86,7 @@ try:
                     expect(compact).to_have_attribute("aria-pressed", "true")
                     page.reload()
                     expect(page.locator("html")).to_have_attribute("data-density", "compact")
+                    expect(page.get_by_role("button", name="Highest payout first", exact=True)).to_have_attribute("aria-pressed", "true")
                     view = page.locator(".view-options > summary")
                     view.click()
                     page.get_by_role("button", name="Compact layout (D)", exact=True).click()

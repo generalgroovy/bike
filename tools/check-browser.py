@@ -44,7 +44,7 @@ try:
                         };
                         return {
                             viewport:innerWidth, document:document.documentElement.scrollWidth,
-                            header:rect('.commandbar'), map:rect('.map-stage'),
+                            header:rect('.commandbar'), map:rect('.map-stage'), riders:rect('.team-dock'),
                             actions:['#sound-toggle','#help-toggle','#new-run'].map(selector => {
                                 const e=document.querySelector(selector);
                                 return {selector,...rect(selector),client:e.clientWidth,scroll:e.scrollWidth,before:getComputedStyle(e,'::before').content};
@@ -56,6 +56,8 @@ try:
                     assert geometry["header"]["height"] >= 56, geometry
                     assert geometry["map"]["top"] >= geometry["header"]["bottom"] - 1, geometry
                     assert geometry["riderFont"] >= 11, geometry
+                    if width > 700:
+                        assert abs(geometry["riders"]["top"] - geometry["map"]["top"]) <= 1, geometry
                     for action in geometry["actions"]:
                         assert action["scroll"] <= action["client"] + 1, action
                         assert action["before"] in ("none", "normal", '""'), action

@@ -124,3 +124,5 @@ html[data-basemap=google] .job-inspector{bottom:96px!important;max-height:calc(1
 }
 #inspect-close,#coach-dismiss{min-width:44px!important;min-height:44px!important}
 .dispatch-coach{padding-right:58px}
+/* Old tablet rules left absolute-position offsets on the now-relative rail. */
+.team-dock{top:auto!important;right:auto!important;bottom:auto!important;left:auto!important}

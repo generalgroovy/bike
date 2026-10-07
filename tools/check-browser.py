@@ -86,6 +86,25 @@ try:
                     expect(page.locator("html")).to_have_attribute("data-density", "comfortable")
                     view.press("Escape")
                     page.screenshot(path=str(REPORTS / f"{label}-desk.png"))
+                    # Open the actual first-use journey. Hidden ambient panels
+                    # must not cover its text, close button or broadcast choices.
+                    coach = page.locator("#dispatch-coach")
+                    expect(coach).to_be_visible()
+                    if width <= 700:
+                        for selector in [".map-context", ".kinetic-hud", ".notice"]:
+                            expect(page.locator(selector)).not_to_be_visible()
+                        queue = page.locator(".task-rail").bounding_box()
+                        assert queue and queue["height"] <= 175, queue
+                    page.get_by_role("button", name="Plan first dispatch", exact=True).click()
+                    expect(page.locator("#job-inspector")).to_be_visible()
+                    for selector in [".map-context", ".kinetic-hud", ".notice", ".map-tools", "#dispatch-coach"]:
+                        expect(page.locator(selector)).not_to_be_visible()
+                    page.locator("#inspect-close").click(trial=True)
+                    page.locator('[data-broadcast="open"]').click(trial=True)
+                    page.screenshot(path=str(REPORTS / f"{label}-inspector.png"))
+                    page.locator("#inspect-close").click()
+                    expect(page.locator("#job-inspector")).not_to_be_visible()
+                    expect(page.locator(".map-tools")).to_be_visible()
                     assert not errors, errors
                     results.append({"viewport": label, "passed": True, "geometry": geometry, "viewPanel": panel, "pageErrors": errors})
                 except Exception:

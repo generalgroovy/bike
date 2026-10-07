@@ -108,3 +108,17 @@ html:not([data-density=compact]) .rider-profile,html:not([data-density=compact])
 /* Keep playback above optional Google attribution and the inspector above both. */
 html[data-basemap=google] .job-inspector{bottom:96px!important;max-height:calc(100% - 132px)!important}
 @media(max-width:700px){html[data-basemap=google] .job-inspector{bottom:114px!important;max-height:calc(100% - 130px)!important}}
+/* Primary decisions take visual precedence over ambient map overlays. */
+.map-stage>.job-inspector{z-index:15!important}
+.map-stage>.dispatch-coach{z-index:12!important}
+.map-stage:has(.job-inspector:not([hidden]))>:is(.map-context,.kinetic-hud,.event-chip,.notice,.map-city,.map-tools){visibility:hidden!important;pointer-events:none!important}
+.map-stage:has(.job-inspector:not([hidden]))>.dispatch-coach{display:none!important}
+.view-options-panel{max-height:calc(100dvh - 160px);overflow:auto;overscroll-behavior:contain}
+.view-sort>summary{min-height:36px;padding:8px 0;cursor:pointer;font-size:13px}
+.view-sort .queue-sort{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}
+.view-sort .queue-sort button{min-width:0!important;padding:6px!important;justify-content:center;font-size:16px!important}
+.view-sort .queue-sort button::after{content:none}
+@media(max-width:700px){
+ .task-summary{align-content:start!important}.task-rail{max-height:none!important}
+ .map-stage:has(.dispatch-coach:not([hidden]))>:is(.map-context,.kinetic-hud,.event-chip,.notice){visibility:hidden!important;pointer-events:none!important}
+}

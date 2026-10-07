@@ -21,6 +21,8 @@ const viewOptions=document.createElement('details');viewOptions.className='view-
 viewOptions.innerHTML='<summary>View</summary><div class="view-options-panel" aria-label="Display options"></div>';
 const viewPanel=viewOptions.querySelector('.view-options-panel');
 viewPanel.append(densityButton,focusButton);
+const sortOptions=document.createElement('details');sortOptions.className='view-sort';sortOptions.innerHTML='<summary>Sort jobs</summary>';
+viewPanel.append(sortOptions);
 for(const selector of ['.shift-chip','.city-chip']){const item=document.querySelector(selector);if(item)viewPanel.append(item);}
 actions?.prepend(viewOptions);
 viewOptions.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();viewOptions.open=false;viewOptions.querySelector('summary').focus();}});
@@ -44,7 +46,7 @@ const riskCount=queueStatus.querySelector('[data-risk-count]'),liveCount=queueSt
 const context=document.createElement('aside');context.className='queue-context map-context';context.setAttribute('aria-label','Operating context');context.innerHTML='<div class="queue-context-items"></div>';
 mapStage?.append(context);
 const contextItems=context.querySelector('.queue-context-items');
-function adoptContext(){for(const selector of['.service-load','.demand-rhythm']){const node=document.querySelector(selector);if(node&&node.parentElement!==contextItems)contextItems.append(node);}}
+function adoptContext(){for(const selector of['.service-load','.demand-rhythm']){const node=document.querySelector(selector);if(node&&node.parentElement!==contextItems)contextItems.append(node);}const sort=document.querySelector('.queue-sort');if(sort&&sort.parentElement!==sortOptions)sortOptions.append(sort);}
 adoptContext();
 
 const channelLabels={open:'Open · 1 radio slot · neutral broadcast',priority:'Priority · 2 radio slots · stronger rider attention',local:'Local · 1 radio slot · favors nearby riders',off:'Remove this job from radio'};

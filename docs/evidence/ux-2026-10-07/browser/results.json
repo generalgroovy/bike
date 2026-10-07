@@ -1,0 +1,314 @@
+[
+  {
+    "viewport": "1366x900",
+    "passed": true,
+    "geometry": {
+      "viewport": 1366,
+      "document": 1366,
+      "header": {
+        "left": 0,
+        "right": 1366,
+        "top": 0,
+        "bottom": 56,
+        "width": 1366,
+        "height": 56
+      },
+      "map": {
+        "left": 238,
+        "right": 1140,
+        "top": 56,
+        "bottom": 900,
+        "width": 902,
+        "height": 844
+      },
+      "riders": {
+        "left": 1140,
+        "right": 1366,
+        "top": 56,
+        "bottom": 900,
+        "width": 226,
+        "height": 844
+      },
+      "actions": [
+        {
+          "selector": "#sound-toggle",
+          "left": 1079.453125,
+          "right": 1168.984375,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 89.53125,
+          "height": 40,
+          "client": 88,
+          "scroll": 88,
+          "before": "none"
+        },
+        {
+          "selector": "#help-toggle",
+          "left": 1174.984375,
+          "right": 1246.8125,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 71.828125,
+          "height": 40,
+          "client": 70,
+          "scroll": 70,
+          "before": "none"
+        },
+        {
+          "selector": "#new-run",
+          "left": 1252.8125,
+          "right": 1354,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 101.1875,
+          "height": 40,
+          "client": 99,
+          "scroll": 99,
+          "before": "none"
+        }
+      ],
+      "riderFont": 11
+    },
+    "viewPanel": {
+      "x": 793.453125,
+      "y": 55.5,
+      "width": 280,
+      "height": 334
+    },
+    "pageErrors": []
+  },
+  {
+    "viewport": "390x844",
+    "passed": true,
+    "geometry": {
+      "viewport": 390,
+      "document": 390,
+      "header": {
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "bottom": 103,
+        "width": 390,
+        "height": 103
+      },
+      "map": {
+        "left": 0,
+        "right": 390,
+        "top": 249,
+        "bottom": 769,
+        "width": 390,
+        "height": 520
+      },
+      "riders": {
+        "left": 0,
+        "right": 390,
+        "top": 769,
+        "bottom": 979,
+        "width": 390,
+        "height": 210
+      },
+      "actions": [
+        {
+          "selector": "#sound-toggle",
+          "left": 102.890625,
+          "right": 179.125,
+          "top": 56,
+          "bottom": 96,
+          "width": 76.234375,
+          "height": 40,
+          "client": 74,
+          "scroll": 74,
+          "before": "none"
+        },
+        {
+          "selector": "#help-toggle",
+          "left": 205.078125,
+          "right": 265.09375,
+          "top": 56,
+          "bottom": 96,
+          "width": 60.015625,
+          "height": 40,
+          "client": 58,
+          "scroll": 58,
+          "before": "none"
+        },
+        {
+          "selector": "#new-run",
+          "left": 291.046875,
+          "right": 377.96875,
+          "top": 56,
+          "bottom": 96,
+          "width": 86.921875,
+          "height": 40,
+          "client": 85,
+          "scroll": 85,
+          "before": "none"
+        }
+      ],
+      "riderFont": 11
+    },
+    "viewPanel": {
+      "x": 12,
+      "y": 104,
+      "width": 280,
+      "height": 334
+    },
+    "pageErrors": []
+  },
+  {
+    "viewport": "320x740",
+    "passed": true,
+    "geometry": {
+      "viewport": 320,
+      "document": 320,
+      "header": {
+        "left": 0,
+        "right": 320,
+        "top": 0,
+        "bottom": 103,
+        "width": 320,
+        "height": 103
+      },
+      "map": {
+        "left": 0,
+        "right": 320,
+        "top": 249,
+        "bottom": 769,
+        "width": 320,
+        "height": 520
+      },
+      "riders": {
+        "left": 0,
+        "right": 320,
+        "top": 769,
+        "bottom": 979,
+        "width": 320,
+        "height": 210
+      },
+      "actions": [
+        {
+          "selector": "#sound-toggle",
+          "left": 81.9375,
+          "right": 155.71875,
+          "top": 56,
+          "bottom": 96,
+          "width": 73.78125,
+          "height": 40,
+          "client": 72,
+          "scroll": 72,
+          "before": "none"
+        },
+        {
+          "selector": "#help-toggle",
+          "left": 160.71875,
+          "right": 218.96875,
+          "top": 56,
+          "bottom": 96,
+          "width": 58.25,
+          "height": 40,
+          "client": 56,
+          "scroll": 56,
+          "before": "none"
+        },
+        {
+          "selector": "#new-run",
+          "left": 223.96875,
+          "right": 308,
+          "top": 56,
+          "bottom": 96,
+          "width": 84.03125,
+          "height": 40,
+          "client": 82,
+          "scroll": 82,
+          "before": "none"
+        }
+      ],
+      "riderFont": 11
+    },
+    "viewPanel": {
+      "x": 12,
+      "y": 104,
+      "width": 280,
+      "height": 334
+    },
+    "pageErrors": []
+  },
+  {
+    "viewport": "844x420",
+    "passed": true,
+    "geometry": {
+      "viewport": 844,
+      "document": 844,
+      "header": {
+        "left": 0,
+        "right": 844,
+        "top": 0,
+        "bottom": 56,
+        "width": 844,
+        "height": 56
+      },
+      "map": {
+        "left": 214,
+        "right": 652,
+        "top": 56,
+        "bottom": 420,
+        "width": 438,
+        "height": 364
+      },
+      "riders": {
+        "left": 652,
+        "right": 844,
+        "top": 56,
+        "bottom": 420,
+        "width": 192,
+        "height": 364
+      },
+      "actions": [
+        {
+          "selector": "#sound-toggle",
+          "left": 575.453125,
+          "right": 658.984375,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 83.53125,
+          "height": 40,
+          "client": 82,
+          "scroll": 82,
+          "before": "none"
+        },
+        {
+          "selector": "#help-toggle",
+          "left": 664.984375,
+          "right": 730.8125,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 65.828125,
+          "height": 40,
+          "client": 64,
+          "scroll": 64,
+          "before": "none"
+        },
+        {
+          "selector": "#new-run",
+          "left": 736.8125,
+          "right": 832,
+          "top": 7.5,
+          "bottom": 47.5,
+          "width": 95.1875,
+          "height": 40,
+          "client": 93,
+          "scroll": 93,
+          "before": "none"
+        }
+      ],
+      "riderFont": 11
+    },
+    "viewPanel": {
+      "x": 289.453125,
+      "y": 55.5,
+      "width": 280,
+      "height": 260
+    },
+    "pageErrors": []
+  }
+]

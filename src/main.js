@@ -224,7 +224,8 @@ $('#coach-action').addEventListener('click',()=>{
     if(!coach.followNext(game,id)){renderUI();(action.hidden?$('#coach-dismiss'):action).focus();return;}
     game.selectedDeliveryId=id;
     renderUI();
-    $('#inspect-broadcasts [data-broadcast="open"]').focus();
+    const open=$('#inspect-broadcasts [data-broadcast="open"]');
+    (open.disabled?$('#inspect-close'):open).focus();
     return;
   }
   if(id)game.selectedDeliveryId=id;

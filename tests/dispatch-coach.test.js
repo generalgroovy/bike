@@ -74,20 +74,23 @@ test('next-job offer excludes claimed, expired and already called work and rejec
  assert.equal(coach.observe(game).next,undefined);
 });
 
-test('Show next job opens the inspector without changing running or deliberate pause state',()=>{
+test('Show next job preserves pause and focuses an enabled inspector control even when radio is full',()=>{
  const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  const handler=source.slice(source.indexOf("$('#coach-action').addEventListener"),source.indexOf("$('#coach-dismiss').addEventListener"));
- for(const paused of[false,true]){
+ for(const paused of[false,true])for(const full of[false,true]){
   const game=new Game({seed:'NEXT-UI'}),coach=new DispatchCoach(),[done,next]=game.deliveries;
   coach.deliveryId=done.id;done.status='completed';game.paused=paused;
+  if(full){game.radioSlots=2;game.setChannel(game.deliveries[2].id,'priority');}
+  const radio=game.radioUsed();
   const nodes=new Map();
   const $=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{},hidden:false,addEventListener(_event,fn){this.click=fn;},focus(){this.focused=true;}});return nodes.get(id);};
   $('#coach-action').dataset={delivery:next.id,next:'true'};
+  $('#inspect-broadcasts [data-broadcast="open"]').disabled=full;
   vm.runInNewContext(handler,{$,game,coach,coachPaused:false,hideTip(){},renderUI(){}});
   $('#coach-action').click();
   assert.equal(game.selectedDeliveryId,next.id);assert.equal(game.paused,paused);assert.equal(game.elapsed,0);
-  assert.equal(game.radioUsed(),0);assert.equal(game.deliveryById(next.id).called,false);
-  assert.equal($('#inspect-broadcasts [data-broadcast="open"]').focused,true);
+  assert.equal(game.radioUsed(),radio);assert.equal(game.deliveryById(next.id).called,false);
+  assert.equal($(full?'#inspect-close':'#inspect-broadcasts [data-broadcast="open"]').focused,true);
   next.status='claimed';game.selectedDeliveryId=null;$('#coach-action').click();
   assert.equal(game.selectedDeliveryId,null);assert.equal(game.paused,paused);
   assert.equal($('#coach-action').focused,true);

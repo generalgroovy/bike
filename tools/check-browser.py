@@ -97,9 +97,9 @@ try:
                     # must not cover its text, close button or broadcast choices.
                     coach = page.locator("#dispatch-coach")
                     expect(coach).to_be_visible()
+                    for selector in [".map-context", ".kinetic-hud", ".notice"]:
+                        expect(page.locator(selector)).not_to_be_visible()
                     if width <= 700:
-                        for selector in [".map-context", ".kinetic-hud", ".notice"]:
-                            expect(page.locator(selector)).not_to_be_visible()
                         queue = page.locator(".task-rail").bounding_box()
                         assert queue and queue["height"] <= 175, queue
                     page.get_by_role("button", name="Plan first dispatch", exact=True).click()

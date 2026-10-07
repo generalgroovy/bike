@@ -20,3 +20,17 @@ jobs:
           node-version: 24
       - name: Test
         run: npm test
+      - name: Install browser check tooling
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Check composed interface in Chromium
+        run: python tools/check-browser.py
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendit-browser-evidence
+          path: reports/browser/
+          retention-days: 7
+          if-no-files-found: ignore

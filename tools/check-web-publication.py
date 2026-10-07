@@ -60,6 +60,7 @@ try:
     Handler.fail_file=pack['files'][0]['path']
     menu();page.locator('#web-offline').click()
     expect(page.locator('#web-offline-status')).to_contain_text('Could not save',timeout=30000)
+    expect(page.locator('#web-offline')).to_contain_text(f"{(pack['bytes']+999999)//1000000} MB")
     assert game('JSON.stringify(g.exportRun())')==before
     assert not page.evaluate("async()=>{for(const n of await caches.keys()){if(n.startsWith('send-it-berlin-offline-')){const c=await caches.open(n);if((await c.keys()).some(r=>r.url.endsWith('__offline_ready__')))return true;}}return false;}")
     Handler.fail_file=None

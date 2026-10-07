@@ -21,15 +21,16 @@ if (menu) {
   status.setAttribute('role', 'status');
   const meta = menu.querySelector('.session-meta');
   menu.insertBefore(fullscreen, meta); menu.insertBefore(download, meta); menu.insertBefore(status, meta);
-  let registration, downloading = false, ownsDownload = false, commandVersion = 0;
+  let registration, downloading = false, ownsDownload = false, commandVersion = 0, packBytes = 0;
   const show = result => {
+    if (result.bytes > 0) packBytes = result.bytes;
     if (result.type === 'progress') {
       status.textContent = `Saving Berlin offline · ${result.done} / ${result.total} files`;
       return;
     }
     downloading = result.busy === true;
     download.disabled = result.current === true && !downloading;
-    download.textContent = downloading ? 'Cancel offline download' : result.current ? 'Available offline' : result.ready ? 'Update offline copy' : `Download offline · ${Math.ceil(result.bytes / 1e6)} MB`;
+    download.textContent = downloading ? 'Cancel offline download' : result.current ? 'Available offline' : result.ready ? 'Update offline copy' : packBytes ? `Download offline · ${Math.ceil(packBytes / 1e6)} MB` : 'Retry offline download';
     status.textContent = result.error || (result.ready ? 'Ready offline. Reopen this game from your bookmark. Clearing site data removes the download and saved shifts.' : 'Optional: saves the full city, building detail and music on this device.');
   };
   async function send(type) {

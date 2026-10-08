@@ -23,6 +23,7 @@ class PlaytestAcceptance(unittest.TestCase):
     node_count = 30656
     ruleset = 'berlin-dispatch-v3'
     map_asset = 'berlin-inner-ring.json'
+    training_target = 5
     @classmethod
     def setUpClass(cls):
         REPORTS.mkdir(parents=True, exist_ok=True)
@@ -83,6 +84,22 @@ class PlaytestAcceptance(unittest.TestCase):
         if not self.page.locator('#offer-options').evaluate('(el)=>el.open'):
             self.page.locator('#offer-options summary').click()
 
+    def broadcast(self, channel='open'):
+        button = self.page.locator(f'[data-radio="{channel}"]')
+        button.click()
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        button.click()
+
+    def dispatch_snapshot(self):
+        # Include RNG and pending decisions: a preview must not secretly advance
+        # the next autonomous choice, even while the simulation is paused.
+        return self.game('''({tick:g.tick,elapsed:g.elapsed,rng:g.rng,cash:g.cash,
+            radio:g.radioUsed(),record:g.exportRun(),
+            riders:g.couriers.map(c=>({id:c.id,x:c.x,y:c.y,phase:c.phase,
+                fatigue:c.fatigue,deliveryId:c.deliveryId,deliberation:c.deliberation})),
+            jobs:g.deliveries.map(d=>({id:d.id,status:d.status,called:d.called,
+                channel:d.channel,courierId:d.courierId}))})''')
+
     def tearDown(self):
         try:
             self.page.screenshot(path=str(REPORTS / f'{self._testMethodName}.png'), full_page=True)
@@ -97,14 +114,14 @@ class PlaytestAcceptance(unittest.TestCase):
 
     def test_guided_first_delivery_uses_real_time_and_shows_courier_choice(self):
         self.start()
-        expect(self.page.locator('#coach')).to_contain_text('first call')
-        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#coach')).to_contain_text('preview a volunteer')
+        self.broadcast()
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         self.page.locator('#pause').click()
         expect(self.page.locator('.job-status')).to_contain_text('is on it', timeout=8000)
         expect(self.page.locator('#coach')).to_contain_text('chose the job')
-        expect(self.page.locator('#delivery-target')).to_have_text('1 / 5 delivered', timeout=25000)
+        expect(self.page.locator('#delivery-target')).to_have_text(f'1 / {self.training_target} delivered', timeout=45000 if self.city == 'berlin' else 25000)
         self.page.locator('#pause').click()
         self.assertTrue(self.game('g.paused'))
 
@@ -112,10 +129,14 @@ class PlaytestAcceptance(unittest.TestCase):
         self.start()
         self.page.locator('[data-radio="open"]').focus()
         self.page.keyboard.press('Space')
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        self.assertEqual(self.game('g.radioUsed()'), 0)
+        self.assertTrue(self.game('g.paused'))
+        self.page.keyboard.press('Enter')
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game('g.paused'))
         for channel, cost in [('local', 1), ('priority', 2), ('open', 1)]:
-            self.page.locator(f'[data-radio="{channel}"]').click()
+            self.broadcast(channel)
             self.assertEqual(self.game('g.radioUsed()'), cost)
             self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         fee = self.game('g.deliveries[0].reward')
@@ -126,6 +147,37 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.locator('#withdraw').click()
         expect(self.page.locator('#withdraw')).to_be_hidden()
         self.assertEqual(self.game('g.radioUsed()'), 0)
+
+    def test_broadcast_preview_is_read_only_and_second_click_confirms(self):
+        self.start()
+        before = self.dispatch_snapshot()
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        expect(self.page.locator('#forecast-rider')).not_to_be_empty()
+        expect(self.page.locator('#forecast-detail')).not_to_be_empty()
+        expect(self.page.locator('#selected-stage')).to_have_text('Not broadcast')
+        self.assertEqual(self.dispatch_snapshot(), before)
+        # Switching the preview must not accidentally confirm the previous one.
+        self.page.locator('[data-radio="priority"]').click()
+        self.assertEqual(self.dispatch_snapshot(), before)
+        self.page.locator('[data-radio="priority"]').click()
+        self.assertEqual(self.game('g.radioUsed()'), 2)
+        self.assertEqual(self.game('g.actions'), [{'tick': 0, 'type': 'radio', 'jobId': 'd0', 'channel': 'priority'}])
+        self.assertEqual(self.game('g.rng'), before['rng'])
+        self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle'&&!c.deliveryId)"))
+
+    def test_selecting_another_job_discards_the_pending_broadcast(self):
+        self.start('standard')
+        before = self.dispatch_snapshot()
+        self.page.locator('[data-radio="open"]').click()
+        self.page.locator('.job-select').nth(1).click()
+        expect(self.page.locator('#broadcast-preview')).to_be_hidden()
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        self.assertEqual(self.dispatch_snapshot(), before)
+        self.page.locator('[data-radio="open"]').click()
+        self.assertTrue(self.game('g.deliveries[1].called'))
+        self.assertFalse(self.game('g.deliveries[0].called'))
 
     def test_keyed_cards_keep_focus_during_updates(self):
         self.start('standard')
@@ -279,7 +331,7 @@ class PlaytestAcceptance(unittest.TestCase):
         expect(self.page.locator('.job-timing').first).to_contain_text('to finish')
         for index in range(3):
             self.page.locator('.job-select').nth(index).click()
-            self.page.locator('[data-radio="open"]').click()
+            self.broadcast()
         expect(self.page.locator('#radio-hint')).to_contain_text('Radio full')
         self.game('(g.spawnDelivery(),true)')
         expect(self.page.locator('.job-select')).to_have_count(4)
@@ -322,7 +374,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.locator('.job-select').click()
         self.assertEqual(self.game('JSON.stringify(g.exportRun())'),before)
         expect(self.page.locator('.job-select')).to_have_attribute('aria-pressed','true')
-        self.page.locator('[data-radio="open"]').click()
+        self.broadcast()
         expect(self.page.locator('#selected-stage')).to_have_text('On air')
         expect(self.page.locator('#radio-effect')).to_contain_text('One radio slot')
         expect(self.page.locator('#desk-state')).to_have_text('Ready')

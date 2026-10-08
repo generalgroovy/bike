@@ -1,6 +1,6 @@
 # Send It — Berlin acceptance build
 
-8 September 2026 · full-city ruleset `berlin-dispatch-v5` · original score **Spokes & Postcards**
+8 October 2026 · full-city ruleset `berlin-dispatch-v6` · original score **Spokes & Postcards**
 
 [Guided first shift](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=training&district=mitte&seed=BERLIN-1) · [Citywide desk](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=standard&district=citywide&seed=BERLIN-1) · [Map provenance](https://generalgroovy.github.io/bike/preview/berlin/map-data.html)
 
@@ -18,12 +18,31 @@ The vocabulary stays compact:
 | LOCAL | Better appeal near the pickup; less appeal farther away | One slot; nearby riders may still prefer other work |
 | PRIORITY | Adds attention to the offer | Two slots; travel and handoff times stay the same |
 | Courier bonus | Makes the offer more attractive | €5 paid immediately from desk cash; client fee is unchanged |
+| Personal invitation | Increases one rider's interest | No reservation; capacity, endurance, other calls and deadlines still matter |
 | Call client | Adds up to 20 seconds to an unclaimed job | One agreement per job; 20% fee concession, at least €3; cannot pass closing time |
 | Withdraw | Frees the radio slot(s) | Work stays on the desk; its deadline continues |
 
 The client offer displays the actual extra time, fee deduction and resulting fee before the click. It rejects repeated agreements, claimed or expired jobs and extensions with less than five useful seconds before closing. The shift review records concessions and bonuses separately. The saved action record includes the negotiation.
 
-**Who might take it — and why?** expands the selected contract's explanation. It shows all three riders' current availability, estimated finish and time buffer, with a reason for considering or passing on the offer. Channel comparisons say how many ready riders could consider it and what each channel changes. A busy or resting courier is explicitly occupied. These are current estimates, not promises or future assignments.
+**First click previews, second click broadcasts.** The preview names the likely volunteer, why the offer fits, the estimated finish and radio cost. It compares other live offers and current deliberations. If the leading rider or offer changes before confirmation, the click refreshes the forecast instead. Changing the selected job or improving the offer clears the draft. Preview, map and selection actions never appear in the saved action history. Rider estimates expands the other candidates and their reasons for passing. These are current estimates, not promises or future assignments.
+
+## Bikes, endurance and two-job routes
+
+The rider strip keeps bike type, preferences, accepted parcel types, numerical current / maximum endurance, and carried / maximum kilograms visible. Bike silhouettes replace map portraits for v6: a road frame, city basket and front cargo box. Their endurance ring, load bar and job-count badge echo the strip; tapping a rider locates them, and their job chips select every accepted parcel.
+
+| Rider | Bicycle | Capacity | Accepted work | Preference |
+| --- | --- | ---: | --- | --- |
+| Kira | Road | 5 kg | Light, delicate | Light parcels and short urgent trips |
+| Mauro | City | 12 kg | Light, delicate, heavy | Good fees and delicate parcels |
+| Brian | Cargo | 30 kg | Light, delicate, heavy | Heavy loads and familiar streets |
+
+Riding starts at 9.5 / 8.5 / 7.7 world units per game second, versus 15 / 13.5 / 14 in v5. Actual pace also reflects the street, cargo, load and fatigue. Loaded weight slows movement and increases fatigue; capacity applies to the parcels on the bike at each planned stop. A later pickup can therefore fit after an existing parcel is delivered even when both parcels could not be carried together.
+
+Riders autonomously consider one additional job while travelling or waiting. The planner compares pickup/delivery insertion orders, respects directed streets, locks handoffs already underway, and checks both deadlines, carrying capacity, endurance and a bounded detour for existing work. The maximum is two accepted jobs. New plans take effect at the end of the current street segment, without moving a rider to a different point. Failed or completed work is removed independently from the remaining itinerary.
+
+Some offers allow immediate pickup but open for delivery 55 game seconds later. The parcel remains on the bike and consumes capacity until handover; the rider can use suitable waiting time for another job. The job panel shows when its delivery window opens. These are compressed shift-time windows, rather than a simulated full-day clock.
+
+The guided shift lasts three minutes with a four-delivery target; the standard shift lasts nine minutes with a target of eighteen. Arrivals are spaced more widely and deadlines leave more travel time. The purpose is readable decisions at a slower pace; deterministic balance audits are a mechanical baseline, not evidence of human enjoyment.
 
 ## Physical work at real addresses
 
@@ -35,11 +54,11 @@ Previously, reaching an address instantly transferred the cargo. Full-city v5 ad
 | Delicate | 3 seconds | 3 seconds | 10% slower |
 | Heavy | 4 seconds | 3.5 seconds | 10% slower, more tiring |
 
-Cargo becomes picked up only after collection finishes; payment arrives only after the final handover. The route estimate, rider ETA, feasibility judgment and claim recheck include the same handling time. Busy riders remain unavailable throughout both stops. Deadlines can still expire during a handoff.
+Cargo becomes picked up only after collection finishes; payment arrives only after the final handover. The route estimate, per-job ETA, feasibility judgment and claim recheck include the same handling time and delivery-window wait. Riders may accept a compatible second job during a stop, but that handoff is finished before moving. Deadlines can still expire during a handoff.
 
 Real route distances coexist with compressed riding and shift time. These handoff durations are tuned game time, not measured Berlin service times. Existing traffic-direction, cargo, fatigue, break and roadwork systems remain part of the causal model. Future disruptions and autonomous choices can still change a forecast.
 
-V5 is explicitly versioned. The previously published v4 standard shift replays exactly, and the retained Inner Ring uses its original v3 rules. Resuming an older saved shift uses its recorded ruleset; a fresh full-city shift uses v5.
+V6 is explicitly versioned. V4 and v5 retain their former movement and decision rules, and the Inner Ring retains v3. Resuming an older saved shift uses its recorded ruleset; a fresh full-city shift uses v6. Every personal invitation is a validated replay action; a broadcast preview is presentation state only.
 
 ## Berlin, with real building detail
 
@@ -65,7 +84,7 @@ Whole-city views use the lighter map. Detailed views request nearby footprint fi
 
 ## A coherent visual and musical identity
 
-The visual language develops the existing courier portraits and colors: cream paper, dark green ink, cargo-colored route cards, restrained printed textures, cadastral outlines and a stamped delivery receipt. The receipt names the courier, contract, destination and actual fee. A focused rider draws above others sharing the same real address, with a small count badge rather than relocating markers.
+The visual language uses distinct bicycle silhouettes and established rider colors: cream paper, dark green ink, blue offer controls, ochre parcel requirements, green endurance, cadastral outlines and a stamped delivery receipt. The receipt names the courier, contract, destination and actual fee. A focused rider draws above others sharing the same real address, with a small count badge rather than relocating markers.
 
 **Spokes & Postcards** is an original synthesized composition, sharing D minor pentatonic and 102 BPM across its phrases. It uses no sampled recordings or external audio services.
 
@@ -103,7 +122,7 @@ Serve the feature checkout over HTTP:
 python -m http.server 8080
 ```
 
-Open `http://localhost:8080/`. Choose a locality or the citywide starting bases, then a guided or standard shift. OPEN broadcasts the first offer; Start shift advances time. Inspect a job to compare implications, tap a portrait to locate a rider and zoom further for footprints.
+Open `http://localhost:8080/`. Choose a locality or the citywide starting bases, then a guided or standard shift. Click All riders to preview the first offer, then Confirm to broadcast. Start shift advances time. Inspect a job to compare implications, tap a bike to locate a rider and zoom further for footprints.
 
 ```sh
 npm test

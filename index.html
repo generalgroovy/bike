@@ -64,11 +64,15 @@
           <div class="contract-top"><span id="selected-cargo"></span><strong id="selected-reward"></strong></div>
           <div class="addresses"><span>PICKUP</span><strong id="selected-pickup"></strong><span>DROP-OFF</span><strong id="selected-drop"></strong></div>
           <div class="contract-facts"><strong id="selected-time"></strong><span id="selected-distance"></span></div>
+          <div id="parcel-requirements" class="parcel-requirements"><strong id="selected-weight"></strong><span id="delivery-window"></span></div>
           <div class="region-route"><span id="selected-regions"></span><button id="find-route">Find route ↗</button></div>
           <p id="selected-state" class="explanation"></p>
-          <div id="job-actions"><p id="offer-instruction" class="action-heading">Broadcast</p><p id="radio-hint" class="radio-hint" role="status"></p>
+          <div id="job-actions"><div class="offer-heading"><p id="offer-instruction" class="action-heading">Offer</p><p id="radio-hint" class="radio-hint" role="status"></p></div>
+          <label id="rider-preference-field" class="rider-preference-field">Personal invitation<select id="preferred-rider" aria-describedby="preference-effect"><option value="">No preference</option></select></label>
+          <p id="preference-effect" class="fine-print"></p>
           <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
-          <span id="radio-effect" class="sr-only"></span>
+          <div id="broadcast-preview" class="broadcast-preview" hidden role="status"><small>LIKELY VOLUNTEER</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><small id="forecast-confirm">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
+          <span id="radio-effect" class="radio-effect"></span>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
           <details id="offer-options" class="offer-options"><summary>Improve the offer <small>Bonus or more time</small></summary><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
           <div id="client-negotiation"><button id="client-call">Call client for more time</button><small id="client-call-detail" class="muted"></small></div>
@@ -85,7 +89,7 @@
     <h2>New shift</h2>
     <label id="start-region-field" class="start-region-field">Starting locality<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select></label>
     <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
-    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 5 deliveries</option><option value="standard">9 minutes · 24 deliveries</option></select></label>
+    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 4 deliveries</option><option value="standard">9 minutes · 18 deliveries</option></select></label>
     <button id="prepare-shift" class="primary" data-start="training">Prepare shift ↗</button>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
   </dialog>
@@ -94,13 +98,14 @@
     <h2>How to play</h2>
     <details id="coach-panel" open><summary>First shift guide</summary><div id="coach" role="status"></div></details>
     <p id="city-summary" class="fine-print"></p><span id="scope-eyebrow" class="sr-only"></span>
-    <p>Select a job in the list, then use its decision panel. <strong>All riders / OPEN</strong> lets all listening couriers consider a job. <strong>LOCAL</strong> favors nearby riders. <strong>PRIORITY</strong> attracts more attention and uses two slots. None of them assigns a rider.</p>
+    <p>Select a job. <strong>Click a broadcast once to preview the likely volunteer; click it again to send.</strong> The preview uses current routes and preferences. Riders compare all live offers and may choose differently. All riders / OPEN reaches the team, Nearby / LOCAL favors a close pickup, and PRIORITY adds attention for two slots.</p>
     <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
     <p>Read each job's finish estimate before its deadline. <strong>Time to spare</strong> leaves a buffer; <strong>Tight window</strong> needs an early call; <strong>Too little time</strong> means the current estimate cannot fit. <strong>After current work</strong> depends on a busy or resting rider becoming available. These are estimates, not promises.</p>
     <p>Couriers pass on offers they cannot currently finish. PRIORITY and bonuses influence interest; they cannot extend a deadline. Withdraw a call to free radio space when needed. The job still waits on the desk and can miss its deadline.</p>
     <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
     <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
-    <p>Tap a rider portrait to locate them. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
+    <p>Tap a rider's bike to locate them. Their card always shows preferences, compatible cargo, endurance and load. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
+    <p id="logistics-help">A personal invitation increases one rider's interest without reserving the job. Light road bikes, versatile city bikes and roomy cargo bikes suit different parcels. Weight uses carrying capacity and drains endurance. A rider can choose a second job when both deadlines and their load fit, collecting along the way or after current work. A later delivery window allows collection now, but handover waits until the client opens.</p>
     <p id="refined-help">In full Berlin, riders stop to collect and hand over cargo. Finish estimates include both stops. You can renegotiate an unclaimed job once: up to 20 seconds more, for a 20% fee concession (at least €3). This reduces the job's pay and cannot push past closing time.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
     <details><summary>Map &amp; scenario details</summary><p><a id="scope-link" href="?city=inner-ring">Original Inner Ring scenario</a> · starting another scenario opens its own saved shift.</p><p id="session-identity" class="fine-print"></p></details>
@@ -130,7 +135,7 @@
     <div class="review-actions"><button id="retry" class="primary">Retry this shift</button><button id="next-shift">Try a new shift</button><button id="export-run">Download shift record</button></div>
     <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
   </dialog>
-  <nav class="mobile-desk-nav" aria-label="Jump to desk panel"><a href="#game-canvas">Map</a><a href="#work-title">Jobs <span id="mobile-job-count">1</span></a><a href="#contract-title">Selected job</a></nav>
+  <nav class="mobile-desk-nav" aria-label="Jump to desk panel"><a href="#game-canvas">Map</a><a href="#team-title">Riders</a><a href="#work-title">Jobs <span id="mobile-job-count">1</span></a><a href="#contract-title">Offer</a></nav>
   <div id="map-loading" role="status"><span>↗ SEND IT</span><strong>Opening the Berlin desk…</strong><small id="loading-detail">Loading Berlin's full street map.</small></div>
   <div id="fatal-error" role="alert" hidden><span id="fatal-message">The desk paused because something went wrong. Reload to start again.</span> <button id="reload">Reload</button></div>
   <script type="module" src="src/playtest-main.js"></script>

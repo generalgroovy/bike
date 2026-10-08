@@ -29,5 +29,6 @@ export function riderActivity(game,rider) {
   if(rider.phase==='loading')return{label:'Collecting',detail:`${job.id.toUpperCase()} · ${Math.ceil(remaining)}s to secure the cargo`};
   if(rider.phase==='handover')return{label:'Handing over',detail:`${job.id.toUpperCase()} · ${Math.ceil(remaining)}s for the handoff`};
   if(rider.phase==='break')return{label:'On a break',detail:'Radio off · recovery comes before the next job'};
+  if(rider.phase==='waiting-window')return{label:'Delivery opens later',detail:`${job.id.toUpperCase()} · handover opens in ${Math.max(0,Math.ceil(job.deliverAfter-game.elapsed))}s`};
   return null;
 }

@@ -2,6 +2,7 @@ import { DELIVERY_TYPES,RADIO_CHANNELS } from './game-data.js';
 import { drawCargoIcon,cargoVisual } from './cargo-icons.js';
 import { assessRoute } from './route-assessment.js';
 import { riderPortraitImage,portraitReady } from './rider-identity.js';
+import { bikeVisual,drawBikeIcon,riderEndurance,riderLoad } from './bike-display.js';
 import { mapZoomBand,mapZoomAtLeast } from './map-zoom.js';
 
 export function drawEntities(r){drawJobPreview(r);drawAttention(r);drawRoutes(r);drawRiderTrails(r);drawDeliveries(r);drawCouriers(r);}
@@ -83,6 +84,7 @@ function drawCouriers(r){
   // Focused portraits stay visible when riders share a real starting address.
   const riders=[...g.couriers].sort((a,b)=>Number(a.id===g.selectedCourierId||a.id===g.hoveredCourierId)-Number(b.id===g.selectedCourierId||b.id===g.hoveredCourierId));
   for(const rider of riders){
+    if(rider.bikeType){drawBikeCourier(r,rider,riders,reduced);continue;}
     const selected=g.selectedCourierId===rider.id,hovered=g.hoveredCourierId===rider.id,focused=selected||hovered,onBreak=rider.phase==='break'||!rider.radioOn,thinking=g.deliberationProgress(rider),task=g.courierTaskProgress(rider),radius=r.px(focused?15.4:12.6);
     c.save();c.translate(rider.x,rider.y);drawMilestoneCue(r,rider,radius,reduced);drawMotionCue(r,rider,radius,reduced);
     if(rider.deliberation&&!onBreak){c.beginPath();c.arc(0,0,radius+r.px(6),-Math.PI/2,-Math.PI/2+Math.PI*2*thinking);c.strokeStyle='#313535';c.lineWidth=r.px(1.8);c.stroke();if(!reduced){const pulse=.5+.5*Math.sin(performance.now()/130);c.beginPath();c.arc(0,0,radius+r.px(8+pulse*3),0,Math.PI*2);c.strokeStyle=rider.color;c.globalAlpha=.08+.08*pulse;c.stroke();c.globalAlpha=1;}}
@@ -99,4 +101,35 @@ function drawCouriers(r){
     const showName=!covered&&(focused||zoomBand==='street'||zoomBand==='detail');if(showName){c.font=`800 ${r.px(8.2)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.strokeStyle='#f4eedf';c.lineWidth=r.px(2.8);c.strokeText(rider.name,0,radius+r.px(12));c.fillStyle=onBreak?'#777a76':'#303535';c.fillText(rider.name,0,radius+r.px(12));}
     c.restore();
   }
+}
+
+function drawBikeCourier(r,rider,riders,reduced){
+  const c=r.ctx,g=r.game,zoomBand=band(r),focused=rider.id===g.selectedCourierId||rider.id===g.hoveredCourierId,onBreak=rider.phase==='break'||!rider.radioOn;
+  const radius=r.px(focused?17:15),energy=riderEndurance(rider),load=riderLoad(g,rider),visual=bikeVisual(rider),energyColor=energy.ratio<.25?'#bf4d4c':energy.ratio<.5?'#b78225':'#57865b';
+  const covered=riders.slice(riders.indexOf(rider)+1).some(other=>Math.hypot(other.x-rider.x,other.y-rider.y)<r.px(8));
+  c.save();c.translate(rider.x,rider.y);drawMilestoneCue(r,rider,radius,reduced);drawMotionCue(r,rider,radius,reduced);
+  if(focused){c.beginPath();c.arc(0,0,radius+r.px(8),0,Math.PI*2);c.fillStyle=rider.color;c.globalAlpha=.14;c.fill();c.globalAlpha=1;}
+  c.beginPath();c.arc(0,0,radius+r.px(3),0,Math.PI*2);c.strokeStyle='#d8d9ce';c.lineWidth=r.px(2.8);c.stroke();
+  c.beginPath();c.arc(0,0,radius+r.px(3),-Math.PI/2,-Math.PI/2+Math.PI*2*energy.ratio);c.strokeStyle=energyColor;c.lineWidth=r.px(2.8);c.lineCap='round';c.stroke();
+  c.beginPath();c.arc(0,0,radius,0,Math.PI*2);c.fillStyle=onBreak?'#eeeee5':'#fffaf0';c.fill();c.strokeStyle=onBreak?'#94978f':rider.color;c.lineWidth=r.px(focused?2.2:1.6);c.stroke();
+  drawHeadingChevron(r,rider,radius+r.px(2),onBreak);
+  drawBikeIcon(c,rider,0,-r.px(1),radius*1.8,onBreak?'#81857d':rider.color);
+  // A small crate meter distinguishes carried weight from work still awaiting pickup.
+  c.fillStyle='#d9d8cb';c.beginPath();c.roundRect(-radius*.56,radius*.58,radius*1.12,r.px(2.5),r.px(1));c.fill();
+  if(load.ratio>0){c.fillStyle=rider.color;c.beginPath();c.roundRect(-radius*.56,radius*.58,radius*1.12*load.ratio,r.px(2.5),r.px(1));c.fill();}
+  const badge=onBreak?'Ⅱ':load.jobs.length>0?String(load.jobs.length):rider.deliberation?'…':null;
+  if(badge){c.beginPath();c.arc(radius*.85,-radius*.7,r.px(5.2),0,Math.PI*2);c.fillStyle=onBreak?'#777d72':rider.color;c.fill();c.strokeStyle='#fffaf0';c.lineWidth=r.px(1);c.stroke();c.fillStyle='#fffaf0';c.font=`900 ${r.px(6.6)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText(badge,radius*.85,-radius*.7);}
+  const others=g.couriers.filter(other=>other.id!==rider.id&&Math.hypot(other.x-rider.x,other.y-rider.y)<r.px(8)).length;
+  if(others&&!covered){c.fillStyle='#fffaf0';c.strokeStyle=rider.color;c.lineWidth=r.px(1);c.beginPath();c.roundRect(radius*.45,radius*.55,r.px(14),r.px(10),r.px(3));c.fill();c.stroke();c.fillStyle='#303c43';c.font=`800 ${r.px(6.5)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText(`+${others}`,radius*.45+r.px(7),radius*.55+r.px(5));}
+  if(!covered&&(focused||zoomBand==='street'||zoomBand==='detail')){
+    const y=radius+r.px(10),name=focused?`${rider.name} · ${visual.short}`:rider.name;
+    c.font=`800 ${r.px(8.2)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.strokeStyle='#fffaf0';c.lineWidth=r.px(3.5);c.strokeText(name,0,y);c.fillStyle=onBreak?'#777a76':'#303535';c.fillText(name,0,y);
+    if(focused){
+      const accepted=g.riderProfile?.(rider)?.acceptedTypes??[],summary=`${energy.current}/${energy.max} energy · ${load.currentKg}/${load.capacityKg} kg`,width=r.px(Math.max(99,summary.length*3.7)),height=r.px(accepted.length?29:16),top=y+r.px(6);
+      c.fillStyle='#fffaf0';c.strokeStyle='#dedacf';c.lineWidth=r.px(.75);c.beginPath();c.roundRect(-width/2,top,width,height,r.px(4));c.fill();c.stroke();
+      c.font=`700 ${r.px(7)}px system-ui`;c.fillStyle='#414a42';c.fillText(summary,0,top+r.px(8));
+      if(accepted.length){const visible=accepted.slice(0,5),start=-(visible.length-1)*r.px(8);for(let i=0;i<visible.length;i++)drawCargoIcon(c,visible[i],start+i*r.px(16),top+r.px(21),r.px(10));}
+    }
+  }
+  c.restore();
 }

@@ -1,5 +1,6 @@
 """Run the shared desk acceptance against the full city, plus city-specific flows."""
 import json
+import re
 import unittest
 from pathlib import Path
 from playwright.sync_api import expect
@@ -7,8 +8,9 @@ import playtest_smoke as desk
 
 class CityAcceptance(desk.PlaytestAcceptance):
     city = 'berlin'
-    ruleset = 'berlin-dispatch-v5'
+    ruleset = 'berlin-dispatch-v6'
     map_asset = 'berlin-city.json.gz'
+    training_target = 4
     node_count = json.loads((Path(__file__).resolve().parents[1]/'generated/berlin-city-sources.json').read_text(encoding='utf-8'))['nodes']
 
     def test_outer_locality_starts_and_rider_location_preserve_geography(self):
@@ -39,7 +41,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
 
     def test_saved_shift_survives_reload_and_resumes_paused(self):
         self.start()
-        self.page.locator('[data-radio="open"]').click()
+        self.broadcast()
         self.page.locator('#pause').click()
         expect(self.page.locator('.job-status')).to_contain_text('is on it', timeout=8000)
         self.page.locator('#pause').click()
@@ -72,7 +74,6 @@ class CityAcceptance(desk.PlaytestAcceptance):
         before=self.game('({tick:g.tick,fee:g.deliveries[0].reward,deadline:g.deliveries[0].deadlineAt,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId])})')
         self.page.locator('#decision-details summary').click()
         expect(self.page.locator('#rider-outlook .outlook-row')).to_have_count(3)
-        expect(self.page.locator('#channel-effects')).to_contain_text('Travel time is unchanged')
         self.page.locator('.parcel-details summary').click()
         expect(self.page.locator('#selected-handling')).to_contain_text('collection')
         self.open_offer_options();self.page.locator('#client-call').click()
@@ -85,10 +86,10 @@ class CityAcceptance(desk.PlaytestAcceptance):
 
     def test_handoffs_are_visible_and_delivery_receipt_is_readable_while_muted(self):
         self.start()
-        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
-        expect(self.page.locator('.job-timing')).to_contain_text('Collecting',timeout=15000)
+        self.broadcast();self.page.locator('#pause').click()
+        expect(self.page.locator('.job-timing').first).to_contain_text('Collecting',timeout=25000)
         self.assertTrue(self.game("g.couriers.some(c=>c.phase==='loading')"))
-        expect(self.page.locator('.job-timing')).to_contain_text('Handing over',timeout=25000)
+        expect(self.page.locator('.job-timing').first).to_contain_text('Handing over',timeout=45000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=10000)
         expect(self.page.locator('#receipt-result')).to_contain_text('+€')
         expect(self.page.locator('#sound')).to_have_text('Sound off')
@@ -138,7 +139,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.wait_instance('playtest-score','DeskScore',"instance.listened[0]?.division==='1/16'")
         expect(self.page.locator('#listening-now')).to_contain_text('D0 · 1/16')
         self.page.locator('#pause').click();self.open_offer_options();self.page.locator('#client-call').click()
-        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
+        self.broadcast();self.page.locator('#pause').click()
         self.wait_instance('playtest-score','DeskScore','instance.listened[0]?.pressure<3')
         expect(self.page.locator('.job-status')).to_contain_text('is on it',timeout=8000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=25000)
@@ -153,6 +154,10 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.start('standard')
         before=self.game('JSON.stringify(g.exportRun())')
         self.page.locator('.rider-locate').first.click()
+        # Building detail follows pixels per metre; the expanded rider strip
+        # leaves less map height, so locating a rider need not cross that gate.
+        while self.camera('r.scale') < 2:
+            self.page.locator('#zoom-in').click()
         self.wait_instance('render','Renderer','instance.buildingDetails?.cache.size>0&&instance.buildingDetails.pending.size===0&&instance.buildingDetails.queue.length===0')
         self.assertGreater(self.camera('r.buildingDetails.cache.size'),0)
         self.assertLessEqual(self.camera('r.buildingDetails.cache.size'),48)
@@ -168,9 +173,54 @@ class CityAcceptance(desk.PlaytestAcceptance):
         while self.camera('r.scale')<2:self.page.locator('#zoom-in').click()
         expect(self.page.locator('#map-detail-status')).to_contain_text('Building detail unavailable',timeout=10000)
         expect(self.page.locator('#fatal-error')).to_be_hidden()
-        self.page.locator('[data-radio="open"]').click();self.page.locator('#pause').click()
-        expect(self.page.locator('#delivery-target')).to_have_text('1 / 5 delivered',timeout=30000)
+        self.broadcast();self.page.locator('#pause').click()
+        expect(self.page.locator('#delivery-target')).to_have_text('1 / 4 delivered',timeout=45000)
         self.page.locator('#pause').click()
+
+    def test_rider_bikes_preferences_endurance_and_capacity_are_visible(self):
+        self.start()
+        expect(self.page.locator('#team-list svg.bike-icon')).to_have_count(3)
+        expect(self.page.locator('#team-list .rider-preferences')).to_have_count(3)
+        for width in [1280, 390, 320]:
+            with self.subTest(width=width):
+                self.page.set_viewport_size({'width': width, 'height': 844})
+                self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
+                for index in range(3):
+                    rider = self.page.locator('#team-list .rider').nth(index)
+                    expect(rider.locator('.rider-preferences')).to_be_visible()
+                    preference = self.game(f'g.riderProfile(g.couriers[{index}]).preferences')
+                    self.assertTrue(preference)
+                    expect(rider.locator('.rider-preferences')).to_have_text(preference)
+                    expect(rider.locator('.rider-endurance')).to_be_visible()
+                    expect(rider.locator('.rider-endurance')).to_contain_text(re.compile(r'\d+\s*/\s*\d+'))
+                    expect(rider.locator('.rider-capacity')).to_be_visible()
+                    expect(rider.locator('.rider-capacity')).to_contain_text(re.compile(r'\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?\s*kg'))
+                    expect(rider.locator('.rider-accepts')).to_be_visible()
+        self.assertTrue(self.game('g.paused'))
+
+    def test_rider_preference_influences_offer_without_assigning_or_moving(self):
+        self.start()
+        before = self.dispatch_snapshot()
+        expect(self.page.locator('#preferred-rider')).to_be_visible()
+        self.page.locator('#preferred-rider').select_option('c1')
+        after = self.dispatch_snapshot()
+        self.assertEqual(after['riders'], before['riders'])
+        self.assertEqual(after['tick'], before['tick'])
+        self.assertEqual(after['rng'], before['rng'])
+        self.assertEqual(after['cash'], before['cash'])
+        self.assertEqual(after['radio'], 0)
+        self.assertEqual(self.game('g.actions.at(-1).type'), 'prefer')
+        self.assertEqual(self.game('g.deliveries[0].preferredRiderId'), 'c1')
+        self.assertIsNone(self.game('g.deliveries[0].courierId'))
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        expect(self.page.locator('#forecast-detail')).not_to_be_empty()
+        self.assertEqual(self.dispatch_snapshot(), after)
+        self.page.locator('[data-radio="open"]').click()
+        self.assertEqual(self.game('g.actions.at(-1).type'), 'radio')
+        self.assertEqual(self.game('g.radioUsed()'), 1)
+        self.assertIsNone(self.game('g.deliveries[0].courierId'))
+        self.assertTrue(self.game('g.paused'))
 
 if __name__ == '__main__':
     desk.REPORTS=desk.ROOT/'reports/browser/city'

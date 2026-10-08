@@ -46,6 +46,16 @@ test('missing forecast does not invent an impossible trip and pause schedules no
   score.enabled=false;score.update(game);assert.equal(calls.length,0);
 });
 
+test('two parcels on one rider keep independent musical deadline pressure',()=>{
+  const {score,game}=fixture({count:2,remaining:100});
+  const rider={id:'c0',name:'Kira',phase:'waiting-window'};
+  const logistics={...game,logistics:true,couriers:[rider],courierById:()=>rider,
+    jobETA:(_c,d)=>d.id==='d0'?5:98,courierETA:()=>98};
+  score.update(logistics);
+  assert.equal(score.listened.find(task=>task.id==='d0').division,'1/2');
+  assert.equal(score.listened.find(task=>task.id==='d1').division,'1/16');
+});
+
 test('completion and failure stop their task and resolve on the same sixteenth grid',()=>{
   for(const name of ['complete','fail']){
     const {score,calls}=fixture();score.ctx.currentTime=.237;const stopped=[];score.stopTask=id=>stopped.push(id);

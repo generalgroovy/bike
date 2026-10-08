@@ -4,11 +4,12 @@ import { RIDER_SYSTEM } from './game-riders.js';
 import { installGeographicMotion } from './game-geographic-motion.js';
 import { CityAddressIndex } from './city-address-index.js';
 import { installPlaytestRealism } from './playtest-realism.js';
+import { installPlaytestLogistics } from './playtest-logistics.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
 export const GEOGRAPHIC_RULESET = 'berlin-dispatch-v3';
-export const FULL_CITY_RULESET = 'berlin-dispatch-v5';
-export const FULL_CITY_RULESETS = Object.freeze(['berlin-dispatch-v4', FULL_CITY_RULESET]);
+export const FULL_CITY_RULESET = 'berlin-dispatch-v6';
+export const FULL_CITY_RULESETS = Object.freeze(['berlin-dispatch-v4', 'berlin-dispatch-v5', FULL_CITY_RULESET]);
 export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET, ...FULL_CITY_RULESETS]);
 export const PLAYTEST_CITY = 'berlin-curated-v12';
 export const FIXED_STEP = 1 / 60;
@@ -38,7 +39,8 @@ export class BerlinPlaytest extends Game {
     this.fullCity = this.cityData?.metadata.scope === 'full-city';
     this.ruleset = ruleset ?? (this.fullCity ? FULL_CITY_RULESET : this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
     if (!(this.fullCity ? FULL_CITY_RULESETS : this.cityData ? ['berlin-dispatch-v2',GEOGRAPHIC_RULESET] : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
-    this.refined = this.ruleset === FULL_CITY_RULESET;
+    this.refined = ['berlin-dispatch-v5', FULL_CITY_RULESET].includes(this.ruleset);
+    this.logistics = this.ruleset === FULL_CITY_RULESET;
     this.feasibleOffers = [GEOGRAPHIC_RULESET,...FULL_CITY_RULESETS].includes(this.ruleset);
     if (this.fullCity) {
       this.startRegion = mode === 'training' && (!startRegion || startRegion === 'citywide') ? 'mitte' : startRegion ?? 'citywide';
@@ -52,7 +54,7 @@ export class BerlinPlaytest extends Game {
       const depot=this.nodeById(this.depotNodeId),landmark=this.landmarks.find(l=>l.id==='checkpoint');
       Object.assign(landmark,{addressNodeId:depot.id,x:depot.x,y:depot.y});
     }
-    this.config = SHIFT_MODES[mode];
+    this.config = this.logistics ? { ...SHIFT_MODES[mode], target: mode === 'training' ? 4 : 18 } : SHIFT_MODES[mode];
     this.tick = 0;
     this.actions = [];
     this.outcome = null;
@@ -443,6 +445,7 @@ export class BerlinPlaytest extends Game {
 
 installGeographicMotion(BerlinPlaytest);
 installPlaytestRealism(BerlinPlaytest);
+installPlaytestLogistics(BerlinPlaytest);
 
 export function replayRun(record, {city}={}) {
   const rulesets = city?GEOGRAPHIC_RULESETS:[PLAYTEST_RULESET], cityId = city?.metadata.id??PLAYTEST_CITY;

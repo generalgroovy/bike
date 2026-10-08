@@ -25,6 +25,7 @@ export function eventPhrase(name,{rider='Kira',cargo='document',success=true}={}
   const voice=RIDER_PHRASES[rider]??RIDER_PHRASES.Kira;
   const signature=voice.notes.map((n,i)=>note(n,voice.beats[i],voice.instrument,.25,.11,voice.pan));
   if(name==='rider'||name==='claim')return signature;
+  if(name==='prefer')return signature.slice(0,2).map(n=>({...n,volume:.055}));
   if(name==='pickup')return[...signature.slice(0,1),note(voice.notes[1],.5,voice.instrument,.18,.08,voice.pan)];
   if(name==='pickup-arrival')return[note(voice.notes[0],0,'pluck',.07,.08,voice.pan),note(voice.notes[0],.25,'pluck',.07,.05,voice.pan)];
   if(name==='dropoff-arrival')return[note(voice.notes[1],0,'reed',.7,.07,voice.pan)];
@@ -113,7 +114,7 @@ export class DeskScore {
     const ctx=this.ensure();if(!ctx)return;
     const active=game.activeDeliveries(),ids=new Set(active.map(d=>d.id));for(const id of this.taskVoices.keys())if(!ids.has(id))this.stopTask(id);
     const ranked=active.map(d=>{const rider=game.courierById(d.courierId),remaining=d.deadlineAt-game.elapsed;
-      const estimate=feasibility.get(d.id),finishIn=rider?game.courierETA(rider):estimate?estimate.best?.finishIn??Infinity:0;
+      const estimate=feasibility.get(d.id),finishIn=rider?(game.logistics?game.jobETA(rider,d):game.courierETA(rider)):estimate?estimate.best?.finishIn??Infinity:0;
       return{d,rider,...taskRhythm(remaining,d.deadlineAt-d.createdAt,finishIn)};
     }).sort((a,b)=>b.pressure-a.pressure||a.slack-b.slack||a.d.id.localeCompare(b.d.id)).slice(0,3);
     this.listened=this.rhythms?ranked.map(t=>({id:t.d.id,division:t.division,pressure:t.pressure,slack:t.slack})):[];

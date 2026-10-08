@@ -9,7 +9,8 @@ import {CityAddressIndex} from '../src/city-address-index.js';
 import {decisionBrief} from '../src/playtest-decisions.js';
 const raw=readFileSync(new URL('../generated/berlin-city.json',import.meta.url));
 const pack=JSON.parse(raw),city=decodeInnerRing(pack);
-const make=options=>new BerlinPlaytest({city,seed:'BERLIN-1',...options});
+// Retained v5 acceptance is also the regression gate for existing saved shifts.
+const make=options=>new BerlinPlaytest({city,seed:'BERLIN-1',ruleset:'berlin-dispatch-v5',...options});
 
 test('the full city pack preserves all 97 localities and its compressed payload has identical data',()=>{
   const manifest=JSON.parse(readFileSync(new URL('../generated/berlin-city-sources.json',import.meta.url)));

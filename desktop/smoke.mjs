@@ -22,6 +22,16 @@ async function launch(){
   await expect(page.locator('#intro')).toBeVisible({timeout:60000});
 }
 const state=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId]),jobs:g.deliveries.map(d=>[d.id,d.status])};});
+const dispatchState=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,rng:g.rng,cash:g.cash,radio:g.radioUsed(),record:g.exportRun(),riders:g.couriers.map(c=>({x:c.x,y:c.y,phase:c.phase,fatigue:c.fatigue,deliveryId:c.deliveryId,deliberation:c.deliberation})),jobs:g.deliveries.map(d=>({id:d.id,status:d.status,called:d.called,channel:d.channel,courierId:d.courierId}))};});
+async function broadcast(channel='open'){
+  const button=page.locator(`[data-radio="${channel}"]`),before=await dispatchState();
+  await button.click();
+  await expect(page.locator('#broadcast-preview')).toBeVisible();
+  await expect(page.locator('#forecast-rider')).not.toBeEmpty();
+  await expect(page.locator('#forecast-detail')).not.toBeEmpty();
+  assert.deepEqual(await dispatchState(),before,'first click must only preview the broadcast');
+  await button.click();
+}
 try{
   await launch();
   result.runtime=await app.evaluate(({app})=>({version:app.getVersion(),packaged:app.isPackaged,electron:process.versions.electron}));
@@ -33,14 +43,25 @@ try{
   await page.context().setOffline(true);
   await page.locator('#start-region').selectOption('spandau');await page.locator('[data-start=training]').click();
   const info=await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {nodes:g.nodes.length,city:g.cityData.metadata.id,rules:g.ruleset,start:g.startRegion};});
-  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v5',start:'spandau'});
+  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v6',start:'spandau'});
   assert.equal(await page.locator('#start-region option').count(),98);
   result.checks.push('complete Berlin and all locality choices load with networking offline');
   await page.locator('.rider-locate').first().click();
+  while(await page.evaluate(async()=>{const {Renderer}=await import('/src/render.js');return Renderer.lastInstance.scale<2;}))await page.locator('#zoom-in').click();
   await expect.poll(()=>page.evaluate(async()=>{const {Renderer}=await import('/src/render.js');const b=Renderer.lastInstance.buildingDetails;return !!(b?.cache.size>0&&!b.pending.size&&!b.queue.length);}),{timeout:30000}).toBe(true);
   await expect(page.locator('#map-detail-status')).toContainText('Official building footprints');
   await page.screenshot({path:path.join(folder,'berlin.png')});
-  result.checks.push('building detail and courier portraits render from bundled assets while offline');
+  await expect(page.locator('#team-list svg.bike-icon')).toHaveCount(3);
+  for(let i=0;i<3;i++){
+    const rider=page.locator('#team-list .rider').nth(i);
+    await expect(rider.locator('.rider-preferences')).toBeVisible();
+    const preference=await page.evaluate(async index=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return g.riderProfile(g.couriers[index]).preferences;},i);
+    assert.ok(preference);
+    await expect(rider.locator('.rider-preferences')).toHaveText(preference);
+    await expect(rider.locator('.rider-endurance')).toContainText(/\d+\s*\/\s*\d+/);
+    await expect(rider.locator('.rider-capacity')).toContainText(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*kg/);
+  }
+  result.checks.push('building detail, distinct bikes, rider preferences and current/max resources render offline');
   const before=await state();
   await page.locator('#desk-menu > summary').click();
   await page.locator('#open-sound-studio').click();
@@ -53,9 +74,16 @@ try{
   result.checks.push('three rider themes, four task rhythms and exact mute work without changing simulation');
   await page.locator('.job-select').click();await page.locator('#offer-options summary').click();await page.locator('#client-call').click();
   await expect(page.locator('#client-call-detail')).toContainText('fee reduced');
-  await page.locator('[data-radio=open]').click();await page.locator('#pause').click();
+  const preferenceBefore=await state();
+  await page.locator('#preferred-rider').selectOption('c0');
+  assert.deepEqual(await state(),preferenceBefore,'a preferred rider remains an invitation, not an assignment');
+  assert.equal(await page.evaluate(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.actions.at(-1).type;}),'prefer');
+  await broadcast();
+  assert.equal(await page.evaluate(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.deliveries[0].courierId;}),null);
+  result.checks.push('rider preference and read-only first-click forecast preserve autonomy until the clock runs');
+  await page.locator('#pause').click();
   await expect(page.locator('.job-status')).toContainText('is on it',{timeout:12000});
-  await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:30000});
+  await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:45000});
   await page.locator('#pause').click();
   result.checks.push('client tradeoff, autonomous acceptance and real-time collection/delivery complete offline');
   const snapshot=await state();await page.screenshot({path:path.join(folder,'delivery.png')});
@@ -83,7 +111,7 @@ try{
   const downloadPath=path.join(profile,'shift-export.json');
   await app.evaluate(({session},dest)=>session.defaultSession.once('will-download',(_e,item)=>item.setSavePath(dest)),downloadPath);
   await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const a=document.createElement('a');a.download='shift-export.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(Game.lastInstance.exportRun())],{type:'application/json'}));a.click();});
-  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v5');
+  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v6');
   result.checks.push('a shift record exports to a normal local file');
   assert.deepEqual(result.pageErrors,[]);assert.deepEqual(result.failedResources,[]);assert.deepEqual(result.externalRequests,[]);
   result.checks.push('no game requests to external services, missing resources or renderer errors');

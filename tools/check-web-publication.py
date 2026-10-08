@@ -112,7 +112,13 @@ try:
     page.locator('#pause').click()
     checks.append('Offline reload loads Berlin, plays audio and completes an autonomous delivery')
     page.locator('#region-view').select_option('spandau')
-    for _ in range(6):page.locator('#zoom-in').click()
+    # The rider strip changes the map height, so a fixed click count is not a
+    # portable way to reach the actual building-detail scale across platforms.
+    for _ in range(20):
+        scale=page.evaluate("async()=>{const {Renderer}=await import(new URL('src/render.js',location.href));return Renderer.lastInstance.scale;}")
+        if scale>=2:break
+        page.locator('#zoom-in').click()
+    assert scale>=2
     expect(page.locator('#map-detail-status')).to_contain_text('Official building footprints',timeout=30000)
     checks.append('Previously unvisited Spandau building detail loads offline')
     saved=game('JSON.stringify({tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed})')

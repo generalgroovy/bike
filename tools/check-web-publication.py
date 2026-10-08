@@ -102,8 +102,13 @@ try:
     page.locator('#prepare-shift').click()
     page.locator('#sound').click()
     assert page.evaluate("async()=>{const {DeskScore}=await import(new URL('src/playtest-score.js',location.href));return DeskScore.lastInstance.ctx.state;}")=='running'
-    page.locator('[data-radio=open]').click();page.locator('#pause').click()
-    expect(page.locator('#delivery-target')).to_have_text('1 / 5 delivered',timeout=45000)
+    page.locator('[data-radio=open]').click()
+    if page.locator('#broadcast-preview').count():
+        expect(page.locator('#broadcast-preview')).to_be_visible()
+        assert game('g.deliveries[0].called') is False
+        page.locator('[data-radio=open]').click()
+    page.locator('#pause').click()
+    expect(page.locator('#delivery-target')).to_have_text(f"1 / {game('g.config.target')} delivered",timeout=45000)
     page.locator('#pause').click()
     checks.append('Offline reload loads Berlin, plays audio and completes an autonomous delivery')
     page.locator('#region-view').select_option('spandau')

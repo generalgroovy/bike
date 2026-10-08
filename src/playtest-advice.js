@@ -1,5 +1,9 @@
 /** Read-only language for the desk. An estimate never promises a volunteer. */
 export function timingAdvice(feasibility) {
+  if (feasibility?.remaining < 1.5)
+    return { state: 'risk', label: 'Too little time', detail: 'Priority and bonuses cannot extend the deadline.' };
+  if (!feasibility?.best && feasibility?.label === 'NO FIT')
+    return { state: 'risk', label: 'No rider fits', detail: 'Check bike capacity, endurance and the delivery window in Rider estimates. More attention cannot make an impossible route fit.' };
   if (!feasibility?.best || !Number.isFinite(feasibility.best.finishIn))
     return { state: 'risk', label: 'No finish estimate', detail: 'No courier can currently reach this job within the estimate window.' };
   const { best, margin } = feasibility;

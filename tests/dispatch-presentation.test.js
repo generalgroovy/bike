@@ -2,6 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { jobState } from '../src/desk-state.js';
 import { previewKey } from '../src/broadcast-preview.js';
+import { timingAdvice } from '../src/playtest-advice.js';
+
+test('no feasible candidate still explains an expired window instead of a missing estimate',()=>{
+  const impossible={best:null,label:'NO FIT',remaining:.5};
+  assert.equal(timingAdvice(impossible).label,'Too little time');
+  assert.match(timingAdvice(impossible).detail,/cannot extend the deadline/);
+  assert.equal(timingAdvice({...impossible,remaining:80}).label,'No rider fits');
+  assert.match(timingAdvice({...impossible,remaining:80}).detail,/capacity, endurance/);
+});
 
 test('queued and carried parcels do not inherit another job’s current handoff',()=>{
   const rider={id:'c0',name:'Kira',deliveryId:'d0',phase:'handover'};

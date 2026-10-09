@@ -225,7 +225,7 @@ export function conversationFor(game, event) {
       Kira: ["That's enough waiting. Signing off for today.", 'No run, no reason to hang around. Done for the day, desk.'],
       Mauro: ['I have earned a very detailed knowledge of this pavement. Signing off for today.', "Calling it a day. This much waiting isn't a working arrangement."],
       Brian: ["I've waited long enough, desk. Heading off for the day. Take care.", "I'm signing off for today. I needed a bit more work to make it worthwhile."]
-    }, ['I am finished for today after waiting too long.'])), desk(`${riderName} has signed off. The remaining riders will cover the rest of this shift.`)];
+    }, ['I am finished for today after waiting too long.'])), desk(`${riderName} has signed off for today. Their bike is unavailable until the next shift.`)];
     tone = 'departed';
   } else if (action === 'break') {
     if (!c) return null;

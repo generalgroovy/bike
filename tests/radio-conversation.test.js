@@ -208,7 +208,7 @@ test('rider wellbeing warnings name the affected rider and explain remaining tim
     assert.match(words(warning), /taking it is your call/);
     assert.ok(warning.priority > restless.priority);
     assert.ok(left.priority > warning.priority);
-    assert.match(words(left), /signed off.*remaining riders.*rest of this shift/i);
+    assert.match(words(left), /signed off for today.*unavailable until the next shift/i);
     assert.doesNotMatch(words(left), /short breather|back when|recover/);
     const missed = conversationFor(game, event('rider-restless', { rider: name, deliveryId: null, reason: 'missed-job' }));
     assert.match(words(missed), /miss|wasted trip|hard ending/i);

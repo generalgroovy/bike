@@ -21,7 +21,7 @@ async function launch(){
   page.on('response',r=>{if(r.status()>=400)result.failedResources.push(r.url());});
   await expect(page.locator('#intro')).toBeVisible({timeout:60000});
 }
-const state=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId]),jobs:g.deliveries.map(d=>[d.id,d.status])};});
+const state=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId]),jobs:g.deliveries.map(d=>[d.id,d.status]),wellbeing:g.couriers.map(c=>({state:c.wellbeing,offDuty:c.offDuty,view:g.riderWellbeing(c)}))};});
 const dispatchState=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,rng:g.rng,cash:g.cash,radio:g.radioUsed(),record:g.exportRun(),riders:g.couriers.map(c=>({x:c.x,y:c.y,phase:c.phase,fatigue:c.fatigue,deliveryId:c.deliveryId,deliberation:c.deliberation})),jobs:g.deliveries.map(d=>({id:d.id,status:d.status,called:d.called,channel:d.channel,courierId:d.courierId}))};});
 async function broadcast(channel='open'){
   const button=page.locator(`[data-radio="${channel}"]`),before=await dispatchState();
@@ -51,7 +51,7 @@ try{
   await page.context().setOffline(true);
   await page.locator('#start-region').selectOption('spandau');await page.locator('[data-start=training]').click();
   const info=await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {nodes:g.nodes.length,city:g.cityData.metadata.id,rules:g.ruleset,start:g.startRegion};});
-  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v7',start:'spandau'});
+  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v8',start:'spandau'});
   assert.equal(await page.locator('#start-region option').count(),98);
   result.checks.push('complete Berlin and all locality choices load with networking offline');
   await page.locator('.rider-locate').first().click();
@@ -68,8 +68,21 @@ try{
     await expect(rider.locator('.rider-preferences')).toHaveText(preference);
     await expect(rider.locator('.rider-endurance')).toContainText(/\d+\s*\/\s*\d+/);
     await expect(rider.locator('.rider-capacity')).toContainText(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*kg/);
+    const wellbeing=await page.evaluate(async index=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return g.riderWellbeing(g.couriers[index]);},i);
+    await expect(rider.locator('.rider-satisfaction')).toContainText(`${wellbeing.satisfaction} / ${wellbeing.max}`);
+    await expect(rider.locator('.rider-waiting')).toContainText('Waiting for first tour');
+    await expect(rider).toHaveAttribute('data-wellbeing',wellbeing.band);
   }
   result.checks.push('building detail, distinct bikes, rider preferences and current/max resources render offline');
+  const beforeWellbeing=await state();
+  await page.locator('.wellbeing-toggle').first().click();
+  await expect(page.locator('#rider-wellbeing-dialog')).toBeVisible();
+  await expect(page.locator('#rider-wellbeing-dialog')).toContainText('70');
+  await expect(page.locator('#rider-wellbeing-dialog')).toContainText('25');
+  await expect(page.locator('.wellbeing-detail')).not.toBeEmpty();
+  await page.locator('#close-rider-wellbeing').click();
+  assert.deepEqual(await state(),beforeWellbeing,'inspecting satisfaction ranges must not change rider state');
+  result.checks.push('rider cards show first-tour waiting, satisfaction and inspectable consequences without advancing time');
   const before=await state();
   await page.locator('#desk-menu > summary').click();
   await page.locator('#open-sound-studio').click();
@@ -94,6 +107,11 @@ try{
   await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:45000});
   await page.locator('#pause').click();
   result.checks.push('client tradeoff, autonomous acceptance and real-time collection/delivery complete offline');
+  const delivered=await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance,d=g.deliveries.find(d=>d.status==='completed'),c=g.courierById(d.courierId);return {riderId:c.id,wellbeing:g.riderWellbeing(c)};});
+  assert.ok(delivered.wellbeing.lastTourAgo>=0);
+  assert.notEqual(delivered.wellbeing.lastTourEndedAt,null);
+  await expect(page.locator(`.rider[data-rider=${delivered.riderId}] .rider-waiting`)).toContainText('Last tour');
+  result.checks.push('a completed tour updates the actual last-tour timer and satisfaction in the offline app');
   await page.locator('#desk-menu > summary').click();await page.locator('#open-radio-log').click();
   await expect(page.locator('#radio-history [data-action=complete] [data-speaker=rider]')).toHaveCount(1);
   await expect(page.locator('#radio-history [data-action=call]')).toHaveCount(1);
@@ -124,7 +142,7 @@ try{
   const downloadPath=path.join(profile,'shift-export.json');
   await app.evaluate(({session},dest)=>session.defaultSession.once('will-download',(_e,item)=>item.setSavePath(dest)),downloadPath);
   await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const a=document.createElement('a');a.download='shift-export.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(Game.lastInstance.exportRun())],{type:'application/json'}));a.click();});
-  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v7');
+  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v8');
   result.checks.push('a shift record exports to a normal local file');
   assert.deepEqual(result.pageErrors,[]);assert.deepEqual(result.failedResources,[]);assert.deepEqual(result.externalRequests,[]);
   result.checks.push('no game requests to external services, missing resources or renderer errors');

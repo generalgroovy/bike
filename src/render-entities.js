@@ -122,7 +122,7 @@ function drawCouriers(r){
 
 function drawBikeCourier(r,rider,riders,reduced){
   const c=r.ctx,g=r.game,zoomBand=band(r),focused=rider.id===g.selectedCourierId||rider.id===g.hoveredCourierId,onBreak=rider.phase==='break'||!rider.radioOn;
-  const radius=r.px(focused?17:15),energy=riderEndurance(rider),load=riderLoad(g,rider),visual=bikeVisual(rider),energyColor=energy.ratio<.25?'#bf4d4c':energy.ratio<.5?'#b78225':'#57865b';
+  const radius=r.px(focused?17:15),energy=riderEndurance(rider),load=riderLoad(g,rider),visual=bikeVisual(rider),energyColor=rider.offDuty?'#999d96':energy.ratio<.25?'#bf4d4c':energy.ratio<.5?'#b78225':'#57865b';
   const covered=riders.slice(riders.indexOf(rider)+1).some(other=>Math.hypot(other.x-rider.x,other.y-rider.y)<r.px(8));
   const motion=bikeFrame(r,rider,reduced);
   c.save();c.translate(rider.x,rider.y);drawMilestoneCue(r,rider,radius,reduced);
@@ -135,15 +135,15 @@ function drawBikeCourier(r,rider,riders,reduced){
   // A small crate meter distinguishes carried weight from work still awaiting pickup.
   c.fillStyle='#d9d8cb';c.beginPath();c.roundRect(-radius*.56,radius*.58,radius*1.12,r.px(2.5),r.px(1));c.fill();
   if(load.ratio>0){c.fillStyle=rider.color;c.beginPath();c.roundRect(-radius*.56,radius*.58,radius*1.12*load.ratio,r.px(2.5),r.px(1));c.fill();}
-  const badge=onBreak?'Ⅱ':load.jobs.length>0?String(load.jobs.length):rider.deliberation?'…':null;
+  const badge=rider.offDuty?'×':onBreak?'Ⅱ':load.jobs.length>0?String(load.jobs.length):rider.deliberation?'…':null;
   if(badge){c.beginPath();c.arc(radius*.85,-radius*.7,r.px(5.2),0,Math.PI*2);c.fillStyle=onBreak?'#777d72':rider.color;c.fill();c.strokeStyle='#fffaf0';c.lineWidth=r.px(1);c.stroke();c.fillStyle='#fffaf0';c.font=`900 ${r.px(6.6)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText(badge,radius*.85,-radius*.7);}
   const others=g.couriers.filter(other=>other.id!==rider.id&&Math.hypot(other.x-rider.x,other.y-rider.y)<r.px(8)).length;
   if(others&&!covered){c.fillStyle='#fffaf0';c.strokeStyle=rider.color;c.lineWidth=r.px(1);c.beginPath();c.roundRect(radius*.45,radius*.55,r.px(14),r.px(10),r.px(3));c.fill();c.stroke();c.fillStyle='#303c43';c.font=`800 ${r.px(6.5)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillText(`+${others}`,radius*.45+r.px(7),radius*.55+r.px(5));}
   if(!covered&&(focused||zoomBand==='street'||zoomBand==='detail')){
-    const y=radius+r.px(10),name=focused?`${rider.name} · ${visual.short}`:rider.name;
+    const y=radius+r.px(10),name=rider.offDuty?`${rider.name} · off duty`:focused?`${rider.name} · ${visual.short}`:rider.name;
     c.font=`800 ${r.px(8.2)}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.strokeStyle='#fffaf0';c.lineWidth=r.px(3.5);c.strokeText(name,0,y);c.fillStyle=onBreak?'#777a76':'#303535';c.fillText(name,0,y);
     if(focused){
-      const accepted=g.riderProfile?.(rider)?.acceptedTypes??[],summary=`${energy.current}/${energy.max} energy · ${load.currentKg}/${load.capacityKg} kg`,width=r.px(Math.max(99,summary.length*3.7)),height=r.px(accepted.length?29:16),top=y+r.px(6);
+      const accepted=rider.offDuty?[]:g.riderProfile?.(rider)?.acceptedTypes??[],summary=rider.offDuty?'Returns next shift':`${energy.current}/${energy.max} energy · ${load.currentKg}/${load.capacityKg} kg`,width=r.px(Math.max(99,summary.length*3.7)),height=r.px(accepted.length?29:16),top=y+r.px(6);
       c.fillStyle='#fffaf0';c.strokeStyle='#dedacf';c.lineWidth=r.px(.75);c.beginPath();c.roundRect(-width/2,top,width,height,r.px(4));c.fill();c.stroke();
       c.font=`700 ${r.px(7)}px system-ui`;c.fillStyle='#414a42';c.fillText(summary,0,top+r.px(8));
       if(accepted.length){const visible=accepted.slice(0,5),start=-(visible.length-1)*r.px(8);for(let i=0;i<visible.length;i++)drawCargoIcon(c,visible[i],start+i*r.px(16),top+r.px(21),r.px(10));}

@@ -7,7 +7,7 @@ import { BerlinPlaytest, FIXED_STEP, replayRun } from '../src/game-berlin-playte
 import { demandCapacity } from '../src/playtest-demand.js';
 
 const city = decodeInnerRing(JSON.parse(readFileSync(new URL('../generated/berlin-city.json', import.meta.url))));
-const make = options => new BerlinPlaytest({ city, seed: 'DEMAND-TEST', ...options });
+const make = options => new BerlinPlaytest({ city, seed: 'DEMAND-TEST', ruleset: 'berlin-dispatch-v7', ...options });
 const snapshot = g => JSON.stringify({ rng: g.rng, couriers: g.couriers, deliveries: g.deliveries,
   actions: g.actions, log: g.dispatchLog, stats: g.runStats, tick: g.tick, cash: g.cash });
 

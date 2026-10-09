@@ -14,7 +14,7 @@ export function demandCapacity(game) {
       return Math.hypot(pickup.x - rider.x, pickup.y - rider.y) < 250 ||
         endpoint && Math.hypot(pickup.x - endpoint.x, pickup.y - endpoint.y) < 180;
     }).length;
-    const responsive = rider.radioOn && !['break', 'coasting'].includes(rider.phase) && rider.fatigue < .87;
+    const responsive = !(game.wellbeing && rider.offDuty) && rider.radioOn && !['break', 'coasting'].includes(rider.phase) && rider.fatigue < .87;
     const slots = responsive ? Math.max(0, 2 - jobs.length) : 0;
     return { rider, jobs, endpoint, nearby, slots, room: Math.max(0, slots - nearby) };
   });

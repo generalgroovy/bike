@@ -6,11 +6,12 @@ import { CityAddressIndex } from './city-address-index.js';
 import { installPlaytestRealism } from './playtest-realism.js';
 import { installPlaytestLogistics } from './playtest-logistics.js';
 import { installPlaytestDemand } from './playtest-demand.js';
+import { installRiderWellbeing } from './rider-wellbeing.js';
 
 export const PLAYTEST_RULESET = 'berlin-dispatch-v1';
 export const GEOGRAPHIC_RULESET = 'berlin-dispatch-v3';
-export const FULL_CITY_RULESET = 'berlin-dispatch-v7';
-export const FULL_CITY_RULESETS = Object.freeze(['berlin-dispatch-v4', 'berlin-dispatch-v5', 'berlin-dispatch-v6', FULL_CITY_RULESET]);
+export const FULL_CITY_RULESET = 'berlin-dispatch-v8';
+export const FULL_CITY_RULESETS = Object.freeze(['berlin-dispatch-v4', 'berlin-dispatch-v5', 'berlin-dispatch-v6', 'berlin-dispatch-v7', FULL_CITY_RULESET]);
 export const GEOGRAPHIC_RULESETS = Object.freeze(['berlin-dispatch-v2', GEOGRAPHIC_RULESET, ...FULL_CITY_RULESETS]);
 export const PLAYTEST_CITY = 'berlin-curated-v12';
 export const FIXED_STEP = 1 / 60;
@@ -40,9 +41,10 @@ export class BerlinPlaytest extends Game {
     this.fullCity = this.cityData?.metadata.scope === 'full-city';
     this.ruleset = ruleset ?? (this.fullCity ? FULL_CITY_RULESET : this.cityData ? GEOGRAPHIC_RULESET : PLAYTEST_RULESET);
     if (!(this.fullCity ? FULL_CITY_RULESETS : this.cityData ? ['berlin-dispatch-v2',GEOGRAPHIC_RULESET] : [PLAYTEST_RULESET]).includes(this.ruleset)) throw new Error('Unsupported ruleset');
-    this.refined = ['berlin-dispatch-v5', 'berlin-dispatch-v6', FULL_CITY_RULESET].includes(this.ruleset);
-    this.logistics = ['berlin-dispatch-v6', FULL_CITY_RULESET].includes(this.ruleset);
-    this.capacityDemand = this.ruleset === FULL_CITY_RULESET;
+    this.refined = ['berlin-dispatch-v5', 'berlin-dispatch-v6', 'berlin-dispatch-v7', FULL_CITY_RULESET].includes(this.ruleset);
+    this.logistics = ['berlin-dispatch-v6', 'berlin-dispatch-v7', FULL_CITY_RULESET].includes(this.ruleset);
+    this.capacityDemand = ['berlin-dispatch-v7', FULL_CITY_RULESET].includes(this.ruleset);
+    this.wellbeing = this.ruleset === FULL_CITY_RULESET;
     this.feasibleOffers = [GEOGRAPHIC_RULESET,...FULL_CITY_RULESETS].includes(this.ruleset);
     if (this.fullCity) {
       this.startRegion = mode === 'training' && (!startRegion || startRegion === 'citywide') ? 'mitte' : startRegion ?? 'citywide';
@@ -386,6 +388,7 @@ export class BerlinPlaytest extends Game {
       if (this.gameOver) return;
     }
     for (const c of this.couriers) {
+      if (this.wellbeing && c.offDuty) continue;
       if (c.phase === 'break') {
         c.fatigue = Math.max(0, c.fatigue - scaled * .04);
         if (this.elapsed >= c.breakUntil) this.endBreak(c);
@@ -451,6 +454,7 @@ installGeographicMotion(BerlinPlaytest);
 installPlaytestRealism(BerlinPlaytest);
 installPlaytestLogistics(BerlinPlaytest);
 installPlaytestDemand(BerlinPlaytest);
+installRiderWellbeing(BerlinPlaytest);
 
 export function replayRun(record, {city}={}) {
   const rulesets = city?GEOGRAPHIC_RULESETS:[PLAYTEST_RULESET], cityId = city?.metadata.id??PLAYTEST_CITY;

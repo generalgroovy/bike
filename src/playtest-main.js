@@ -21,8 +21,9 @@ const audio = new DeskScore();
 const radioDesk = new RadioDesk();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
-const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#radio-log-dialog', '#upgrade-dialog', '#review-dialog'];
+const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#radio-log-dialog', '#rider-wellbeing-dialog', '#upgrade-dialog', '#review-dialog'];
 let radioWasPaused=true;
+let wellbeingWasPaused=true, wellbeingRiderId=null;
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = null;
 let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
@@ -42,6 +43,8 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   $('#preference-effect').hidden=!game.logistics;
   $('#parcel-requirements').hidden=!game.logistics;
   $('#logistics-help').hidden=!game.logistics;
+  $('#wellbeing-help').hidden=!game.wellbeing;
+  wellbeingRiderId=null;
   $('#preferred-rider').replaceChildren(new Option('No preference', ''), ...game.couriers.map(c=>new Option(`${c.name} · ${bikeVisual(c).label}`,c.id)));
   $('#shift-length').options[0].textContent=`3 minutes · ${game.fullCity?6:5} deliveries`;
   $('#shift-length').options[1].textContent=`9 minutes · ${game.fullCity?26:24} deliveries`;
@@ -150,9 +153,9 @@ function renderQueue() {
   focusButton.hidden=!focus;
   if(focus){
     focusButton.dataset.tone=focus.tone;focusButton.dataset.focus=focus.id;
-    focusButton.dataset.job=focus.jobId??'';focusButton.disabled=!focus.jobId;
+    focusButton.dataset.job=focus.jobId??'';focusButton.dataset.rider=focus.riderId??'';focusButton.disabled=!focus.jobId&&!focus.riderId;
     text('#focus-title',focus.title);text('#focus-detail',focus.detail);
-    focusButton.setAttribute('aria-label',`${focus.title}. ${focus.detail}${focus.jobId?`. Inspect ${focus.jobId.toUpperCase()}`:''}`);
+    focusButton.setAttribute('aria-label',`${focus.title}. ${focus.detail}${focus.jobId?`. Inspect ${focus.jobId.toUpperCase()}`:focus.riderId?'. Inspect this rider’s patience and recovery':''}`);
   }
   $('#empty-queue').hidden = jobs.length > 0;
 }
@@ -161,7 +164,7 @@ function renderTeam() {
   for (const rider of game.couriers) {
     let card = riderCards.get(rider.id);
     if (!card) {
-      card = document.createElement('article'); card.className = 'rider';
+      card = document.createElement('article'); card.className = 'rider';card.dataset.rider=rider.id;
       const locate=document.createElement('button');locate.className='rider-locate';locate.setAttribute('aria-label',`Locate ${rider.name} on the map`);locate.title=`Locate ${rider.name}`;locate.append(rider.bikeType?createBikeIconElement(rider,{className:'bike-icon',title:bikeVisual(rider).label}):createRiderPortraitElement(rider));card.append(locate);
       locate.addEventListener('click',()=>{
         game.selectedCourierId=rider.id;
@@ -173,12 +176,14 @@ function renderTeam() {
       });
       const content = document.createElement('div');
       content.className='rider-info';
-      content.innerHTML = '<div class="rider-head"><strong></strong><span></span></div><p class="rider-preferences"></p><p class="rider-accepts"></p><div class="rider-resources"><label><span class="rider-endurance"></span><meter class="endurance-meter" min="0" max="100"></meter></label><label class="load-resource"><span class="rider-capacity"></span><meter class="load-meter" min="0" max="100"></meter></label></div><p class="rider-activity"></p><div class="rider-jobs"></div>';
+      content.innerHTML = '<div class="rider-head"><strong></strong><span></span></div><p class="rider-preferences"></p><p class="rider-accepts"></p><div class="rider-resources"><label><span class="rider-endurance"></span><meter class="endurance-meter" min="0" max="100"></meter></label><label class="load-resource"><span class="rider-capacity"></span><meter class="load-meter" min="0" max="100"></meter></label></div><div class="rider-wellbeing" hidden><button class="wellbeing-toggle" aria-haspopup="dialog"><span class="wellbeing-heading"><span class="rider-satisfaction"></span><strong class="rider-wellbeing-band"></strong></span><meter class="satisfaction-meter" min="0" max="100"></meter></button><p class="rider-waiting"></p><p class="rider-retention" hidden></p></div><p class="rider-activity"></p><div class="rider-jobs"></div>';
+      content.querySelector('.wellbeing-toggle').addEventListener('click',()=>openRiderWellbeing(rider));
       card.append(content); $('#team-list').append(card); riderCards.set(rider.id, card);
       card.style.setProperty('--courier',rider.color);
     }
     const job = game.deliveryById(rider.deliveryId);
     setWithin(card, '.rider-head strong', rider.name);
+    const wellbeing=game.wellbeing?game.riderWellbeing(rider):null;
     const activity=riderActivity(game,rider);
     card.dataset.phase=rider.phase;
     card.dataset.selected=String(game.selectedCourierId===rider.id);
@@ -196,15 +201,51 @@ function renderTeam() {
     setWithin(card, '.rider-capacity', `Load ${load.currentKg} / ${load.capacityKg} kg`);
     card.querySelector('.load-meter').value=load.currentKg;card.querySelector('.load-meter').max=load.capacityKg||1;
     card.querySelector('.load-meter').setAttribute('aria-label', `${rider.name}: carrying ${load.currentKg} of ${load.capacityKg} kg`);
-    setWithin(card, '.rider-activity', rider.phase==='break'?`Resting · ${time(game.breakRemaining(rider))}`:activity?.detail??(job?`${job.id.toUpperCase()} · ${rider.phase==='pickup'?'To pickup':'To delivery'} · ~${time(game.logistics?game.jobETA(rider,job):game.courierETA(rider))}`:rider.deliberation?`Considering ${rider.deliberation.deliveryId.toUpperCase()}`:'Listening for work'));
+    setWithin(card, '.rider-activity', wellbeing?.offDuty?'Radio off · back next shift':rider.phase==='break'?`Resting · ${time(game.breakRemaining(rider))}`:activity?.detail??(job?`${job.id.toUpperCase()} · ${rider.phase==='pickup'?'To pickup':'To delivery'} · ~${time(game.logistics?game.jobETA(rider,job):game.courierETA(rider))}`:rider.deliberation?`Considering ${rider.deliberation.deliveryId.toUpperCase()}`:'Listening for work'));
     card.title=`${rider.completed} delivered · ${rider.lastDecision}`;
     const jobs=game.logistics?game.riderJobs(rider):job?[job]:[];
+    card.querySelector('.rider-wellbeing').hidden=!wellbeing;
+    card.dataset.wellbeing=wellbeing?.band??'legacy';
+    if(wellbeing){
+      const satisfaction=Math.floor(wellbeing.satisfaction);
+      setWithin(card,'.rider-satisfaction',`Satisfaction ${satisfaction} / ${wellbeing.max}`);
+      setWithin(card,'.rider-wellbeing-band',wellbeing.label);
+      const meter=card.querySelector('.satisfaction-meter');meter.value=wellbeing.satisfaction;meter.max=wellbeing.max;
+      meter.setAttribute('aria-label',`${rider.name}: satisfaction ${satisfaction} of ${wellbeing.max}, ${wellbeing.label}`);
+      const waiting=wellbeing.offDuty?'Finished for today':jobs.length?'On tour':wellbeing.lastTourAgo===null?`Waiting for first tour · ${time(wellbeing.idleSeconds)}`:`Last tour ${time(wellbeing.lastTourAgo)} ago`;
+      setWithin(card,'.rider-waiting',waiting);
+      const leaving=Number.isFinite(wellbeing.leaveIn);
+      const retention=card.querySelector('.rider-retention');retention.hidden=!leaving;
+      setWithin(card,'.rider-retention',leaving?`Leaves after ${time(wellbeing.leaveIn)} more waiting`:'');
+      const toggle=card.querySelector('.wellbeing-toggle');
+      toggle.setAttribute('aria-label',`${rider.name}: satisfaction ${satisfaction} of ${wellbeing.max}, ${wellbeing.label}. ${waiting}. ${leaving?`Leaves after ${time(wellbeing.leaveIn)} more waiting. `:''}Inspect patience, effects and recovery.`);
+      toggle.title=`${wellbeing.reason} ${wellbeing.effect} ${wellbeing.recovery}`;
+    }
+    const invitation=Array.from($('#preferred-rider').options).find(option=>option.value===rider.id);
+    if(invitation){invitation.disabled=Boolean(wellbeing?.offDuty);invitation.dataset.offDuty=String(Boolean(wellbeing?.offDuty));invitation.textContent=`${rider.name} · ${wellbeing?.offDuty?'finished for today':bikeVisual(rider).label}`;}
     const jobLinks=card.querySelector('.rider-jobs');
     if(jobLinks.dataset.ids!==jobs.map(j=>j.id).join(',')){
       jobLinks.dataset.ids=jobs.map(j=>j.id).join(',');jobLinks.replaceChildren();
       for(const accepted of jobs){const b=document.createElement('button');b.textContent=accepted.id.toUpperCase();b.title=`Inspect ${accepted.id.toUpperCase()}`;b.addEventListener('click',()=>select(accepted.id));jobLinks.append(b);}
     }
   }
+  renderRiderWellbeing();
+}
+
+function openRiderWellbeing(rider){
+  if(!game.wellbeing)return;
+  wellbeingWasPaused=game.paused;wellbeingRiderId=rider.id;
+  act({type:'pause',paused:true});renderRiderWellbeing();$('#rider-wellbeing-dialog').showModal();
+}
+
+function renderRiderWellbeing(){
+  const rider=game?.courierById(wellbeingRiderId),wellbeing=rider&&game.wellbeing?game.riderWellbeing(rider):null;
+  if(!wellbeing)return;
+  text('#wellbeing-rider',`${rider.name} · ${wellbeing.label}`);
+  text('#wellbeing-value',`${Math.floor(wellbeing.satisfaction)} / ${wellbeing.max}`);
+  $('#rider-wellbeing-dialog').dataset.wellbeing=wellbeing.band;
+  text('#wellbeing-reason',wellbeing.reason);text('#wellbeing-effect',wellbeing.effect);text('#wellbeing-recovery',wellbeing.recovery);
+  text('#wellbeing-timing',wellbeing.offDuty?'Finished for today. Available again in a new shift.':`Waiting without a tour: ${time(wellbeing.idleSeconds)}. ${wellbeing.lastTourAgo===null?'No tour finished yet.':`Last tour ended ${time(wellbeing.lastTourAgo)} ago.`} Patience before satisfaction falls: ${time(wellbeing.graceSeconds)}. ${wellbeing.untilDecay>0?`${time(wellbeing.untilDecay)} patience remains.`:'Patience used up.'}${Number.isFinite(wellbeing.leaveIn)?` Leaves after ${time(wellbeing.leaveIn)} more waiting.`:''}`);
 }
 
 function select(id) {
@@ -233,7 +274,8 @@ function renderSelection() {
     broadcastDraft=null;$('#broadcast-preview').hidden=true;
     const rider = game.courierById(game.selectedCourierId);
     text('#contract-title', rider ? rider.name : 'Choose a job');
-    text('#selection-empty', rider ? `${riderCards.get(rider.id)?.querySelector('p').textContent ?? 'Listening for work'}. Energy ${Math.round((1-rider.fatigue)*100)}%. ${rider.lastDecision}.` : 'Select a job or rider on the map.');
+    const wellbeing=rider&&game.wellbeing?game.riderWellbeing(rider):null;
+    text('#selection-empty', rider ? `${riderCards.get(rider.id)?.querySelector('p').textContent ?? 'Listening for work'}. Endurance ${Math.round((1-rider.fatigue)*100)} / 100. ${wellbeing?`Satisfaction ${Math.floor(wellbeing.satisfaction)} / ${wellbeing.max} · ${wellbeing.label}. ${wellbeing.effect} ${wellbeing.recovery}`:rider.lastDecision}` : 'Select a job or rider on the map.');
     return;
   }
   const state = jobState(game, d), waiting = d.status === 'waiting';
@@ -263,7 +305,7 @@ function renderSelection() {
     text('#delivery-window',d.deliverAfter>game.elapsed?`Pickup now · delivery opens in ${time(d.deliverAfter-game.elapsed)}`:'Pickup & delivery open now');
     $('#preferred-rider').value=d.preferredRiderId??'';
     const invited=game.courierById(d.preferredRiderId);
-    text('#preference-effect',invited?`${invited.name} gets a personal invitation. Others can still volunteer.`:'Give one rider extra reason to choose this offer.');
+    text('#preference-effect',invited?.offDuty?`${invited.name} has finished for today. Choose another invitation; other riders can still volunteer.`:invited?`${invited.name} gets a personal invitation. Others can still volunteer.`:'Give one rider extra reason to choose this offer.');
   }
   const regionName=id=>game.districts.find(r=>r.id===id)?.name??id;
   text('#selected-regions',`${regionName(d.pickupDistrict)} → ${regionName(d.dropoffDistrict)}`);
@@ -409,25 +451,27 @@ function renderDecisions(d) {
   brief.channels.forEach((channel,i)=>{const el=effects.children[i];setWithin(el,'strong',`${channel.id.toUpperCase()} · ${channel.eligible} ready ${channel.eligible===1?'rider':'riders'} can consider`);setWithin(el,'span',channel.detail);});
 }
 $('#decision-details').addEventListener('toggle',()=>{if($('#decision-details').open){const d=game?.deliveryById(game.selectedDeliveryId);if(d?.status==='waiting')renderDecisions(d);}});
-$('#desk-focus').addEventListener('click',()=>{const id=$('#desk-focus').dataset.job;if(id&&game.deliveryById(id))select(id);});
+$('#desk-focus').addEventListener('click',()=>{const {job:id,rider:riderId}=$('#desk-focus').dataset;if(id&&game.deliveryById(id))select(id);else if(riderId){const rider=game.courierById(riderId);if(rider)openRiderWellbeing(rider);}});
 
 function showReview() {
-  const review = game.shiftReview(), success = review.outcome === 'success';
+  const review = game.shiftReview(), success = review.outcome === 'success', teamLeft=review.outcome==='team-left';
+  $('#review-dialog').dataset.outcome=review.outcome;
   text('#result-label', success ? 'A GOOD DAY ON THE DESK' : 'EVERY SHIFT TEACHES SOMETHING');
-  text('#result-title', success ? 'You kept Berlin moving.' : review.outcome === 'collapse' ? 'The desk lost its rhythm.' : 'Close the desk. Try again.');
-  text('#result-description', `${review.completed} of ${review.target} target deliveries. ${success ? 'The team made it through with reputation to spare.' : 'A fresh attempt gives you the same opening and another chance to read the city.'}`);
+  text('#result-title', success ? 'You kept Berlin moving.' : teamLeft?'The team called it a day.':review.outcome === 'collapse' ? 'The desk lost its rhythm.' : 'Close the desk. Try again.');
+  text('#result-description', `${review.completed} of ${review.target} target deliveries. ${success ? 'The team made it through with reputation to spare.' : teamLeft?`Every rider signed off after waiting too long without work. The shift ends here with ${review.unserved} ${review.unserved===1?'offer':'offers'} left unserved. A new shift brings the full team back.`:'A fresh attempt gives you the same opening and another chance to read the city.'}`);
   const stats = $('#result-stats'); stats.replaceChildren();
-  for (const [value, label] of [[review.completed, 'Delivered'], [review.failed, 'Missed'], [`€${review.profit}`, 'Net earned']]) {
+  const results=[[review.completed, 'Delivered'], [review.failed, 'Missed deadlines'], ...(teamLeft?[[review.unserved,'Unserved offers']]:[]), [`€${review.profit}`, 'Net earned']];
+  for (const [value, label] of results) {
     const box = document.createElement('div'), strong = document.createElement('strong'), small = document.createElement('small');
     strong.textContent = value; small.textContent = label; box.append(strong, small); stats.append(box);
   }
   text('#result-rider', `${review.topRider} completed ${review.topDeliveries} deliveries.`);
   text('#result-flow', `Best flow: ${game.bestChain} deliveries in a row without a miss.`+(game.refined?` ${review.clientExtensions} client extensions · €${review.feesConceded} in fee concessions · €${review.bonusesPaid} in bonuses.`:''));
-  text('#result-lesson', review.lesson);
+  text('#result-lesson', teamLeft?'Watch who is between tours. Offer suitable work across the team, and consider a personal invitation before a waiting rider loses patience. Only actual acceptance cancels a departure warning.':review.lesson);
   const timeline = $('#result-timeline'); timeline.replaceChildren();
-  for (const entry of game.dispatchLog.filter(e => ['claim', 'complete', 'fail', 'event-start', 'event-end', 'upgrade'].includes(e.action)).slice(-12)) {
+  for (const entry of game.dispatchLog.filter(e => ['claim', 'complete', 'fail', 'event-start', 'event-end', 'upgrade', 'rider-restless', 'rider-warning', 'rider-recovered', 'rider-left'].includes(e.action)).slice(-12)) {
     const li = document.createElement('li');
-    const descriptions = { claim: `${entry.rider} took ${entry.deliveryId?.toUpperCase()}`, complete: `${entry.rider} delivered ${entry.deliveryId?.toUpperCase()}`, fail: `${entry.deliveryId?.toUpperCase()} missed · ${entry.kind?.replaceAll('-', ' ')}`, 'event-start': `Roadworks on ${entry.place}`, 'event-end': `${entry.place} cleared`, upgrade: entry.upgrade };
+    const descriptions = { claim: `${entry.rider} took ${entry.deliveryId?.toUpperCase()}`, complete: `${entry.rider} delivered ${entry.deliveryId?.toUpperCase()}`, fail: `${entry.deliveryId?.toUpperCase()} missed · ${entry.kind?.replaceAll('-', ' ')}`, 'event-start': `Roadworks on ${entry.place}`, 'event-end': `${entry.place} cleared`, upgrade: entry.upgrade, 'rider-restless':`${entry.rider} grew restless`, 'rider-warning':`${entry.rider} warned they would leave after ${Math.ceil(entry.leaveIn??20)} more seconds waiting`, 'rider-recovered':`${entry.rider} recovered satisfaction through ${entry.reason==='completed'?'delivery':'accepted work'}`, 'rider-left':`${entry.rider} finished for today` };
     li.textContent = `${time(entry.at)} — ${descriptions[entry.action]}`; timeline.append(li);
   }
   $('#review-dialog').showModal();
@@ -542,7 +586,10 @@ function setSound(enabled){sound=audio.setEnabled(enabled);text('#sound',sound?'
 $('#sound').addEventListener('click',()=>setSound(!sound));
 $('#open-sound-studio').addEventListener('click',()=>{soundWasPaused=game.paused;act({type:'pause',paused:true});$('#sound-dialog').showModal();});
 $('#dismiss-radio').addEventListener('click',()=>{radioDesk.dismiss();$('.map-surface').classList.remove('radio-speaking');});
-$('#radio-job').addEventListener('click',()=>{if(radioDesk.current?.jobId)select(radioDesk.current.jobId);});
+$('#radio-job').addEventListener('click',()=>{if(radioDesk.current?.jobId)select(radioDesk.current.jobId);else if(radioDesk.current?.riderId)riderCards.get(radioDesk.current.riderId)?.querySelector('.rider-locate').click();});
+function closeRiderWellbeing(){$('#rider-wellbeing-dialog').close();act({type:'pause',paused:wellbeingWasPaused});}
+$('#close-rider-wellbeing').addEventListener('click',closeRiderWellbeing);
+$('#rider-wellbeing-dialog').addEventListener('cancel',event=>{event.preventDefault();closeRiderWellbeing();});
 $('#open-radio-log').addEventListener('click',()=>{radioWasPaused=game.paused;act({type:'pause',paused:true});radioDesk.renderLog();$('#radio-log-dialog').showModal();});
 function closeRadioLog(){$('#radio-log-dialog').close();act({type:'pause',paused:radioWasPaused});}
 $('#close-radio-log').addEventListener('click',closeRadioLog);

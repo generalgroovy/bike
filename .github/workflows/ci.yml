@@ -28,7 +28,7 @@ jobs:
         run: node tools/validate-building-details.mjs
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -44,6 +44,8 @@ jobs:
         run: python e2e/city_smoke.py
       - name: Decision consequences and narrow-screen acceptance
         run: python e2e/decision_smoke.py
+      - name: Rider satisfaction, retention and saved-shift acceptance
+        run: python e2e/wellbeing_smoke.py
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4

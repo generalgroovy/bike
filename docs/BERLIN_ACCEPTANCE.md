@@ -1,6 +1,6 @@
 # Send It — Berlin acceptance build
 
-9 October 2026 · full-city ruleset `berlin-dispatch-v7` · original score **Spokes & Postcards**
+9 October 2026 · full-city ruleset `berlin-dispatch-v8` · original score **Spokes & Postcards**
 
 [Guided first shift](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=training&district=mitte&seed=BERLIN-1) · [Citywide desk](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=standard&district=citywide&seed=BERLIN-1) · [Map provenance](https://generalgroovy.github.io/bike/preview/berlin/map-data.html)
 
@@ -43,6 +43,10 @@ Riders autonomously consider one additional job while travelling or waiting. The
 Some offers allow immediate pickup but open for delivery 55 game seconds later. The parcel remains on the bike and consumes capacity until handover; the rider can use suitable waiting time for another job. The job panel shows when its delivery window opens. These are compressed shift-time windows, rather than a simulated full-day clock.
 
 The guided shift lasts three minutes with a six-delivery target and two opening jobs; the standard shift lasts nine minutes with a target of twenty-six and four opening jobs. Capacity-aware arrivals consider compatible cargo, existing tours and nearby work, easing when riders or the waiting desk are full. Deterministic balance audits are a mechanical baseline, not evidence of human enjoyment. [Radio, bicycle motion and demand changes](RADIO_AND_RHYTHM.md) describe the new experience and test route.
+
+## Satisfaction and time between tours
+
+New shifts expose satisfaction, idle patience and time since the last finished tour on each rider card. A long wait produces a personal warning before the rider signs off for the day; accepted work recovers satisfaction, while tours, delivery-window waits, breaks, pause and closing are protected. Click the satisfaction meter for the ranges and current effects. [Rider wellbeing rules and tests](RIDER_WELLBEING.md).
 
 ## Physical work at real addresses
 

@@ -11,7 +11,7 @@ export function decisionBrief(game,d,feasibility=game.deliveryFeasibility(d)) {
     const fit=feasibility?.candidates.find(c=>c.rider.id===rider.id),ready=rider.phase==='idle'&&rider.radioOn;
     const score=ready?game.courierChoiceScore(rider,probe,false):-Infinity;
     let state='pass',detail='Would pass: not enough time on the current routes.';
-    if(!ready){state='occupied';detail=rider.phase==='break'?'Resting, with the radio off.':'Committed to current work first.';}
+    if(!ready){state='occupied';detail=rider.offDuty?'Finished for today · available next shift.':rider.phase==='break'?'Resting, with the radio off.':'Committed to current work first.';}
     else if(score>=.3){state='possible';detail=`Could consider: ${game.choiceReason(rider,probe)}.`;}
     else if(Number.isFinite(score))detail='Waiting for an offer that fits better.';
     if(rider.deliberation)detail=`Considering ${rider.deliberation.deliveryId.toUpperCase()} · ${rider.deliberation.reason}.`;
@@ -25,6 +25,7 @@ export function decisionBrief(game,d,feasibility=game.deliveryFeasibility(d)) {
 }
 
 export function riderActivity(game,rider) {
+  if(rider.offDuty)return{label:'Finished for today',detail:'Signed off · unavailable for the rest of this shift'};
   const job=game.deliveryById(rider.deliveryId),remaining=Math.max(0,(rider.handoffUntil??game.elapsed)-game.elapsed);
   if(rider.phase==='loading')return{label:'Collecting',detail:`${job.id.toUpperCase()} · ${Math.ceil(remaining)}s to secure the cargo`};
   if(rider.phase==='handover')return{label:'Handing over',detail:`${job.id.toUpperCase()} · ${Math.ceil(remaining)}s for the handoff`};

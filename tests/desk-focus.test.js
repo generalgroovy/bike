@@ -47,3 +47,45 @@ test('no-fit advice does not promise that incentives repair incompatible cargo',
   game.gameOver = true;
   assert.equal(deskFocus(game, estimates).id, 'finished');
 });
+
+test('a waiting rider warning suggests only a compatible route and keeps acceptance voluntary', () => {
+  const { game, job, candidate, estimates } = fixture();
+  game.wellbeing = true; game.couriers[0].phase = 'idle'; game.riderJobs = () => [];
+  const wellbeing = { satisfaction: 30, band: 'restless', idleSeconds: 90, leaveIn: null, offDuty: false };
+  game.riderWellbeing = () => wellbeing;
+  const before = JSON.stringify({ job, wellbeing, rider: game.couriers[0] });
+  const value = deskFocus(game, estimates);
+  assert.equal(value.id, 'rider-wait:c0'); assert.equal(value.jobId, job.id);
+  assert.equal(value.tone, 'watch'); assert.match(value.detail, /personal invitation/); assert.match(value.detail, /Acceptance is their choice/);
+  assert.equal(JSON.stringify({ job, wellbeing, rider: game.couriers[0] }), before);
+  candidate.margin = -2;
+  assert.equal(deskFocus(game, estimates).id, 'tight:d1');
+  wellbeing.leaveIn = 12;
+  const urgent = deskFocus(game, estimates);
+  assert.equal(urgent.jobId, null); assert.equal(urgent.riderId, 'c0');
+  assert.match(urgent.title, /12s before leaving/); assert.match(urgent.detail, /No waiting parcel fits/);
+});
+
+test('already invited, occupied, departed and closing riders never get misleading fresh invitations', () => {
+  const { game, job, estimates } = fixture();
+  game.wellbeing = true; game.couriers[0].phase = 'idle'; game.riderJobs = () => [];
+  const wellbeing = { satisfaction: 20, band: 'at-risk', idleSeconds: 120, leaveIn: 20, offDuty: false };
+  game.riderWellbeing = () => wellbeing;
+  job.preferredRiderId = game.couriers[0].id; job.called = true;
+  assert.match(deskFocus(game, estimates).detail, /already invites Kira/);
+  game.riderJobs = () => [{ id: 'busy' }];
+  assert.notEqual(deskFocus(game, estimates).id, 'rider-wait:c0');
+  game.riderJobs = () => []; wellbeing.offDuty = true;
+  assert.notEqual(deskFocus(game, estimates).id, 'rider-wait:c0');
+  wellbeing.offDuty = false; game.closing = true;
+  assert.notEqual(deskFocus(game, estimates).id, 'rider-wait:c0');
+});
+
+test('a team departure ending never promises more arrivals and explains the new-shift recovery', () => {
+  const { game, estimates } = fixture();
+  game.gameOver = true; game.outcome = 'team-left';
+  const value = deskFocus(game, estimates);
+  assert.equal(value.id, 'finished'); assert.equal(value.jobId, null);
+  assert.match(value.title, /team finished for today/); assert.match(value.detail, /new shift with the full team/);
+  assert.doesNotMatch(value.detail, /New work arrives/);
+});

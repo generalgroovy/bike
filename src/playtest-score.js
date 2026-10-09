@@ -39,6 +39,12 @@ export function eventPhrase(name,{rider='Kira',cargo='document',success=true,mod
     note(57,.25,'pluck',.16,.045,voice.pan),note(62,1,'pluck',.3,.055,voice.pan)];
   if(name==='rider')return signature;
   if(name==='claim')return [...signature,...deskAnswer()];
+  // Restless riders ask in their own voice; a departure closes that phrase.
+  // These are one-shot state changes, never an extra repeating alarm.
+  if(name==='rider-restless')return [note(voice.notes[0],0,voice.instrument,.3,.06,voice.pan),note(voice.notes[0],.75,voice.instrument,.42,.05,voice.pan)];
+  if(name==='rider-warning')return [note(voice.notes[0],0,voice.instrument,.23,.07,voice.pan),note(voice.notes[0],.5,voice.instrument,.23,.065,voice.pan),note(voice.notes[2]-12,1,voice.instrument,.55,.06,voice.pan)];
+  if(name==='rider-recovered')return [note(voice.notes[1],0,voice.instrument,.35,.04,voice.pan),...deskAnswer(.75)];
+  if(name==='rider-left')return [note(voice.notes[0],0,voice.instrument,.4,.065,voice.pan),note(voice.notes[2]-12,.75,voice.instrument,.6,.055,voice.pan),deskNote(50,1.5,.28,.04)];
   // The suspended fifth leaves a parcel hanging; the opening window answers
   // it with the same rider's upward phrase, on the shared musical grid.
   if(name==='window-wait')return [note(voice.notes[0],0,voice.instrument,.7,.045,voice.pan),note(69,.5,'reed',.8,.035,voice.pan)];
@@ -93,7 +99,7 @@ export function scheduleNote(ctx,output,n,when,onEnded=()=>{}) {
 
 export function connectScoreOutput(ctx,master){const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-8;limiter.knee.value=4;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.14;master.connect(limiter);limiter.connect(ctx.destination);return limiter;}
 
-const cuePriority=name=>name==='finish'?100:name==='fail'?90:name==='complete'?80:name==='claim'?70
+const cuePriority=name=>name==='finish'?100:name==='rider-left'?95:name==='fail'?90:name==='rider-warning'?85:name==='complete'?80:['claim','rider-recovered'].includes(name)?70:name==='rider-restless'?60
   :['window-wait','window-open'].includes(name)?65:['break','radio-on'].includes(name)?60
   :name.startsWith('call-')||['prefer','bonus','client-call','start','pause','upgrade'].includes(name)?50
     :name.startsWith('event-')?40:name==='rider'?35:name==='pickup'?30:name==='spawn'?20:10;

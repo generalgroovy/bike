@@ -8,7 +8,7 @@ import playtest_smoke as desk
 
 class CityAcceptance(desk.PlaytestAcceptance):
     city = 'berlin'
-    ruleset = 'berlin-dispatch-v7'
+    ruleset = 'berlin-dispatch-v8'
     map_asset = 'berlin-city.json.gz'
     training_target = 6
     training_opening = 2

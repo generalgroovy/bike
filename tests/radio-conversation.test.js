@@ -185,3 +185,35 @@ test('history remains bounded, deduplicates repeated entries and never changes t
   assert.equal(appendConversation(bounded, null, 2).length, 2);
   assert.equal(appendConversation(Array.from({ length: 30 }, (_, i) => ({ id: i + 1 })), null, 1000).length, 12);
 });
+
+// Wellbeing is an event-driven conversation: no synthetic acceptance or timer.
+test('rider wellbeing warnings name the affected rider and explain remaining time and day scope', () => {
+  const game = deepFreeze(fixture());
+  const before = JSON.stringify(game);
+  const variants = new Set();
+  for (const name of ['Kira', 'Mauro', 'Brian']) {
+    const restless = conversationFor(game, event('rider-restless', { rider: name, deliveryId: null, reason: 'waiting' }));
+    const warning = conversationFor(game, event('rider-warning', { rider: name, deliveryId: null, leaveIn: 20 }));
+    const recovered = conversationFor(game, event('rider-recovered', { rider: name, deliveryId: null, reason: 'accepted' }));
+    const left = conversationFor(game, event('rider-left', { rider: name, deliveryId: null }));
+    for (const exchange of [restless, warning, recovered, left]) {
+      assert.equal(exchange.riderId, game.couriers.find(c => c.name === name).id);
+      assert.equal(exchange.lines[0].speaker, 'rider');
+      assert.equal(exchange.lines[0].name, name);
+      assert.equal(exchange.lines.length, 2);
+      assert.ok(exchange.lines.every(line => line.text.length <= 180));
+    }
+    variants.add(warning.lines[0].text);
+    assert.match(words(warning), /20s/);
+    assert.match(words(warning), /taking it is your call/);
+    assert.ok(warning.priority > restless.priority);
+    assert.ok(left.priority > warning.priority);
+    assert.match(words(left), /signed off.*remaining riders.*rest of this shift/i);
+    assert.doesNotMatch(words(left), /short breather|back when|recover/);
+    const missed = conversationFor(game, event('rider-restless', { rider: name, deliveryId: null, reason: 'missed-job' }));
+    assert.match(words(missed), /miss|wasted trip|hard ending/i);
+    assert.doesNotMatch(words(missed), /been waiting|long gap/i);
+  }
+  assert.equal(variants.size, 3);
+  assert.equal(JSON.stringify(game), before);
+});

@@ -7,9 +7,10 @@ export const RIDER_VOICES = Object.freeze({
 });
 
 const PRIORITY = Object.freeze({ fail: 9, complete: 8, claim: 7, 'window-wait': 6, 'window-open': 6, break: 6,
+  'rider-restless': 6, 'rider-warning': 9, 'rider-recovered': 7, 'rider-left': 10,
   'radio-on': 6, call: 5, channel: 5, prefer: 5, sweeten: 5, 'client-call': 5, uncall: 5,
   'radio-denied': 5, pickup: 4, 'event-start': 4, 'event-end': 4, 'event-forecast': 3, spawn: 1 });
-const RIDER_EVENTS = new Set(['claim', 'pickup', 'window-wait', 'window-open', 'complete', 'fail', 'break', 'radio-on']);
+const RIDER_EVENTS = new Set(['claim', 'pickup', 'window-wait', 'window-open', 'complete', 'fail', 'break', 'radio-on', 'rider-restless', 'rider-warning', 'rider-recovered', 'rider-left']);
 const finite = value => Number.isFinite(value);
 const brief = (value, limit = 40) => {
   const text = String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -188,6 +189,44 @@ export function conversationFor(game, event) {
       : kind === 'claimed-late' ? `${job} missed its delivery window. More breathing room on the next tour.`
         : `${job} expired without a taker. The offer never found a willing rider.`)];
     tone = 'missed';
+  } else if (action === 'rider-restless') {
+    if (!c) return null;
+    lines = [rider(say({
+      Kira: ['Still here. My wheels would like a job.', 'Long gap, desk. Got a short run that fits?'],
+      Mauro: ["Lovely view. Doesn't pay much, though. Anything suitable?", 'The bike is ready. The earnings are taking a long break.'],
+      Brian: ["I've been waiting a while. Is there something that needs carrying?", 'Bit quiet over here, desk. Keep me in mind for the next good fit.']
+    }, ['I have been waiting for suitable work.'])), desk('Heard. Time to look for an offer that suits you.')];
+    if (event.reason === 'missed-job') lines = [rider(say({
+      Kira: ['That miss hurt. The next run needs room to work.'],
+      Mauro: ['A wasted trip. Let us make the next offer worth riding for.'],
+      Brian: ['That was a hard ending. I need a tour with a fair chance.']
+    }, ['That missed delivery knocked my confidence.'])), desk('Heard. Let us give the next tour a workable deadline.')];
+    tone = 'watch';
+  } else if (action === 'rider-warning') {
+    if (!c) return null;
+    const wait = finite(event.leaveIn) ? seconds(event.leaveIn) : 'a short while';
+    lines = [rider(say({
+      Kira: [`I'm giving it ${wait}, then I'm done for today. Need a run that fits.`, `${wait} more on standby. Then I'm calling it a day.`],
+      Mauro: [`About ${wait} more. After that, even going home pays better than this.`, `I'll wait ${wait}. Without a worthwhile run, that's my day done.`],
+      Brian: [`I'll give it ${wait} more, but I can't wait here all day.`, `One last ${wait} on standby, desk. Then I'll head off for the day.`]
+    }, [`I may sign off in ${wait} without suitable work.`])), desk('Understood. I can shape the offer; taking it is your call.')];
+    tone = 'urgent';
+  } else if (action === 'rider-recovered') {
+    if (!c) return null;
+    lines = [rider(say({
+      Kira: ['Better. Back in the rhythm.', 'A proper run. That makes a difference.'],
+      Mauro: ["Work on the bike. That's a more persuasive argument.", 'The day is looking rather more worthwhile now.'],
+      Brian: ['Good to be useful again. Thanks for keeping me in mind.', 'There we are. A bit of work puts the day right.']
+    }, ['That work helped. I am staying with the shift.'])), desk('Good to hear. Keep me posted.')];
+    tone = 'relief';
+  } else if (action === 'rider-left') {
+    if (!c) return null;
+    lines = [rider(say({
+      Kira: ["That's enough waiting. Signing off for today.", 'No run, no reason to hang around. Done for the day, desk.'],
+      Mauro: ['I have earned a very detailed knowledge of this pavement. Signing off for today.', "Calling it a day. This much waiting isn't a working arrangement."],
+      Brian: ["I've waited long enough, desk. Heading off for the day. Take care.", "I'm signing off for today. I needed a bit more work to make it worthwhile."]
+    }, ['I am finished for today after waiting too long.'])), desk(`${riderName} has signed off. The remaining riders will cover the rest of this shift.`)];
+    tone = 'departed';
   } else if (action === 'break') {
     if (!c) return null;
     lines = [rider(say({

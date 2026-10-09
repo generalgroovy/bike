@@ -109,6 +109,7 @@
     <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
     <p>Tap a rider's bike to locate them. Their card always shows preferences, compatible cargo, endurance and load. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
     <p id="logistics-help">A personal invitation increases one rider's interest without reserving the job. Light road bikes, versatile city bikes and roomy cargo bikes suit different parcels. Weight uses carrying capacity and drains endurance. A rider can choose a second job when both deadlines and their load fit, collecting along the way or after current work. A later delivery window allows collection now, but handover waits until the client opens.</p>
+    <p id="wellbeing-help">Riders also need worthwhile work. Their cards show satisfaction and time since their last tour. Long waits use up each rider's patience, then reduce satisfaction. Below 25 starts a departure warning, giving you time to offer suitable work before they finish for the day. Invitations and bonuses improve an offer; the rider must still choose it. Riding, delivery windows, rest breaks and pauses do not count as being left without work. Tap the satisfaction meter for exact ranges and recovery.</p>
     <p id="refined-help">In full Berlin, riders stop to collect and hand over cargo. Finish estimates include both stops. You can renegotiate an unclaimed job once: up to 20 seconds more, for a 20% fee concession (at least €3). This reduces the job's pay and cannot push past closing time.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>
     <details><summary>Map &amp; scenario details</summary><p><a id="scope-link" href="?city=inner-ring">Original Inner Ring scenario</a> · starting another scenario opens its own saved shift.</p><p id="session-identity" class="fine-print"></p></details>
@@ -117,6 +118,16 @@
   </dialog>
 
   <dialog id="radio-log-dialog" class="radio-log-dialog"><span class="eyebrow">THIS SHIFT · RECENT MESSAGES</span><h2>Over to you.</h2><p id="radio-log-empty" class="fine-print">The radio is quiet. Confirm an offer to put it on air.</p><ol id="radio-history"></ol><button id="close-radio-log" class="primary">Back to the desk</button></dialog>
+
+  <dialog id="rider-wellbeing-dialog" class="wellbeing-dialog" aria-labelledby="wellbeing-rider">
+    <span class="eyebrow">THE PERSON BEHIND THE PEDALS</span><h2 id="wellbeing-rider"></h2>
+    <p class="wellbeing-value">Satisfaction <strong id="wellbeing-value"></strong></p>
+    <p id="wellbeing-reason"></p><p id="wellbeing-timing" class="fine-print"></p>
+    <div class="wellbeing-detail"><p id="wellbeing-effect"></p><p id="wellbeing-recovery"></p></div>
+    <dl class="wellbeing-ranges"><div><dt>70–100 · Content</dt><dd>Happy with the flow</dd></div><div><dt>45–69 · Steady</dt><dd>Still comfortable</dd></div><div><dt>25–44 · Restless</dt><dd>Waiting is wearing thin</dd></div><div><dt>0–24 · At risk</dt><dd>May leave without an accepted job</dd></div></dl>
+    <p class="fine-print">Tour time, delivery windows, rest breaks, pauses and closing time do not use patience. A new shift brings the whole team back.</p>
+    <button id="close-rider-wellbeing" class="primary">Back to the desk</button>
+  </dialog>
 
   <dialog id="sound-dialog">
     <span class="eyebrow">THE SOUND OF THE DESK</span><h2>Spokes &amp; Postcards.</h2>

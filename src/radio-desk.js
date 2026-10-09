@@ -46,7 +46,9 @@ export class RadioDesk {
     panel.hidden=!this.current;
     if(this.current&&panel.dataset.exchange!==this.current.id){
       panel.dataset.exchange=this.current.id;panel.dataset.action=this.current.action;
-      this.node('#radio-job').textContent=this.current.jobId?.toUpperCase()??'On the air';
+      const rider=this.current.lines.find(line=>line.speaker==='rider');
+      this.node('#radio-job').textContent=this.current.jobId?.toUpperCase()??rider?.name??'Team';
+      this.node('#radio-job').title=this.current.jobId?'Show this job':this.current.riderId?'Show this rider':'Team radio';
       this.node('#radio-lines').replaceChildren(...this.lines(this.current));
     }
     if(!this.current)delete panel.dataset.exchange;

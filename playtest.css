@@ -231,3 +231,25 @@ select:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline
 #radio-history>li{margin-bottom:20px}
 .radio-log-stamp{display:block;color:#627477;font-size:10px;margin:0 3px 6px;text-transform:uppercase;letter-spacing:.04em}
 @media(max-width:520px){.radio-exchange{left:9px;bottom:22px;width:calc(100% - 58px)}.radio-bubble{font-size:11px;padding:7px 10px;line-height:1.3}.radio-heading{margin-bottom:4px}.radio-bubble[data-speaker=rider]{margin-left:12px}}
+
+/* A rider's readiness and patience share one compact card; explanations open on demand. */
+.rider-wellbeing{--wellbeing:#548069;margin-top:5px;border-top:1px solid #dde2d5;padding-top:3px}
+.desk-focus{flex-shrink:0}
+[data-wellbeing=steady] .rider-wellbeing{--wellbeing:#788455}
+[data-wellbeing=restless] .rider-wellbeing{--wellbeing:#a47730}
+[data-wellbeing=at-risk] .rider-wellbeing{--wellbeing:#a74f39}
+[data-wellbeing=off-duty] .rider-wellbeing{--wellbeing:#7a817b}
+.wellbeing-toggle{display:grid;gap:3px;width:100%;min-height:34px;padding:3px 0;border:0;border-radius:3px;background:transparent;text-align:left;color:var(--wellbeing);font-size:10px;font-weight:500}
+.wellbeing-toggle:hover{background:#e9efdf}.wellbeing-heading{display:flex;align-items:baseline;justify-content:space-between;gap:3px;flex-wrap:wrap;line-height:1.4}.rider-satisfaction{font-variant-numeric:tabular-nums;white-space:nowrap}.rider-wellbeing-band{font-size:9px;font-weight:750;text-decoration:underline dotted;text-underline-offset:2px}
+.rider .satisfaction-meter{height:5px;accent-color:var(--wellbeing)}.rider .satisfaction-meter::-webkit-meter-optimum-value{background:var(--wellbeing)}
+.city-panel .rider p.rider-waiting{font-size:9px;line-height:1.35;margin:2px 0 0;color:#68715e;font-variant-numeric:tabular-nums}
+.city-panel .rider p.rider-retention{font-size:10px;line-height:1.4;margin:4px 0 0;color:#a74f39;font-weight:700;font-variant-numeric:tabular-nums}
+.city-panel .rider[data-wellbeing=at-risk]{border-color:#c89677;background:#fff6e9}
+.city-panel .rider[data-wellbeing=off-duty]{border-top-color:#969e93;background:#efeee6}.city-panel .rider[data-wellbeing=off-duty] .rider-head strong{color:#70786b}.city-panel .rider[data-wellbeing=off-duty] .bike-icon{opacity:.5}
+.city-panel .rider-resources{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:4px}
+.city-panel .rider-resources label{font-size:9px;line-height:1.45}.city-panel .rider p.rider-preferences{margin:3px 0}.city-panel .rider p.rider-accepts{margin:3px 0}.city-panel .rider p.rider-activity{margin-top:4px}
+.wellbeing-dialog{max-width:510px}.wellbeing-dialog h2{font-size:28px}.wellbeing-dialog .wellbeing-value{display:flex;gap:12px;align-items:baseline;color:#61725b;font-size:12px}.wellbeing-value strong{font:700 24px ui-monospace,monospace;color:#315d4b}.wellbeing-dialog[data-wellbeing=at-risk] .wellbeing-value strong{color:#a74f39}.wellbeing-detail{border-left:3px solid #92ab83;background:#eef1e4;padding:12px 15px;margin:15px 0}.wellbeing-detail p{font-size:12px;line-height:1.5;margin-bottom:8px}.wellbeing-detail p:last-child{margin-bottom:0}.wellbeing-ranges{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:11px;line-height:1.45;margin:20px 0}.wellbeing-ranges dt{font-weight:750}.wellbeing-ranges dd{margin:3px 0 0;color:#66735f}
+.review[data-outcome=team-left] .review-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:851px) and (max-width:1150px){.city-panel .rider-resources{grid-template-columns:1fr}.wellbeing-heading{gap:0}.city-panel .rider p.rider-preferences{font-size:10px}}
+@media(max-width:850px){.wellbeing-toggle{min-height:44px}.city-panel .rider p.rider-waiting{font-size:10px}.city-panel .rider-resources label{font-size:10px}}
+@media(max-width:380px){.wellbeing-ranges{grid-template-columns:1fr;gap:10px}}

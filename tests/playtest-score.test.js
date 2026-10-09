@@ -190,3 +190,24 @@ test('all composed notes have finite, bounded synth parameters and distinct ride
     assert.ok(phrase.every(n=>[0,2,5,7,9].includes(n.midi%12)),'task and resolution stay in D minor pentatonic');
   }
 });
+
+test('wellbeing motifs remain distinct, quiet and tied to each rider on the musical grid',()=>{
+  const events=['rider-restless','rider-warning','rider-recovered','rider-left'];
+  for(const rider of ['Kira','Mauro','Brian']){
+    const phrases=events.map(name=>eventPhrase(name,{rider,pan:.7}));
+    assert.equal(new Set(phrases.map(phrase=>JSON.stringify(phrase))).size,4);
+    for(const phrase of phrases){
+      assert.ok(phrase.length>=2&&phrase.length<=3);
+      assert.ok(phrase.every(n=>[0,2,5,7,9].includes(n.midi%12)&&n.volume<=.08));
+      assert.ok(phrase.every(n=>Math.abs(n.at/tick-Math.round(n.at/tick))<1e-8));
+    }
+  }
+  const {score,calls}=fixture();
+  score.cue('spawn',{jobId:'d1'});score.cue('spawn',{jobId:'d2'});
+  assert.ok(score.cue('rider-warning',{rider:'Mauro',pan:.7}));
+  assert.ok(score.cue('rider-left',{rider:'Kira',pan:-.6}));
+  assert.equal(score.eventCues.size,2);
+  assert.deepEqual([...score.eventCues.values()].map(c=>c.name).sort(),['rider-left','rider-warning']);
+  assert.ok(calls.at(-2).notes.every(n=>n.pan===(n.source==='dispatcher'?0:.7)));
+  assert.equal(score.cue('spawn',{jobId:'d3'}),false);
+});

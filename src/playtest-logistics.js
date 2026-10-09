@@ -101,6 +101,7 @@ function simulateStops(game, c, stops, extra = null, enforce = true, detail = fa
 
 function planOffer(game, c, d) {
   if (!c || !d || d.status !== 'waiting') return { reason: 'Already accepted or finished' };
+  if (game.wellbeing && c.offDuty) return { reason: 'Finished for today · unavailable until the next shift' };
   if (!c.radioOn || c.phase === 'break' || c.phase === 'coasting') return { reason: 'Radio off · recovering' };
   const profile = RIDER_BIKES[c.bikeType];
   if (!profile?.acceptedTypes.includes(d.type)) return { reason: 'Bike does not carry this cargo' };
@@ -208,6 +209,7 @@ export function installPlaytestLogistics(Type) {
     const endurance = c ? this.riderEndurance(c) : { current: 0, max: 100 }, currentKg = c ? this.riderLoad(c) : 0;
     const summary = { feasible: !!c && this.logistics, reason: !c ? 'Choose a rider' : !this.logistics ? 'Detailed tours require the current Berlin ruleset' : 'Current remaining tour',
       endurance: { ...endurance, projected: endurance.current }, load: { currentKg, peakKg: currentKg, capacityKg: c?.capacityKg ?? 0 }, tourSeconds: 0, itinerary: [] };
+    if (this.wellbeing && c?.offDuty) return { ...summary, feasible: false, reason: 'Finished for today · unavailable until the next shift' };
     if (!summary.feasible) return summary;
     const stops = (c.stops ?? []).filter(stop => this.deliveryById(stop.jobId)?.status === 'claimed');
     if (!stops.length) return { ...summary, reason: 'No accepted work' };
@@ -257,7 +259,7 @@ export function installPlaytestLogistics(Type) {
   p.dispatch = function(action) {
     if (!this.logistics || action?.type !== 'prefer') return old.dispatch.call(this, action);
     const d = this.deliveryById(action.jobId), rider = action.riderId == null ? null : this.courierById(action.riderId);
-    if (this.gameOver || d?.status !== 'waiting' || (action.riderId != null && !rider)) return false;
+    if (this.gameOver || d?.status !== 'waiting' || (action.riderId != null && (!rider || this.wellbeing && rider.offDuty))) return false;
     d.preferredRiderId = rider?.id ?? null;
     this.invalidateDeliberations(d.id);
     this.actions.push({ tick: this.tick, type: 'prefer', jobId: d.id, riderId: d.preferredRiderId });
@@ -297,12 +299,14 @@ export function installPlaytestLogistics(Type) {
   };
   p.predictCall = function(c) {
     if (!this.logistics) return old.predictCall.call(this, c);
+    if (this.wellbeing && c?.offDuty) return null;
     if (!c?.radioOn || this.riderJobs(c).length >= 2) return null;
     const best = this.calledDeliveries().map(delivery => ({ delivery, score: this.courierChoiceScore(c, delivery, false) })).sort((a, b) => b.score - a.score)[0];
     return best && best.score >= .3 ? best : null;
   };
   p.beginDeliberation = function(c) {
     if (!this.logistics) return old.beginDeliberation.call(this, c);
+    if (this.wellbeing && c?.offDuty) return false;
     if (!c.radioOn || this.riderJobs(c).length >= 2) return false;
     const best = this.calledDeliveries().map(delivery => ({ delivery, score: this.courierChoiceScore(c, delivery, true) })).sort((a, b) => b.score - a.score)[0];
     if (!best || best.score < .3) { c.decisionAt = this.elapsed + 1.2; if (c.phase === 'idle') c.lastDecision = 'Listening for work that fits'; return false; }
@@ -419,6 +423,7 @@ export function installPlaytestLogistics(Type) {
   };
   p.courierAvailability = function(c, d = null) {
     if (!this.logistics) return old.courierAvailability.call(this, c, d);
+    if (this.wellbeing && c?.offDuty) return { rider: c, state: 'off-duty', readyIn: Infinity, travelIn: Infinity, arrivalIn: Infinity, fromNodeId: c.nodeId, pickupId: d?.pickupId, availableNow: false };
     const plan = d ? planOffer(this, c, d) : simulateStops(this, c, c.stops ?? []), busy = this.riderJobs(c).length > 0;
     const arrivalIn = d ? plan.pickups?.[d.id] ?? Infinity : plan?.seconds ?? 0;
     return { rider: c, state: c.phase === 'break' ? 'break' : busy ? 'busy' : c.deliberation ? 'thinking' : 'ready', readyIn: busy ? this.courierETA(c) : 0, travelIn: arrivalIn, arrivalIn, fromNodeId: c.nodeId, pickupId: d?.pickupId, availableNow: !!c.radioOn && (d ? !!plan.stops : !busy) };

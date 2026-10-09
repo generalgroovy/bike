@@ -24,6 +24,8 @@ class PlaytestAcceptance(unittest.TestCase):
     ruleset = 'berlin-dispatch-v3'
     map_asset = 'berlin-inner-ring.json'
     training_target = 5
+    training_opening = 1
+    standard_opening = 3
     @classmethod
     def setUpClass(cls):
         REPORTS.mkdir(parents=True, exist_ok=True)
@@ -119,7 +121,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         self.page.locator('#pause').click()
-        expect(self.page.locator('.job-status')).to_contain_text('is on it', timeout=8000)
+        expect(self.page.locator('.job-status').first).to_contain_text('is on it', timeout=8000)
         expect(self.page.locator('#coach')).to_contain_text('chose the job')
         expect(self.page.locator('#delivery-target')).to_have_text(f'1 / {self.training_target} delivered', timeout=45000 if self.city == 'berlin' else 25000)
         self.page.locator('#pause').click()
@@ -185,7 +187,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.evaluate("window.testCard=document.querySelector('.job-card')")
         self.page.wait_for_timeout(450)
         self.assertTrue(self.page.evaluate("testCard===document.querySelector('.job-card') && document.activeElement===testCard.querySelector('.job-select')"))
-        self.assertEqual(self.page.locator('.job-card').count(), 3)
+        self.assertEqual(self.page.locator('.job-card').count(), self.standard_opening)
 
     def test_responsive_layout_and_canvas_backing_store(self):
         self.start()
@@ -333,8 +335,9 @@ class PlaytestAcceptance(unittest.TestCase):
             self.page.locator('.job-select').nth(index).click()
             self.broadcast()
         expect(self.page.locator('#radio-hint')).to_contain_text('Radio full')
-        self.game('(g.spawnDelivery(),true)')
-        expect(self.page.locator('.job-select')).to_have_count(4)
+        if self.standard_opening < 4:
+            self.game('(g.spawnDelivery(),true)')
+        expect(self.page.locator('.job-select')).to_have_count(max(4, self.standard_opening))
         self.page.locator('.job-select').last.click()
         expect(self.page.locator('[data-radio="open"]')).to_be_disabled()
         self.page.locator('.job-select').first.click()
@@ -368,12 +371,12 @@ class PlaytestAcceptance(unittest.TestCase):
     def test_one_decision_panel_tracks_the_job_lifecycle(self):
         self.start()
         expect(self.page.locator('.quick-call')).to_have_count(0)
-        expect(self.page.locator('#work-list button')).to_have_count(1)
+        expect(self.page.locator('#work-list button')).to_have_count(self.training_opening)
         expect(self.page.locator('#selected-stage')).to_have_text('Not broadcast')
         before=self.game('JSON.stringify(g.exportRun())')
-        self.page.locator('.job-select').click()
+        self.page.locator('.job-select').first.click()
         self.assertEqual(self.game('JSON.stringify(g.exportRun())'),before)
-        expect(self.page.locator('.job-select')).to_have_attribute('aria-pressed','true')
+        expect(self.page.locator('.job-select').first).to_have_attribute('aria-pressed','true')
         self.broadcast()
         expect(self.page.locator('#selected-stage')).to_have_text('On air')
         expect(self.page.locator('#radio-effect')).to_contain_text('One radio slot')

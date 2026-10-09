@@ -1,6 +1,6 @@
 # Send It — Berlin acceptance build
 
-8 October 2026 · full-city ruleset `berlin-dispatch-v6` · original score **Spokes & Postcards**
+9 October 2026 · full-city ruleset `berlin-dispatch-v7` · original score **Spokes & Postcards**
 
 [Guided first shift](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=training&district=mitte&seed=BERLIN-1) · [Citywide desk](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin&mode=standard&district=citywide&seed=BERLIN-1) · [Map provenance](https://generalgroovy.github.io/bike/preview/berlin/map-data.html)
 
@@ -28,7 +28,7 @@ The client offer displays the actual extra time, fee deduction and resulting fee
 
 ## Bikes, endurance and two-job routes
 
-The rider strip keeps bike type, preferences, accepted parcel types, numerical current / maximum endurance, and carried / maximum kilograms visible. Bike silhouettes replace map portraits for v6: a road frame, city basket and front cargo box. Their endurance ring, load bar and job-count badge echo the strip; tapping a rider locates them, and their job chips select every accepted parcel.
+The rider strip keeps bike type, preferences, accepted parcel types, numerical current / maximum endurance, and carried / maximum kilograms visible. Bike silhouettes replace map portraits: a road frame, city basket and front cargo box. Their endurance ring, load bar and job-count badge echo the strip; tapping a rider locates them, and their job chips select every accepted parcel.
 
 | Rider | Bicycle | Capacity | Accepted work | Preference |
 | --- | --- | ---: | --- | --- |
@@ -42,7 +42,7 @@ Riders autonomously consider one additional job while travelling or waiting. The
 
 Some offers allow immediate pickup but open for delivery 55 game seconds later. The parcel remains on the bike and consumes capacity until handover; the rider can use suitable waiting time for another job. The job panel shows when its delivery window opens. These are compressed shift-time windows, rather than a simulated full-day clock.
 
-The guided shift lasts three minutes with a four-delivery target; the standard shift lasts nine minutes with a target of eighteen. Arrivals are spaced more widely and deadlines leave more travel time. The purpose is readable decisions at a slower pace; deterministic balance audits are a mechanical baseline, not evidence of human enjoyment.
+The guided shift lasts three minutes with a six-delivery target and two opening jobs; the standard shift lasts nine minutes with a target of twenty-six and four opening jobs. Capacity-aware arrivals consider compatible cargo, existing tours and nearby work, easing when riders or the waiting desk are full. Deterministic balance audits are a mechanical baseline, not evidence of human enjoyment. [Radio, bicycle motion and demand changes](RADIO_AND_RHYTHM.md) describe the new experience and test route.
 
 ## Physical work at real addresses
 
@@ -58,7 +58,7 @@ Cargo becomes picked up only after collection finishes; payment arrives only aft
 
 Real route distances coexist with compressed riding and shift time. These handoff durations are tuned game time, not measured Berlin service times. Existing traffic-direction, cargo, fatigue, break and roadwork systems remain part of the causal model. Future disruptions and autonomous choices can still change a forecast.
 
-V6 is explicitly versioned. V4 and v5 retain their former movement and decision rules, and the Inner Ring retains v3. Resuming an older saved shift uses its recorded ruleset; a fresh full-city shift uses v6. Every personal invitation is a validated replay action; a broadcast preview is presentation state only.
+V7 is explicitly versioned. V4, v5 and v6 retain their former movement, demand and decision rules, and the Inner Ring retains v3. Resuming an older saved shift uses its recorded ruleset; a fresh full-city shift uses v7. Every personal invitation is a validated replay action; a broadcast preview is presentation state only.
 
 ## Berlin, with real building detail
 
@@ -106,7 +106,7 @@ Task pressure is an actual repeating part of the composition. The same little pa
 
 The most urgent matching rule wins. Buffer means deadline minus the current estimated finish, including travel, availability and handoffs. Claimed work uses its actual rider's ETA. A client extension can relax the pattern; a route slowdown can tighten it. The tempo stays at 102 BPM even at 2× simulation speed, so acceleration comes from the task's changing situation rather than a sped-up soundtrack.
 
-The three most pressing jobs form the foreground, ordered by pressure then smallest buffer. The lead is louder, the others softer and their slower rhythms interleave. Light parcels pluck, delicate parcels chime and heavy parcels hum. A volunteer brings their own instrument to the task; a small phrase variation keeps successive jobs from sounding identical. The footer names the audible jobs and their divisions. This is an overview of pressure, not a guarantee that every job can be identified by ear in a crowded mix.
+The three most pressing jobs form the foreground, ordered by pressure then smallest buffer. The lead is louder, the others softer and their slower rhythms interleave. Light parcels pluck, delicate parcels chime and heavy parcels hum. A volunteer brings their own instrument to the task; a small phrase variation keeps successive jobs from sounding identical. Menu names the audible jobs and their divisions. This is an overview of pressure, not a guarantee that every job can be identified by ear in a crowded mix.
 
 Stereo follows the current map view: waiting work sounds at the pickup, claimed work follows its rider, and roadwork cues come from the affected street. Collection starts with two soft taps; handover holds a note. Offbeat pedal notes rotate through moving riders and drop in pitch on a currently slowed edge. Break and return cues retain the rider's signature. Completion resolves the courier phrase; failure descends from the cargo's tonal register. Both stop that task's scheduled pulses and temporarily soften new accompaniment. Events start on the next sixteenth (normally within about 150 ms), including their resolution in the same musical grid.
 

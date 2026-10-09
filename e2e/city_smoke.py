@@ -8,9 +8,11 @@ import playtest_smoke as desk
 
 class CityAcceptance(desk.PlaytestAcceptance):
     city = 'berlin'
-    ruleset = 'berlin-dispatch-v6'
+    ruleset = 'berlin-dispatch-v7'
     map_asset = 'berlin-city.json.gz'
-    training_target = 4
+    training_target = 6
+    training_opening = 2
+    standard_opening = 4
     node_count = json.loads((Path(__file__).resolve().parents[1]/'generated/berlin-city-sources.json').read_text(encoding='utf-8'))['nodes']
 
     def test_outer_locality_starts_and_rider_location_preserve_geography(self):
@@ -43,7 +45,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.start()
         self.broadcast()
         self.page.locator('#pause').click()
-        expect(self.page.locator('.job-status')).to_contain_text('is on it', timeout=8000)
+        expect(self.page.locator('.job-status').first).to_contain_text('is on it', timeout=8000)
         self.page.locator('#pause').click()
         before=self.game('({tick:g.tick,seed:g.seed,jobs:g.deliveries.map(d=>[d.id,d.status]),positions:g.couriers.map(c=>[c.x,c.y]),cash:g.cash})')
         expect(self.page.locator('#save-state')).to_contain_text('Saved on this device')
@@ -92,12 +94,16 @@ class CityAcceptance(desk.PlaytestAcceptance):
         expect(self.page.locator('.job-timing').first).to_contain_text('Handing over',timeout=45000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=10000)
         expect(self.page.locator('#receipt-result')).to_contain_text('+€')
+        expect(self.page.locator('#radio-exchange')).to_have_attribute('data-action', 'complete')
+        expect(self.page.locator('#receipt-result')).to_be_hidden()
+        expect(self.page.locator('#delivery-receipt .receipt-stamp')).to_be_visible()
         expect(self.page.locator('#sound')).to_have_text('Sound off')
         self.page.locator('#pause').click()
         for width in [390,320]:
             self.page.set_viewport_size({'width':width,'height':844})
             self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
             self.assertTrue(self.page.evaluate("()=>{const receipt=document.querySelector('#delivery-receipt').getBoundingClientRect(),controls=document.querySelector('.map-controls').getBoundingClientRect();return !document.querySelector('.city-panel #coach-panel')&&controls.bottom<=receipt.top&&receipt.left>=0&&receipt.right<=innerWidth;}"),'phone receipt must clear map controls, with the guide outside the map')
+            self.page.screenshot(path=str(desk.REPORTS / f'radio-completion-{width}.png'), full_page=True)
 
     def test_score_preview_mix_volume_and_mute_do_not_change_the_simulation(self):
         self.start()
@@ -141,7 +147,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.page.locator('#pause').click();self.open_offer_options();self.page.locator('#client-call').click()
         self.broadcast();self.page.locator('#pause').click()
         self.wait_instance('playtest-score','DeskScore','instance.listened[0]?.pressure<3')
-        expect(self.page.locator('.job-status')).to_contain_text('is on it',timeout=8000)
+        expect(self.page.locator('.job-status').first).to_contain_text('is on it',timeout=8000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=25000)
         self.page.locator('#pause').click()
         self.assertFalse(score("s.taskVoices.has('d0')"))
@@ -174,7 +180,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         expect(self.page.locator('#map-detail-status')).to_contain_text('Building detail unavailable',timeout=10000)
         expect(self.page.locator('#fatal-error')).to_be_hidden()
         self.broadcast();self.page.locator('#pause').click()
-        expect(self.page.locator('#delivery-target')).to_have_text('1 / 4 delivered',timeout=45000)
+        expect(self.page.locator('#delivery-target')).to_have_text(f'1 / {self.training_target} delivered',timeout=45000)
         self.page.locator('#pause').click()
 
     def test_rider_bikes_preferences_endurance_and_capacity_are_visible(self):
@@ -221,6 +227,100 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertIsNone(self.game('g.deliveries[0].courierId'))
         self.assertTrue(self.game('g.paused'))
+
+    def test_busier_shift_starts_with_actionable_work_for_the_actual_team(self):
+        self.start('standard')
+        self.assertEqual(self.game('g.config.target'), 26)
+        expect(self.page.locator('.job-select')).to_have_count(self.standard_opening)
+        self.assertEqual(self.game('g.couriers.length'), 3)
+        self.assertTrue(self.game('g.deliveries.every(d=>g.deliveryFeasibility(d).candidates.some(row=>row.availableNow&&row.margin>0))'))
+        self.assertEqual(self.game('g.radioUsed()'), 0)
+        self.assertTrue(self.game('g.paused'))
+
+    def test_paused_map_stays_still_with_normal_and_reduced_motion(self):
+        self.page.emulate_media(reduced_motion='no-preference')
+        self.start()
+        self.broadcast(); self.page.locator('#pause').click()
+        expect(self.page.locator('.job-status').first).to_contain_text('is on it', timeout=10000)
+        self.wait_instance('game','Game',"['pickup','dropoff'].includes(instance.courierById(instance.deliveries[0].courierId)?.phase)")
+        self.page.wait_for_timeout(500)
+        self.page.locator('#pause').click()
+        rider_index = self.game('g.couriers.findIndex(c=>c.id===g.deliveries[0].courierId)')
+        self.page.locator('.rider-locate').nth(rider_index).click()
+        # Allow requested building tiles and the final layout paint to finish.
+        self.wait_instance('render','Renderer',"(()=>{instance.draw();const b=instance.buildingDetails;return instance.scale<2||(b?.state==='ready'&&b.pending.size===0&&b.queue.length===0&&[...b.wanted].every(id=>b.cache.has(id)));})()")
+        before = self.game('({tick:g.tick,positions:g.couriers.map(c=>[c.x,c.y,c.phase])})')
+        for motion in ['no-preference', 'reduce']:
+            with self.subTest(motion=motion):
+                self.page.emulate_media(reduced_motion=motion)
+                self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                first = self.page.locator('#game-canvas').screenshot()
+                self.page.wait_for_timeout(300)
+                self.assertEqual(self.page.locator('#game-canvas').screenshot(), first,
+                                 'Paused map must not keep cycling or pulsing')
+        self.assertEqual(self.game('({tick:g.tick,positions:g.couriers.map(c=>[c.x,c.y,c.phase])})'), before)
+
+    def test_radio_conversation_follows_confirmed_events_and_resets_with_the_shift(self):
+        self.start()
+        expect(self.page.locator('#radio-exchange')).to_be_hidden()
+        before = self.dispatch_snapshot()
+        log_before = self.game('g.dispatchLog')
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#broadcast-preview')).to_be_visible()
+        expect(self.page.locator('#radio-exchange')).to_be_hidden()
+        self.assertEqual(self.dispatch_snapshot(), before)
+        self.assertEqual(self.game('g.dispatchLog'), log_before)
+        self.page.locator('[data-radio="open"]').click()
+        expect(self.page.locator('#radio-exchange')).to_have_attribute('data-action', 'call')
+        expect(self.page.locator('#radio-lines [data-speaker="dispatcher"]')).to_contain_text('You · dispatch')
+        expect(self.page.locator('#radio-job')).to_have_text('D0')
+        self.assertIsNone(self.game('g.deliveries[0].courierId'))
+        self.page.locator('#pause').click()
+        expect(self.page.locator('#radio-exchange')).to_have_attribute('data-action', 'claim', timeout=10000)
+        rider = self.game('g.courierById(g.deliveries[0].courierId).name')
+        expect(self.page.locator('#radio-lines [data-speaker="rider"]')).to_contain_text(rider)
+        self.page.locator('#pause').click()
+        for width, height in [(1280, 720), (390, 844), (320, 568)]:
+            with self.subTest(width=width):
+                self.page.set_viewport_size({'width': width, 'height': height})
+                self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
+                self.assertTrue(self.page.locator('#radio-exchange').evaluate('el=>{const b=el.getBoundingClientRect(),m=document.querySelector("#game-canvas").getBoundingClientRect();return b.left>=m.left&&b.right<=m.right&&b.top>=m.top&&b.bottom<=m.bottom;}'))
+                self.page.screenshot(path=str(desk.REPORTS / f'radio-conversation-{width}.png'), full_page=True)
+        self.page.set_viewport_size({'width':1280,'height':720})
+        self.page.locator('#desk-menu > summary').click()
+        self.page.locator('#open-radio-log').click()
+        expect(self.page.locator('#radio-log-dialog')).to_be_visible()
+        expect(self.page.locator('#radio-history [data-action="call"]')).to_have_count(1)
+        expect(self.page.locator('#radio-history [data-action="claim"] [data-speaker="rider"]')).to_contain_text(rider)
+        self.assertTrue(self.game('g.paused'))
+        self.page.locator('#close-radio-log').click()
+        self.page.locator('#desk-menu > summary').click()
+        self.page.locator('#new-shift').click()
+        self.start()
+        expect(self.page.locator('#radio-exchange')).to_be_hidden()
+        self.page.locator('#desk-menu > summary').click()
+        self.page.locator('#open-radio-log').click()
+        expect(self.page.locator('#radio-history [data-action="call"]')).to_have_count(0)
+        expect(self.page.locator('#radio-history [data-action="claim"]')).to_have_count(0)
+        self.assertEqual(self.game('g.tick'), 0)
+
+    def test_radio_reports_new_calls_when_the_dispatch_log_rolls_over(self):
+        self.start()
+        # This is the production log cap, reached without changing demand or time.
+        self.game('(()=>{for(let i=0;i<300;i++)g.logDispatch("phase",null,{phase:"opening"});return g.dispatchLog.length;})()')
+        self.page.wait_for_timeout(250)
+        self.assertEqual(self.game('g.dispatchLog.length'), 300)
+        self.assertEqual(self.game('g.dispatchLog.filter(e=>e.action==="call").length'), 0)
+        expect(self.page.locator('#radio-exchange')).to_be_hidden()
+        self.broadcast()
+        self.assertEqual(self.game('g.dispatchLog.length'), 300)
+        self.assertEqual(self.game('g.dispatchLog.at(-1).action'), 'call')
+        expect(self.page.locator('#radio-exchange')).to_have_attribute('data-action', 'call')
+        expect(self.page.locator('#radio-lines [data-speaker="dispatcher"]')).to_contain_text('D0')
+        self.page.locator('#desk-menu > summary').click()
+        self.page.locator('#open-radio-log').click()
+        expect(self.page.locator('#radio-history [data-action="call"]')).to_have_count(1)
 
 if __name__ == '__main__':
     desk.REPORTS=desk.ROOT/'reports/browser/city'

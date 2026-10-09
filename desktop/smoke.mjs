@@ -37,6 +37,8 @@ async function broadcast(channel='open'){
   assert.deepEqual(await dispatchState(),before,'first click must only preview the broadcast');
   result.checks.push('bundled offer preview shows the same projected endurance and real stop order without changing play');
   await button.click();
+  await expect(page.locator('#radio-exchange')).toHaveAttribute('data-action','call');
+  await expect(page.locator('#radio-lines [data-speaker=dispatcher]')).toContainText('You · dispatch');
 }
 try{
   await launch();
@@ -49,7 +51,7 @@ try{
   await page.context().setOffline(true);
   await page.locator('#start-region').selectOption('spandau');await page.locator('[data-start=training]').click();
   const info=await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {nodes:g.nodes.length,city:g.cityData.metadata.id,rules:g.ruleset,start:g.startRegion};});
-  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v6',start:'spandau'});
+  assert.deepEqual(info,{nodes:198430,city:'berlin-city-v1-b81f2dddf012',rules:'berlin-dispatch-v7',start:'spandau'});
   assert.equal(await page.locator('#start-region option').count(),98);
   result.checks.push('complete Berlin and all locality choices load with networking offline');
   await page.locator('.rider-locate').first().click();
@@ -78,7 +80,7 @@ try{
   assert.equal(await page.evaluate(async()=>{const {DeskScore}=await import('/src/playtest-score.js');return DeskScore.lastInstance.voices.size;}),0);
   await page.locator('#close-sound').click();assert.deepEqual(await state(),before);
   result.checks.push('three rider themes, four task rhythms and exact mute work without changing simulation');
-  await page.locator('.job-select').click();await page.locator('#offer-options summary').click();await page.locator('#client-call').click();
+  await page.locator('.job-select').first().click();await page.locator('#offer-options summary').click();await page.locator('#client-call').click();
   await expect(page.locator('#client-call-detail')).toContainText('fee reduced');
   const preferenceBefore=await state();
   await page.locator('#preferred-rider').selectOption('c0');
@@ -88,10 +90,15 @@ try{
   assert.equal(await page.evaluate(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.deliveries[0].courierId;}),null);
   result.checks.push('rider preference and read-only first-click forecast preserve autonomy until the clock runs');
   await page.locator('#pause').click();
-  await expect(page.locator('.job-status')).toContainText('is on it',{timeout:12000});
+  await expect(page.locator('[data-job=d0] .job-status')).toContainText('is on it',{timeout:12000});
   await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:45000});
   await page.locator('#pause').click();
   result.checks.push('client tradeoff, autonomous acceptance and real-time collection/delivery complete offline');
+  await page.locator('#desk-menu > summary').click();await page.locator('#open-radio-log').click();
+  await expect(page.locator('#radio-history [data-action=complete] [data-speaker=rider]')).toHaveCount(1);
+  await expect(page.locator('#radio-history [data-action=call]')).toHaveCount(1);
+  await page.locator('#close-radio-log').click();
+  result.checks.push('offline speech bubbles and current-shift radio history report confirmed offers and real deliveries');
   const snapshot=await state();await page.screenshot({path:path.join(folder,'delivery.png')});
   await app.close();app=null;
   await launch();await page.context().setOffline(true);
@@ -117,7 +124,7 @@ try{
   const downloadPath=path.join(profile,'shift-export.json');
   await app.evaluate(({session},dest)=>session.defaultSession.once('will-download',(_e,item)=>item.setSavePath(dest)),downloadPath);
   await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const a=document.createElement('a');a.download='shift-export.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(Game.lastInstance.exportRun())],{type:'application/json'}));a.click();});
-  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v6');
+  await expect.poll(async()=>{try{return JSON.parse(await readFile(downloadPath,'utf8')).ruleset;}catch{return null;}}).toBe('berlin-dispatch-v7');
   result.checks.push('a shift record exports to a normal local file');
   assert.deepEqual(result.pageErrors,[]);assert.deepEqual(result.failedResources,[]);assert.deepEqual(result.externalRequests,[]);
   result.checks.push('no game requests to external services, missing resources or renderer errors');

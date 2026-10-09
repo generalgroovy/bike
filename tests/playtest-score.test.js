@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DeskScore,SCORE,TASK_RHYTHMS,taskRhythm,taskPulse,eventPhrase,scoreBar} from '../src/playtest-score.js';
+import {DeskScore,SCORE,DISPATCHER_VOICE,TASK_RHYTHMS,taskRhythm,taskPulse,eventPhrase,scoreBar,scheduleNote} from '../src/playtest-score.js';
 
 const tick=60/SCORE.bpm/4;
 function fixture({remaining=100,window=100,finishIn=5,count=1}={}){
@@ -89,9 +89,95 @@ test('completion and failure stop their task and resolve on the same sixteenth g
     score.cue(name,{jobId:'d4',rider:'Mauro',cargo:'grocery',pan:.65});
     assert.deepEqual(stopped,['d4']);assert.ok(score.duckUntil>score.ctx.currentTime+1);
     assert.ok(calls[0].at>=score.ctx.currentTime);assert.ok(calls[0].at-score.ctx.currentTime<tick+.012);
-    assert.ok(calls[0].notes.every(n=>n.pan===.65));
+    assert.ok(calls[0].notes.every(n=>n.pan===(n.source==='dispatcher'?0:.65)),'the rider stays on the map while dispatch answers at the desk');
   }
   assert.notDeepEqual(eventPhrase('fail'),eventPhrase('break'));
+});
+
+test('dispatcher questions have their own centered voice and only actual acceptance gets a rider answer',()=>{
+  const actions=['call-open','call-local','call-priority','call-off','prefer','bonus','client-call'];
+  const phrases=actions.map(action=>eventPhrase(action,{rider:'Mauro'}));
+  assert.equal(DISPATCHER_VOICE.instrument,'desk');
+  for(const phrase of phrases){
+    assert.ok(phrase.length>=2&&phrase.length<=3);
+    assert.ok(phrase.every(n=>n.instrument==='desk'&&n.source==='dispatcher'&&n.pan===0));
+    assert.ok(phrase.every(n=>n.volume<.08&&[0,2,5,7,9].includes(n.midi%12)));
+    assert.ok(phrase.every(n=>Math.abs(n.at/tick-Math.round(n.at/tick))<1e-8));
+  }
+  assert.equal(new Set(phrases.map(phrase=>JSON.stringify(phrase))).size,actions.length);
+  for(const rider of ['Kira','Mauro','Brian'])for(const action of ['claim','complete']){
+    const phrase=eventPhrase(action,{rider}),identity=eventPhrase('rider',{rider});
+    assert.deepEqual(phrase.slice(0,identity.length),identity,'actual rider identity leads the response');
+    const answer=phrase.filter(n=>n.source==='dispatcher');
+    assert.equal(answer.length,2);
+    assert.ok(answer[0].at>=Math.max(...identity.map(n=>n.at+n.duration)),'the desk leaves room for the rider to finish');
+  }
+  const {score,calls}=fixture();score.cue('call-local',{jobId:'d9',pan:.8});
+  assert.ok(calls[0].notes.every(n=>n.pan===0));
+  assert.ok(score.duckUntil>score.ctx.currentTime,'the accompaniment makes space for a real call');
+});
+
+test('busy radio is bounded and important outcomes replace routine chatter',()=>{
+  const {score,calls}=fixture(),stopped=[];
+  score.stopVoice=voice=>stopped.push(voice);
+  assert.ok(score.cue('spawn',{jobId:'new1'}));
+  const first=[...score.eventCues.values()][0],quietVoice={};first.voices.add(quietVoice);
+  assert.ok(score.cue('spawn',{jobId:'new2'}));
+  assert.equal(score.cue('spawn',{jobId:'new3'}),false);
+  assert.equal(score.eventCues.size,2);
+  assert.ok(score.cue('claim',{jobId:'accepted',rider:'Brian'}));
+  assert.deepEqual(stopped,[quietVoice]);
+  assert.ok(score.cue('complete',{jobId:'delivered',rider:'Mauro'}));
+  assert.deepEqual([...score.eventCues.values()].map(group=>group.name).sort(),['claim','complete']);
+  assert.equal(score.cue('pickup-arrival',{jobId:'another'}),false,'tiny handling steps cannot cover a delivery reply');
+  assert.equal(score.eventCues.size,2);
+  assert.equal(calls.length,4,'only admitted exchanges are scheduled');
+  score.ctx.currentTime=5;
+  assert.ok(score.cue('spawn',{jobId:'fresh'}),'routine cues return after the exchange');
+  assert.equal(score.eventCues.size,1);
+  score.cancel();assert.equal(score.eventCues.size,0);assert.equal(score.duckUntil,0);
+});
+
+test('a muted outcome still removes its old task pulse when the foreground is occupied',()=>{
+  const {score}=fixture(),stopped=[];
+  score.stopTask=id=>stopped.push(id);
+  score.cue('complete',{jobId:'first'});score.cue('complete',{jobId:'second'});
+  assert.equal(score.cue('complete',{jobId:'third'}),false);
+  assert.deepEqual(stopped,['first','second','third']);
+  assert.equal(score.eventCues.size,2);
+});
+
+function synthFixture(){
+  const oscillators=[],filters=[];
+  const parameter=()=>({value:0,events:[],setValueAtTime(value,at){this.events.push({kind:'set',value,at});},exponentialRampToValueAtTime(value,at){this.events.push({kind:'ramp',value,at});},cancelScheduledValues(){},setTargetAtTime(){}});
+  const node=()=>({connect(){},disconnect(){}});
+  const ctx={currentTime:0,
+    createOscillator(){const osc={...node(),frequency:parameter(),start(at){this.startedAt=at;},stop(at){this.stoppedAt=at;},addEventListener(){}};oscillators.push(osc);return osc;},
+    createGain:()=>({...node(),gain:parameter()}),
+    createBiquadFilter(){const filter={...node(),frequency:parameter()};filters.push(filter);return filter;},
+    createStereoPanner:()=>({...node(),pan:parameter()})};
+  return{ctx,oscillators,filters,output:node()};
+}
+
+test('the wooden dispatcher voice uses two filtered tonal oscillators and preserves the global ceiling',()=>{
+  const {ctx,oscillators,filters,output}=synthFixture();
+  const phrase=eventPhrase('call-open');
+  const voices=scheduleNote(ctx,output,phrase[0],1);
+  assert.equal(voices.length,2);
+  assert.ok(voices.every(osc=>osc.type==='sine'));
+  assert.ok(filters.every(filter=>filter.frequency.value===1800));
+  for(const osc of voices){
+    assert.equal(osc.frequency.events.length,2);
+    assert.ok(osc.frequency.events[0].value>osc.frequency.events[1].value,'a tiny pitch fall gives the soft wooden attack');
+    assert.ok(osc.stoppedAt-osc.startedAt<.2);
+  }
+  const score=new DeskScore();score.enabled=true;score.ctx=ctx;score.master=output;score.ensure=()=>ctx;
+  score.play(Array.from({length:100},()=>phrase[0]),1);
+  assert.equal(score.maxVoices,54);
+  assert.ok(score.voices.size<=54);
+  assert.ok(score.stats.dropped>0);
+  score.cancel();assert.equal(score.voices.size,0);
+  assert.ok(oscillators.every(osc=>Number.isFinite(osc.stoppedAt)));
 });
 
 test('all composed notes have finite, bounded synth parameters and distinct rider phrases',()=>{

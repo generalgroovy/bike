@@ -6,6 +6,7 @@ export const RIDER_PHRASES=Object.freeze({
   Mauro:{instrument:'pluck',notes:[50,57,62],beats:[0,.5,.75],pan:.3,label:'Mauro · warm bass pluck'},
   Brian:{instrument:'reed',notes:[67,65,62],beats:[0,.5,1],pan:0,label:'Brian · soft reed phrase'}
 });
+export const DISPATCHER_VOICE=Object.freeze({instrument:'desk',notes:[62,67],label:'Dispatch · soft wooden radio taps'});
 const beat=60/SCORE.bpm;
 export const TASK_RHYTHMS=Object.freeze([{name:'half notes',division:'1/2',steps:8},{name:'quarter notes',division:'1/4',steps:4},{name:'eighth notes',division:'1/8',steps:2},{name:'sixteenth notes',division:'1/16',steps:1}]);
 export function taskRhythm(remaining,window,finishIn=0){
@@ -21,28 +22,37 @@ export function taskPulse(d,{ordinal=0,pan=0,volume=1,rider=null}={}){
   return[note(pitch,0,rider?(RIDER_PHRASES[rider]?.instrument??types[d.type]):types[d.type],.10,(d.called?.028:d.status==='claimed'?.025:.018)*volume,pan)];
 }
 const note=(midi,at=0,instrument='bell',duration=.24,volume=.13,pan=0)=>({midi,at:at*beat,instrument,duration,volume,pan});
+const deskNote=(midi,at=0,duration=.13,volume=.065)=>({...note(midi,at,'desk',duration,volume,0),source:'dispatcher'});
+const deskAnswer=(at=1.5)=>[deskNote(67,at,.11,.04),deskNote(62,at+.25,.18,.05)];
 export function eventPhrase(name,{rider='Kira',cargo='document',success=true,mode='ready'}={}) {
   const voice=RIDER_PHRASES[rider]??RIDER_PHRASES.Kira;
   const signature=voice.notes.map((n,i)=>note(n,voice.beats[i],voice.instrument,.25,.11,voice.pan));
-  if(name==='claim'&&['on the way','next'].includes(mode))return [...signature,
+  // The desk asks in a dry, centered voice; only actual rider events answer in
+  // their spatial signature. An invitation must never sound like acceptance.
+  const dispatchMotifs={
+    'call-open':[62,67],'call-local':[62,65,67],'call-priority':[62,62,74],
+    'call-off':[67,62],'prefer':[62,({Kira:74,Mauro:65,Brian:67})[rider]??67],
+    'bonus':[62,69,74],'client-call':[67,65,62]
+  };
+  if(dispatchMotifs[name])return dispatchMotifs[name].map((midi,i)=>deskNote(midi,i*.25,name==='client-call'&&i===2?.24:.13,name==='call-priority'?.078:.065));
+  if(name==='claim'&&['on the way','next'].includes(mode))return [...signature,...deskAnswer(),
     note(57,.25,'pluck',.16,.045,voice.pan),note(62,1,'pluck',.3,.055,voice.pan)];
-  if(name==='rider'||name==='claim')return signature;
+  if(name==='rider')return signature;
+  if(name==='claim')return [...signature,...deskAnswer()];
   // The suspended fifth leaves a parcel hanging; the opening window answers
   // it with the same rider's upward phrase, on the shared musical grid.
   if(name==='window-wait')return [note(voice.notes[0],0,voice.instrument,.7,.045,voice.pan),note(69,.5,'reed',.8,.035,voice.pan)];
   if(name==='window-open')return [note(voice.notes[0],0,voice.instrument,.18,.055,voice.pan),note(voice.notes[1],.25,voice.instrument,.26,.065,voice.pan),note(74,.75,'bell',.4,.045,voice.pan)];
-  if(name==='prefer')return signature.slice(0,2).map(n=>({...n,volume:.055}));
   if(name==='pickup')return[...signature.slice(0,1),note(voice.notes[1],.5,voice.instrument,.18,.08,voice.pan)];
   if(name==='pickup-arrival')return[note(voice.notes[0],0,'pluck',.07,.08,voice.pan),note(voice.notes[0],.25,'pluck',.07,.05,voice.pan)];
   if(name==='dropoff-arrival')return[note(voice.notes[1],0,'reed',.7,.07,voice.pan)];
-  if(name==='complete')return[...signature,note(74,1.5,'bell',.55,.1),note(69,1.5,'reed',.65,.05),note(50,1.5,'pluck',.55,.09)];
+  if(name==='complete')return[...signature,...deskAnswer(1.5),note(50,2,'pluck',.55,.065)];
   if(name==='fail'){const notes=({document:[74,69,62],fragile:[77,72,65],grocery:[57,55,50]})[cargo]??[74,69,62];return notes.map((n,i)=>note(n,i*.5,'reed',.5,.075));}
   if(name==='break')return[...signature.slice(-2).map((n,i)=>({...n,at:i*.5*beat,volume:.06})),note(50,1.5,'pluck',.4,.045)];
   if(name==='radio-on')return signature.slice(0,2);
   if(name==='spawn')return cargo==='grocery'?[note(57,0,'pluck'),note(62,.5,'pluck')]:cargo==='fragile'?[note(69,0),note(77,.5)]:[note(74,0),note(81,.25)];
   const motifs={
-    'call-open':[62,67],'call-local':[67,65,62],'call-priority':[74,74,81],'call-off':[65,62],
-    'bonus':[69,74,77],'client-call':[57,62,65,69],'fail':[65,62,57],
+    'fail':[65,62,57],
     'event-forecast':[55,60],'event-start':[50,55,60],'event-end':[57,62,69],
     'break':[65,62,57],'radio-on':[57,62],'upgrade':[62,65,69,74],
     'start':[50,57,62,65,69,74],'pause':[62,57],'finish':success?[62,65,69,74,81,74]:[65,62,57,50]
@@ -66,11 +76,12 @@ export function scoreBar(phase,index,{riding=0,roadworks=false}={}){
 // Exported for exact offline rendering and audio QA with OfflineAudioContext.
 export function scheduleNote(ctx,output,n,when,onEnded=()=>{}) {
   const fundamental=440*2**((n.midi-69)/12),voices=[];
-  const harmonics=n.instrument==='bell'?[[1,'sine',1],[2,'sine',.22],[3,'sine',.06]]:n.instrument==='reed'?[[1,'triangle',.72],[2,'sine',.1]]:[[1,'triangle',.8],[.5,'sine',.24]];
+  const harmonics=n.instrument==='desk'?[[1,'sine',.78],[2.76,'sine',.12]]:n.instrument==='bell'?[[1,'sine',1],[2,'sine',.22],[3,'sine',.06]]:n.instrument==='reed'?[[1,'triangle',.72],[2,'sine',.1]]:[[1,'triangle',.8],[.5,'sine',.24]];
   for(const [ratio,type,level] of harmonics){
     const osc=ctx.createOscillator(),envelope=ctx.createGain(),filter=ctx.createBiquadFilter();
-    osc.type=type;osc.frequency.value=fundamental*ratio;filter.type='lowpass';filter.frequency.value=n.instrument==='pluck'?1700:n.instrument==='reed'?2500:6500;
+    osc.type=type;osc.frequency.value=fundamental*ratio;filter.type='lowpass';filter.frequency.value=n.instrument==='desk'?1800:n.instrument==='pluck'?1700:n.instrument==='reed'?2500:6500;
     const start=when+n.at,attack=n.instrument==='reed'?.035:.004;
+    if(n.instrument==='desk'){osc.frequency.setValueAtTime(fundamental*ratio*1.08,start);osc.frequency.exponentialRampToValueAtTime(fundamental*ratio,start+.025);}
     envelope.gain.setValueAtTime(.00001,start);envelope.gain.exponentialRampToValueAtTime(Math.max(.00002,n.volume*level*2.5),start+attack);envelope.gain.exponentialRampToValueAtTime(.00001,start+n.duration);
     osc.connect(filter);filter.connect(envelope);let tail=envelope;
     if(ctx.createStereoPanner){const pan=ctx.createStereoPanner();pan.pan.value=n.pan;envelope.connect(pan);tail=pan;}
@@ -82,9 +93,14 @@ export function scheduleNote(ctx,output,n,when,onEnded=()=>{}) {
 
 export function connectScoreOutput(ctx,master){const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-8;limiter.knee.value=4;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.14;master.connect(limiter);limiter.connect(ctx.destination);return limiter;}
 
+const cuePriority=name=>name==='finish'?100:name==='fail'?90:name==='complete'?80:name==='claim'?70
+  :['window-wait','window-open'].includes(name)?65:['break','radio-on'].includes(name)?60
+  :name.startsWith('call-')||['prefer','bonus','client-call','start','pause','upgrade'].includes(name)?50
+    :name.startsWith('event-')?40:name==='rider'?35:name==='pickup'?30:name==='spawn'?20:10;
+
 export class DeskScore {
   static lastInstance=null;
-  constructor(){this.ctx=null;this.master=null;this.enabled=false;this.volume=.35;this.mix='score';this.rhythms=true;this.voices=new Set();this.maxVoices=54;this.nextPulse=0;this.bar=0;this.lastCue=new Map();this.taskVoices=new Map();this.listened=[];this.duckUntil=0;this.fieldGame=null;this.fieldRiders=new Map();this.stats={cues:0,bars:0,pulses:0,dropped:0};DeskScore.lastInstance=this;}
+  constructor(){this.ctx=null;this.master=null;this.enabled=false;this.volume=.35;this.mix='score';this.rhythms=true;this.voices=new Set();this.maxVoices=54;this.nextPulse=0;this.bar=0;this.lastCue=new Map();this.taskVoices=new Map();this.eventCues=new Map();this.eventSerial=0;this.listened=[];this.duckUntil=0;this.fieldGame=null;this.fieldRiders=new Map();this.stats={cues:0,bars:0,pulses:0,dropped:0};DeskScore.lastInstance=this;}
   ensure(){
     if(!this.enabled)return null;
     try{if(!this.ctx){const Context=globalThis.AudioContext??globalThis.webkitAudioContext;if(!Context)return null;this.ctx=new Context();this.master=this.ctx.createGain();this.master.gain.value=this.volume;this.limiter=connectScoreOutput(this.ctx,this.master);}
@@ -102,18 +118,31 @@ export class DeskScore {
   }
   stopVoice(osc){try{const now=this.ctx?.currentTime??0;if(osc.deskStart>now)osc.stop(now);else {osc.deskEnvelope.gain.cancelScheduledValues(now);osc.deskEnvelope.gain.setTargetAtTime(.00001,now,.006);osc.stop(now+.035);}}catch{}this.voices.delete(osc);}
   stopTask(id){for(const osc of this.taskVoices.get(id)??[])this.stopVoice(osc);this.taskVoices.delete(id);}
-  cancel(){for(const osc of this.voices)this.stopVoice(osc);this.voices.clear();this.taskVoices.clear();this.nextPulse=0;this.listened=[];}
+  cancel(){for(const osc of this.voices)this.stopVoice(osc);this.voices.clear();this.taskVoices.clear();this.eventCues.clear();this.nextPulse=0;this.listened=[];this.duckUntil=0;}
   suspend(){this.cancel();this.ctx?.suspend().catch(()=>{});}
-  play(notes,when,taskId=null){const ctx=this.ensure();if(!ctx)return false;
-    for(const n of notes){if(this.voices.size+3>this.maxVoices){this.stats.dropped++;continue;}for(const osc of scheduleNote(ctx,this.master,n,when??ctx.currentTime+.01,osc=>{this.voices.delete(osc);this.taskVoices.get(taskId)?.delete(osc);})){this.voices.add(osc);if(taskId){if(!this.taskVoices.has(taskId))this.taskVoices.set(taskId,new Set());this.taskVoices.get(taskId).add(osc);}}}return true;
+  play(notes,when,taskId=null,eventId=null){const ctx=this.ensure();if(!ctx)return false;
+    for(const n of notes){if(this.voices.size+3>this.maxVoices){this.stats.dropped++;continue;}for(const osc of scheduleNote(ctx,this.master,n,when??ctx.currentTime+.01,osc=>{this.voices.delete(osc);this.taskVoices.get(taskId)?.delete(osc);this.eventCues.get(eventId)?.voices.delete(osc);})){this.voices.add(osc);this.eventCues.get(eventId)?.voices.add(osc);if(taskId){if(!this.taskVoices.has(taskId))this.taskVoices.set(taskId,new Set());this.taskVoices.get(taskId).add(osc);}}}return true;
   }
   cue(name,data={}){if(!this.enabled)return false;const now=performance.now()/1000,key=name+':'+(data.jobId??data.rider??'');if(now-(this.lastCue.get(key)??-Infinity)<.08)return false;this.lastCue.set(key,now);
-    const notes=eventPhrase(name,data).map(n=>({...n,pan:data.pan??n.pan}));if(!notes.length)return false;
+    const notes=eventPhrase(name,data).map(n=>({...n,pan:n.source==='dispatcher'?0:data.pan??n.pan}));if(!notes.length)return false;
     const ctx=this.ensure();if(!ctx)return false;
     if(name==='finish')this.cancel();
     if(['complete','fail'].includes(name)){this.stopTask(data.jobId);this.duckUntil=ctx.currentTime+1.5;}
     const when=Math.ceil((ctx.currentTime+.012)/(beat/4))*(beat/4);
-    this.stats.cues++;return this.play(notes,when);
+    // Two short foreground exchanges at most. A real acceptance or outcome
+    // can replace a new-job ping, but busy radio chatter cannot bury it.
+    for(const [id,group] of this.eventCues)if(group.until<=ctx.currentTime)this.eventCues.delete(id);
+    const priority=cuePriority(name),groups=[...this.eventCues];
+    if(priority<50&&groups.some(([,group])=>group.priority>=70)){this.stats.dropped++;return false;}
+    if(groups.length>=2){
+      const [lowestId,lowest]=groups.sort((a,b)=>a[1].priority-b[1].priority||a[1].until-b[1].until)[0];
+      if(priority<=lowest.priority){this.stats.dropped++;return false;}
+      for(const osc of lowest.voices)this.stopVoice(osc);this.eventCues.delete(lowestId);
+    }
+    const eventId=++this.eventSerial,until=when+Math.max(...notes.map(n=>n.at+n.duration))+.04;
+    this.eventCues.set(eventId,{name,priority,until,voices:new Set()});
+    if(priority>=50)this.duckUntil=Math.max(this.duckUntil,ctx.currentTime+(['complete','fail'].includes(name)?1.5:.9));
+    this.stats.cues++;return this.play(notes,when,null,eventId);
   }
   update(game,{feasibility=new Map(),panFor=()=>0}={}){
     const audible=this.enabled&&!game.paused&&!game.gameOver&&!game.upgradePending&&!globalThis.document?.hidden;

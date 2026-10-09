@@ -204,3 +204,30 @@ select:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline
 @media(prefers-reduced-motion:reduce){.desk-focus{transition:none}}
 .accepted-tour{margin:10px 0;background:#edf1e4;padding:0 10px;border-left:3px solid #729270;border-radius:3px 7px 7px 3px}.accepted-tour>summary{font-size:11px;min-height:44px}.accepted-tour #accepted-next-stop{display:block;font-size:10px;font-weight:400;color:#617454;line-height:1.5;margin-top:5px}.accepted-tour .itinerary-stops{padding-top:4px}
 .consequence-metrics dt{font-size:10px}.consequence-metrics dd{font-size:12px}
+
+/* The radio sits on the map like a small dispatch postcard, never another panel. */
+.radio-exchange{position:absolute;z-index:5;left:14px;bottom:30px;width:min(350px,calc(100% - 76px));filter:drop-shadow(0 5px 12px #172a2d22);pointer-events:none}
+.radio-exchange[hidden]{display:none}
+.radio-heading{display:flex;align-items:center;gap:8px;margin:0 4px 6px;font-size:10px;letter-spacing:.08em;font-weight:800;color:#284449}
+.radio-heading>span{background:#f8f6edd9;padding:5px 8px;border-radius:8px}
+.radio-heading i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#397e6b;margin-right:5px}
+.radio-heading button{pointer-events:auto;min-height:28px;padding:3px 8px;font-size:11px;border-radius:8px;background:#f8f6edee}
+#dismiss-radio{margin-left:auto;width:28px;font-size:18px}
+.radio-bubble{position:relative;display:flex;flex-direction:column;gap:3px;margin:0 0 7px;padding:9px 12px;border:1px solid #cedbd6;border-radius:12px 12px 12px 3px;background:#fbfaf2f5;color:#294348;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.radio-bubble strong{font-size:10px;letter-spacing:.03em;color:#427261}
+.radio-bubble[data-speaker=dispatcher]{margin-right:26px;border-radius:12px 12px 3px 12px;background:#203c40f2;color:#fffaf0;border-color:#203c40}
+.radio-bubble[data-speaker=dispatcher] strong{color:#a9d3c0}
+.radio-bubble[data-speaker=rider]{margin-left:20px}
+.radio-bubble[data-tone=sharp]{border-left:3px solid #ba7251}
+.radio-bubble[data-tone=dry]{border-left:3px solid #99784d}
+.radio-bubble[data-tone=warm]{border-left:3px solid #537ca0}
+.radio-bubble[data-speaker=radio]{font-size:11px;background:#edf1e9f5}
+.radio-speaking .map-bottom{visibility:hidden}
+.radio-speaking .map-scale{opacity:.3}
+.radio-speaking .delivery-receipt{width:auto;max-width:calc(100% - 24px);padding:7px;clip-path:none;border-top:0;border-radius:8px}
+.radio-speaking .delivery-receipt strong,.radio-speaking .delivery-receipt>span:not(.receipt-stamp),.radio-speaking .delivery-receipt small{display:none}
+.radio-log-dialog{width:min(540px,calc(100vw - 24px))}
+#radio-history{list-style:none;padding:0;max-height:55dvh;overflow:auto;margin:16px 0}
+#radio-history>li{margin-bottom:20px}
+.radio-log-stamp{display:block;color:#627477;font-size:10px;margin:0 3px 6px;text-transform:uppercase;letter-spacing:.04em}
+@media(max-width:520px){.radio-exchange{left:9px;bottom:22px;width:calc(100% - 58px)}.radio-bubble{font-size:11px;padding:7px 10px;line-height:1.3}.radio-heading{margin-bottom:4px}.radio-bubble[data-speaker=rider]{margin-left:12px}}

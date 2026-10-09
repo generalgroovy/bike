@@ -18,7 +18,7 @@
       <div><small>RADIO</small><strong id="radio-count">0 / 3</strong></div>
     </div>
     <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><details id="desk-menu" class="desk-menu"><summary>Menu</summary><div class="menu-sheet">
-      <button id="help">How to play</button><button id="open-sound-studio">Sound &amp; music</button><button id="new-shift">New shift</button>
+      <button id="help">How to play</button><button id="open-radio-log">Radio log</button><button id="open-sound-studio">Sound &amp; music</button><button id="new-shift">New shift</button>
       <div class="session-meta"><strong id="scope-name"></strong><small id="seed-label"></small><small id="phase-name"></small><span id="flow-count"></span><small id="listening-now"></small><span id="save-state" role="status"></span><span id="map-detail-status"></span></div>
     </div></details></nav>
   </header>
@@ -49,6 +49,7 @@
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
       <div id="delivery-receipt" class="delivery-receipt" role="status" hidden><span class="receipt-stamp">DELIVERED ✓</span><strong id="receipt-title"></strong><span id="receipt-address"></span><small id="receipt-result"></small></div>
 
+      <section id="radio-exchange" class="radio-exchange" aria-label="Radio conversation" hidden><div class="radio-heading"><span><i aria-hidden="true"></i> DESK RADIO</span><button id="radio-job" title="Show this job"></button><button id="dismiss-radio" aria-label="Dismiss radio conversation">×</button></div><div id="radio-lines" aria-live="polite" aria-atomic="true"></div></section>
       <div class="map-bottom"><span id="notice" role="status"></span></div>
       </div>
       <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><h2 id="team-title">Riders</h2></div><div id="team-list"></div></section>
@@ -91,7 +92,7 @@
     <h2>New shift</h2>
     <label id="start-region-field" class="start-region-field">Starting locality<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select></label>
     <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
-    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 4 deliveries</option><option value="standard">9 minutes · 18 deliveries</option></select></label>
+    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 6 deliveries</option><option value="standard">9 minutes · 26 deliveries</option></select></label>
     <button id="prepare-shift" class="primary" data-start="training">Prepare shift ↗</button>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
   </dialog>
@@ -104,7 +105,7 @@
     <p>Radio space is freed when a courier volunteers. A waiting job's clock keeps running even when it is off-air. A €5 bonus improves interest, paid from your cash.</p>
     <p>Read each job's finish estimate before its deadline. <strong>Time to spare</strong> leaves a buffer; <strong>Tight window</strong> needs an early call; <strong>Too little time</strong> means the current estimate cannot fit. <strong>After current work</strong> depends on a busy or resting rider becoming available. These are estimates, not promises.</p>
     <p>Couriers pass on offers they cannot currently finish. PRIORITY and bonuses influence interest; they cannot extend a deadline. Withdraw a call to free radio space when needed. The job still waits on the desk and can miss its deadline.</p>
-    <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. The highlighted locality attracts more work; nearby pickups remain available. Chain clean deliveries and choose one upgrade halfway through.</p>
+    <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. In new full-city shifts, work follows riders with room, favoring useful combinations and nearby next stops. Older shifts retain their original demand pattern. Chain clean deliveries and choose one upgrade halfway through.</p>
     <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
     <p>Tap a rider's bike to locate them. Their card always shows preferences, compatible cargo, endurance and load. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
     <p id="logistics-help">A personal invitation increases one rider's interest without reserving the job. Light road bikes, versatile city bikes and roomy cargo bikes suit different parcels. Weight uses carrying capacity and drains endurance. A rider can choose a second job when both deadlines and their load fit, collecting along the way or after current work. A later delivery window allows collection now, but handover waits until the client opens.</p>
@@ -115,9 +116,11 @@
     <button id="close-help" class="primary">Back to the desk</button>
   </dialog>
 
+  <dialog id="radio-log-dialog" class="radio-log-dialog"><span class="eyebrow">THIS SHIFT · RECENT MESSAGES</span><h2>Over to you.</h2><p id="radio-log-empty" class="fine-print">The radio is quiet. Confirm an offer to put it on air.</p><ol id="radio-history"></ol><button id="close-radio-log" class="primary">Back to the desk</button></dialog>
+
   <dialog id="sound-dialog">
     <span class="eyebrow">THE SOUND OF THE DESK</span><h2>Spokes &amp; Postcards.</h2>
-    <p>Hear the city working. Three courier signatures, little parcel melodies and a shared, gentle pulse.</p>
+    <p>Your warm wooden radio phrase calls; each rider answers in their own voice. Three courier signatures, little parcel melodies and a shared, gentle pulse.</p>
     <label class="sound-field">Mix <select id="sound-mix"><option value="score">City score + field cues</option><option value="events">Field cues only</option></select></label>
     <label class="sound-field">Volume <input id="sound-volume" type="range" min="0" max="100" value="35"></label>
     <label class="sound-check"><input id="task-rhythms" type="checkbox" checked> Hear task pressure</label>

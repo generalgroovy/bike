@@ -6,7 +6,7 @@ import { BerlinPlaytest, FIXED_STEP, replayRun } from '../src/game-berlin-playte
 import { RNG } from '../src/rng.js';
 
 const city = decodeInnerRing(JSON.parse(readFileSync(new URL('../generated/berlin-city.json', import.meta.url))));
-const make = options => new BerlinPlaytest({ city, seed: 'LOGISTICS-TEST', ...options });
+const make = options => new BerlinPlaytest({ city, seed: 'LOGISTICS-TEST', ruleset: 'berlin-dispatch-v6', ...options });
 function advance(g, seconds) {
   g.paused = false;
   for (let i = 0; i < seconds / FIXED_STEP && !g.gameOver; i++) {

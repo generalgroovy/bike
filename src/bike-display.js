@@ -25,13 +25,27 @@ export function createBikeIconElement(value,{className='bike-icon',title=null}={
   return svg;
 }
 
-export function drawBikeIcon(ctx,value,x,y,size,color=null){
+export function drawBikeIcon(ctx,value,x,y,size,color=null,motion=null){
   if(!ctx)return;
   const visual=bikeVisual(value),Path=globalThis.Path2D;
-  ctx.save();ctx.translate(x-size/2,y-size*13/40);ctx.scale(size/40,size/40);
+  ctx.save();ctx.translate(x,y);if(motion?.faceLeft)ctx.scale(-1,1);ctx.translate(-size/2,-size*13/40);ctx.scale(size/40,size/40);
   ctx.strokeStyle=color??value?.color??'#303c43';ctx.lineWidth=1.9;ctx.lineCap='round';ctx.lineJoin='round';
   if(Path){let path=paths.get(visual.id);if(!path){path=new Path(visual.path);paths.set(visual.id,path);}ctx.stroke(path);}
   else{for(const wheel of[10,30]){ctx.beginPath();ctx.arc(wheel,18,5,0,Math.PI*2);ctx.stroke();}ctx.beginPath();ctx.moveTo(10,18);ctx.lineTo(17,7);ctx.lineTo(22,18);ctx.lineTo(10,18);ctx.moveTo(17,7);ctx.lineTo(26,7);ctx.lineTo(30,18);ctx.stroke();}
+  if(motion){
+    const cargo=visual.id==='cargo',wheels=cargo?[6,33]:[10,30],wheelY=cargo?19:18,wheelRadius=cargo?3.3:4.2;
+    ctx.lineWidth=.85;ctx.globalAlpha=.52;
+    for(const wheel of wheels){for(let spoke=0;spoke<3;spoke++){const angle=motion.wheelAngle+spoke*Math.PI/3,dx=Math.cos(angle)*wheelRadius,dy=Math.sin(angle)*wheelRadius;ctx.beginPath();ctx.moveTo(wheel-dx,wheelY-dy);ctx.lineTo(wheel+dx,wheelY+dy);ctx.stroke();}}
+    ctx.globalAlpha=1;ctx.lineWidth=1.3;
+    const crankX=cargo?18:20,crankY=cargo?19:18,dx=Math.cos(motion.pedalAngle)*2.6,dy=Math.sin(motion.pedalAngle)*2.6;
+    ctx.beginPath();ctx.moveTo(crankX-dx,crankY-dy);ctx.lineTo(crankX+dx,crankY+dy);ctx.stroke();
+    for(const sign of[-1,1]){ctx.beginPath();ctx.moveTo(crankX+sign*dx-1.4,crankY+sign*dy);ctx.lineTo(crankX+sign*dx+1.4,crankY+sign*dy);ctx.stroke();}
+    // A tiny rider silhouette keeps these as bicycles in motion, not glowing dots.
+    const lean=visual.id==='road'?3:visual.id==='cargo'?1:0,hipX=cargo?12:16,headX=hipX+3+lean;
+    ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(hipX,7);ctx.lineTo(headX-1,2);ctx.lineTo(cargo?20:26,5);ctx.stroke();
+    ctx.beginPath();ctx.arc(headX,-.3,1.7,0,Math.PI*2);ctx.fillStyle=ctx.strokeStyle;ctx.fill();
+    ctx.beginPath();ctx.moveTo(hipX,7);ctx.lineTo(hipX+4,11);ctx.lineTo(crankX+dx,crankY+dy);ctx.stroke();
+  }
   ctx.restore();
 }
 

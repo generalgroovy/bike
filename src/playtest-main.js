@@ -11,16 +11,19 @@ import { deskState, jobState } from './desk-state.js';
 import { createBikeIconElement, bikeVisual, riderEndurance, riderLoad } from './bike-display.js';
 import { forecastBroadcast, previewKey } from './broadcast-preview.js';
 import { deskFocus } from './desk-focus.js';
+import { RadioDesk } from './radio-desk.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
 const cards = new Map(), riderCards = new Map();
 const estimates = new Map(), feasibility = new Map();
 const audio = new DeskScore();
+const radioDesk = new RadioDesk();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
-const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#upgrade-dialog', '#review-dialog'];
-let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
+const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#radio-log-dialog', '#upgrade-dialog', '#review-dialog'];
+let radioWasPaused=true;
+let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = null;
 let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
 let broadcastDraft=null, inspectedRiderId=null;
@@ -33,14 +36,15 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   renderer?.dispose();
   audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
   game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
+  radioDesk.reset();
   broadcastDraft=null;inspectedRiderId=null;$('#rider-comparison').hidden=true;
   $('#rider-preference-field').hidden=!game.logistics;
   $('#preference-effect').hidden=!game.logistics;
   $('#parcel-requirements').hidden=!game.logistics;
   $('#logistics-help').hidden=!game.logistics;
   $('#preferred-rider').replaceChildren(new Option('No preference', ''), ...game.couriers.map(c=>new Option(`${c.name} · ${bikeVisual(c).label}`,c.id)));
-  $('#shift-length').options[0].textContent=`3 minutes · ${game.logistics?4:5} deliveries`;
-  $('#shift-length').options[1].textContent=`9 minutes · ${game.logistics?18:24} deliveries`;
+  $('#shift-length').options[0].textContent=`3 minutes · ${game.fullCity?6:5} deliveries`;
+  $('#shift-length').options[1].textContent=`9 minutes · ${game.fullCity?26:24} deliveries`;
   if (!restored) game.selectedDeliveryId = game.activeDeliveries()[0]?.id ?? null;
   $('#shift-length').value = mode;
   $('#prepare-shift').dataset.start = mode;
@@ -56,7 +60,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   $('#accepted-tour').open = false;
   $('#rider-outlook').replaceChildren();
   $('#work-list').replaceChildren(); $('#team-list').replaceChildren();
-  lastLog = restored?game.dispatchLog.length:0;accumulator = 0; lastTime = performance.now(); faulted = false;
+  lastLog = restored?game.dispatchLog.at(-1)??null:null;accumulator = 0; lastTime = performance.now(); faulted = false;
   $('#client-negotiation').hidden=!game.refined;$('#refined-help').hidden=!game.refined;
   const url = new URL(location.href);
   url.searchParams.set('seed', seed); url.searchParams.set('mode', mode);
@@ -441,7 +445,7 @@ function render() {
   text('#phase-name', phase.label); text('#phase-detail', status.detail);
   $('.shift-context').title = status.detail;
   const demand=game.demandRegion();
-  text('#demand-region',game.closing?'Finishing the queue':`Demand favors ${demand.name}`);
+  text('#demand-region',game.closing?'Finishing the queue':game.capacityDemand?'Work follows riders with room':`Demand favors ${demand.name}`);
   text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'');
   text('#map-detail-status',renderer.buildingDetails?.status(renderer.scale)??'');
   text('#mobile-job-count',game.activeDeliveries().length);
@@ -482,7 +486,12 @@ function render() {
     $('#upgrade-dialog').showModal();
   }
   if (game.gameOver && !$('#review-dialog').open) { if ($('#upgrade-dialog').open) $('#upgrade-dialog').close(); showReview(); }
-  const events = game.dispatchLog.slice(lastLog); lastLog = game.dispatchLog.length;
+  // The simulation caps its log at 300 entries; an array-length cursor stalls
+  // when old entries roll off. Object identity keeps presentation on new events.
+  const events = game.dispatchLog.slice(lastLog?game.dispatchLog.indexOf(lastLog)+1:0);
+  lastLog = game.dispatchLog.at(-1)??null;
+  radioDesk.observe(game,events);
+  $('.map-surface').classList.toggle('radio-speaking',Boolean(radioDesk.current));
   for (const event of events) {
     const job=game.deliveryById(event.deliveryId);
     if(event.action==='complete'&&job){
@@ -532,6 +541,12 @@ $('#speed').addEventListener('click', () => act({ type: 'speed', speed: game.spe
 function setSound(enabled){sound=audio.setEnabled(enabled);text('#sound',sound?'Sound on':'Sound off');$('#sound').setAttribute('aria-pressed',String(sound));text('#studio-toggle',sound?'Mute sound':'Enable sound');text('#sound-status',enabled&&!sound?'Audio is unavailable in this browser. The desk remains fully playable.':sound?'Sound on. Rider previews and event cues use the same original score.':'Muted. Every event is still shown visually.');}
 $('#sound').addEventListener('click',()=>setSound(!sound));
 $('#open-sound-studio').addEventListener('click',()=>{soundWasPaused=game.paused;act({type:'pause',paused:true});$('#sound-dialog').showModal();});
+$('#dismiss-radio').addEventListener('click',()=>{radioDesk.dismiss();$('.map-surface').classList.remove('radio-speaking');});
+$('#radio-job').addEventListener('click',()=>{if(radioDesk.current?.jobId)select(radioDesk.current.jobId);});
+$('#open-radio-log').addEventListener('click',()=>{radioWasPaused=game.paused;act({type:'pause',paused:true});radioDesk.renderLog();$('#radio-log-dialog').showModal();});
+function closeRadioLog(){$('#radio-log-dialog').close();act({type:'pause',paused:radioWasPaused});}
+$('#close-radio-log').addEventListener('click',closeRadioLog);
+$('#radio-log-dialog').addEventListener('cancel',event=>{event.preventDefault();closeRadioLog();});
 function closeSound(){$('#sound-dialog').close();act({type:'pause',paused:soundWasPaused});}
 $('#close-sound').addEventListener('click',closeSound);$('#sound-dialog').addEventListener('cancel',event=>{event.preventDefault();closeSound();});
 $('#studio-toggle').addEventListener('click',()=>setSound(!sound));

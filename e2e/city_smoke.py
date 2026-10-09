@@ -72,7 +72,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
     def test_client_negotiation_and_rider_outlook_explain_the_tradeoff(self):
         self.start()
         before=self.game('({tick:g.tick,fee:g.deliveries[0].reward,deadline:g.deliveries[0].deadlineAt,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId])})')
-        self.page.locator('#decision-details summary').click()
+        self.page.locator('#decision-details > summary').click()
         expect(self.page.locator('#rider-outlook .outlook-row')).to_have_count(3)
         self.page.locator('.parcel-details summary').click()
         expect(self.page.locator('#selected-handling')).to_contain_text('collection')

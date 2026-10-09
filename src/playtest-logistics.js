@@ -53,11 +53,11 @@ function routeOrigin(game, c, loaded) {
   return { nodeId: target.id, seconds: Math.hypot(c.x - target.x, c.y - target.y) / (speed * (edge?.speed ?? 1) * (edge?.eventMultiplier ?? 1)) };
 }
 
-function simulateStops(game, c, stops, extra = null, enforce = true) {
+function simulateStops(game, c, stops, extra = null, enforce = true, detail = false) {
   const jobs = game.riderJobs(c), loaded = jobs.filter(d => d.pickedUp);
   const origin = routeOrigin(game, c, loaded);
   let nodeId = origin.nodeId, seconds = origin.seconds, peakKg = game.riderLoad(c), fatigue = c.fatigue;
-  const arrivals = {}, finishes = {}, pickups = {};
+  const arrivals = {}, finishes = {}, pickups = {}, itinerary = [];
   for (let i = 0; i < stops.length; i++) {
     const stop = stops[i], d = stop.jobId === extra?.id ? extra : game.deliveryById(stop.jobId);
     if (!d || !['waiting', 'claimed'].includes(d.status)) continue;
@@ -73,6 +73,8 @@ function simulateStops(game, c, stops, extra = null, enforce = true) {
     seconds += travel;
     fatigue = clamp(fatigue + travel * .00315 * c.experience.fatigue * game.modifiers.fatigue * handling.fatigue, 0, 1);
     arrivals[d.id] ??= seconds;
+    const arrivalIn = seconds, loadBeforeKg = handling.kg;
+    const waitSeconds = stop.kind === 'dropoff' ? Math.max(0, (d.deliverAfter ?? 0) - game.elapsed - seconds) : 0;
     const continuing = i === 0 && c.stops?.[0]?.jobId === stop.jobId && c.stops[0].kind === stop.kind && HANDLING_PHASES.includes(c.phase);
     if (stop.kind === 'pickup') {
       seconds += continuing && c.phase === 'loading' ? Math.max(0, c.handoffUntil - game.elapsed) : game.handoffTime(d).pickup;
@@ -88,9 +90,13 @@ function simulateStops(game, c, stops, extra = null, enforce = true) {
       const at = loaded.findIndex(item => item.id === d.id);
       if (at >= 0) loaded.splice(at, 1);
     }
+    if (detail) itinerary.push({ jobId: d.id, kind: stop.kind, nodeId: target,
+      addressId: b.sourceId ?? target, address: stop.kind === 'pickup' ? d.pickupAddress : d.dropoffAddress,
+      arrivalIn, doneIn: seconds, waitSeconds, loadBeforeKg,
+      loadAfterKg: loaded.reduce((sum, item) => sum + (item.weightKg ?? 0), 0) });
     nodeId = target;
   }
-  return { stops, seconds, finishes, pickups, arrivals, peakKg, fatigue, endNodeId: nodeId };
+  return { stops, seconds, finishes, pickups, arrivals, peakKg, fatigue, endNodeId: nodeId, itinerary };
 }
 
 function planOffer(game, c, d) {
@@ -118,7 +124,7 @@ function planOffer(game, c, d) {
       if (baseline && jobs.some(job => plan.finishes[job.id] > baseline.finishes[job.id] + Math.max(12, baseline.finishes[job.id] * .25))) continue;
       if (plan.fatigue >= .99) continue;
       const finishIn = plan.finishes[d.id], merit = plan.seconds + finishIn * .1;
-      if (!best || merit < best.merit) best = { ...plan, merit, finishIn, margin: d.deadlineAt - game.elapsed - finishIn, mode: !existing.length ? 'ready' : pick < existing.length ? 'on the way' : 'next', reason: !existing.length ? 'Can collect now' : pick < existing.length ? 'Fits along the current route' : 'Fits after the current job' };
+      if (!best || merit < best.merit) best = { ...plan, baseline, merit, finishIn, margin: d.deadlineAt - game.elapsed - finishIn, mode: !existing.length ? 'ready' : pick < existing.length ? 'on the way' : 'next', reason: !existing.length ? 'Can collect now' : pick < existing.length ? 'Fits along the current route' : 'Fits after the current job' };
     }
   }
   return best ?? { reason: 'Timing, detour or remaining endurance does not fit' };
@@ -143,6 +149,50 @@ function scoreOffer(game, c, d, plan) {
   return score - c.fatigue * .45;
 }
 
+// These labels mirror positive terms in scoreOffer. They explain a rider's
+// actual preferences; carrying capacity and deadlines remain hard constraints.
+function appealReasons(game, c, d, plan) {
+  if (!plan?.stops) return [];
+  const same = game.nodeById(d.pickupId).districtId === game.nodeById(c.nodeId).districtId;
+  const closeness = 1 / (1 + (plan.pickups[d.id] ?? 0) / 28), urgency = 1 - game.urgency(d);
+  const reasons = [];
+  if (d.preferredRiderId === c.id) reasons.push('Personal invitation');
+  if ((d.bonusAppeal ?? 0) > 0) reasons.push(d.sweetened ? 'Courier bonus' : 'Contract appeal');
+  if (RIDER_BIKES[c.bikeType]?.favorite === d.type) reasons.push('Preferred cargo');
+  if (closeness > .6 && ((c.personality.weights.distance ?? 0) > 0 || c.bikeType === 'road')) reasons.push('Nearby pickup');
+  if (c.bikeType === 'road' && urgency > .38) reasons.push('Urgent trip suits a road bike');
+  if (c.bikeType === 'city' && Math.min(1.9, d.reward / 30) > .95) reasons.push('Good fee suits a city bike');
+  if (same && ((c.personality.weights.sameDistrict ?? 0) > 0 || c.bikeType === 'cargo')) reasons.push('Familiar pickup district');
+  if (d.channel === 'priority') reasons.push('Priority signal');
+  if (d.channel === 'local' && (same || closeness > .6)) reasons.push(same ? 'Local signal in this district' : 'Local signal near pickup');
+  if (plan.mode === 'on the way') reasons.push('Fits along the current route');
+  return reasons;
+}
+
+function offerConsequences(game, c, d, plan) {
+  const current = c ? game.riderEndurance(c) : { current: 0, max: 100 };
+  const base = { feasible: !!plan?.stops, reason: plan?.reason ?? 'Choose a rider and an open offer',
+    pickupIn: null, finishIn: null, margin: null, mode: null,
+    endurance: { ...current, projected: null },
+    load: { currentKg: c ? game.riderLoad(c) : 0, peakKg: null, capacityKg: c?.capacityKg ?? 0 },
+    addedTourSeconds: null, baselineTourSeconds: null, tourSeconds: null,
+    commitments: [], itinerary: [], appealReasons: appealReasons(game, c, d, plan) };
+  if (!plan?.stops) return base;
+  // Only the winning itinerary needs detailed annotations. Route distances
+  // are already in the private forecast cache, so this does not search again.
+  const detailed = simulateStops(game, c, plan.stops, d, false, true);
+  const baseline = plan.baseline;
+  return { ...base, pickupIn: plan.pickups[d.id], finishIn: plan.finishIn, margin: plan.margin, mode: plan.mode,
+    endurance: { ...current, projected: Math.round((1 - clamp(plan.fatigue, 0, 1)) * current.max) },
+    load: { ...base.load, peakKg: plan.peakKg },
+    addedTourSeconds: plan.seconds - (baseline?.seconds ?? 0), baselineTourSeconds: baseline?.seconds ?? 0, tourSeconds: plan.seconds,
+    commitments: game.riderJobs(c).map(job => ({ jobId: job.id,
+      baselineFinishIn: baseline?.finishes[job.id] ?? null, finishIn: plan.finishes[job.id],
+      delaySeconds: baseline ? plan.finishes[job.id] - baseline.finishes[job.id] : null,
+      margin: job.deadlineAt - game.elapsed - plan.finishes[job.id] })),
+    itinerary: detailed?.itinerary ?? [] };
+}
+
 export function installPlaytestLogistics(Type) {
   const p = Type.prototype;
   const keys = ['addCourier', 'spawnDelivery', 'arrivalInterval', 'dispatch', 'courierChoiceScore', 'choiceReason', 'beginDeliberation', 'predictCall', 'claim', 'arrive', 'moveCourier', 'finishEdge', 'releaseCourier', 'courierETA', 'courierAvailability', 'offerMargin', 'deliveryFeasibility', 'setChannel'];
@@ -151,6 +201,21 @@ export function installPlaytestLogistics(Type) {
   p.riderLoad = function(c) { return this.riderJobs(c).filter(d => d.pickedUp).reduce((sum, d) => sum + (d.weightKg ?? 0), 0); };
   p.riderEndurance = function(c) { return { current: Math.round((1 - clamp(c.fatigue, 0, 1)) * (c.enduranceMax ?? 100)), max: c.enduranceMax ?? 100 }; };
   p.riderProfile = function(c) { const bike = RIDER_BIKES[c.bikeType] ?? RIDER_BIKES.city; return { ...bike, endurance: this.riderEndurance(c).current, enduranceMax: c.enduranceMax ?? 100, loadKg: this.riderLoad(c), capacityKg: c.capacityKg ?? bike.capacityKg }; };
+  p.offerConsequences = function(c, d) {
+    return offerConsequences(this, c, d, this.logistics ? planOffer(this, c, d) : { reason: 'Detailed tours require the current Berlin ruleset' });
+  };
+  p.riderTour = function(c) {
+    const endurance = c ? this.riderEndurance(c) : { current: 0, max: 100 }, currentKg = c ? this.riderLoad(c) : 0;
+    const summary = { feasible: !!c && this.logistics, reason: !c ? 'Choose a rider' : !this.logistics ? 'Detailed tours require the current Berlin ruleset' : 'Current remaining tour',
+      endurance: { ...endurance, projected: endurance.current }, load: { currentKg, peakKg: currentKg, capacityKg: c?.capacityKg ?? 0 }, tourSeconds: 0, itinerary: [] };
+    if (!summary.feasible) return summary;
+    const stops = (c.stops ?? []).filter(stop => this.deliveryById(stop.jobId)?.status === 'claimed');
+    if (!stops.length) return { ...summary, reason: 'No accepted work' };
+    const plan = simulateStops(this, c, stops, null, false, true);
+    if (!plan) return { ...summary, feasible: false, reason: 'Remaining route cannot currently be estimated', tourSeconds: null };
+    return { ...summary, endurance: { ...endurance, projected: Math.round((1 - clamp(plan.fatigue, 0, 1)) * endurance.max) },
+      load: { ...summary.load, peakKg: plan.peakKg }, tourSeconds: plan.seconds, itinerary: plan.itinerary };
+  };
   p.addCourier = function() {
     const result = old.addCourier.call(this);
     if (result && this.logistics) {
@@ -210,7 +275,7 @@ export function installPlaytestLogistics(Type) {
       const preference = probe.preferredRiderId === rider.id ? 'personal invitation' : probe.sweetened ? 'courier bonus' : RIDER_BIKES[rider.bikeType]?.favorite === probe.type ? 'preferred cargo' : channel === 'local' ? 'nearby work signal' : channel === 'priority' ? 'priority signal' : null;
       const reason = !plan.stops ? plan.reason : competing ? `Considering ${competing.id.toUpperCase()} first` : `${plan.reason}${preference ? ` · ${preference}` : ''}`;
       const reactionIn = rider.deliberation?.deliveryId === d.id ? Math.max(0, rider.deliberation.readyAt - this.elapsed) : Math.max(0, Math.min(rider.decisionAt - this.elapsed, .16)) + Math.max(.25, rider.experience.think / this.modifiers.teamSkill * .67 / (.8 + Math.max(0, score) * .24));
-      return { rider, score, eligible: Number.isFinite(score), competingJob: competing?.id ?? null, reactionIn, reason, finishIn: plan.finishIn ?? Infinity, margin: plan.margin ?? -Infinity, mode: plan.mode ?? null };
+      return { rider, score, eligible: Number.isFinite(score), competingJob: competing?.id ?? null, reactionIn, reason, appealReasons: appealReasons(this, rider, probe, plan), finishIn: plan.finishIn ?? Infinity, margin: plan.margin ?? -Infinity, mode: plan.mode ?? null };
     }).sort((a, b) => Number(b.eligible && !b.competingJob) - Number(a.eligible && !a.competingJob) || a.reactionIn - b.reactionIn || b.score - a.score || a.rider.id.localeCompare(b.rider.id));
     const leader = rows.find(row => row.eligible && !row.competingJob && row.score >= .3);
     const cost = channel === 'priority' ? 2 : channel === 'off' ? 0 : 1;

@@ -159,6 +159,133 @@ test('weight increases riding fatigue and reduces loaded speed', () => {
   assert.ok(heavy.g.runStats.distance - heavy.startDistance < light.g.runStats.distance - light.startDistance);
 });
 
+test('offer consequences account for handoffs, delivery-window waiting, parcel load and street addresses', () => {
+  const g = make(), c = g.couriers[0], d = g.deliveries[0];
+  d.deliverAfter = 70; d.deadlineAt = 125;
+  const result = g.offerConsequences(c, d), [pickup, dropoff] = result.itinerary;
+  assert.equal(result.feasible, true);
+  assert.deepEqual(result.load, { currentKg: 0, peakKg: .5, capacityKg: 5 });
+  assert.deepEqual(result.itinerary.map(stop => [stop.jobId, stop.kind, stop.nodeId]), [[d.id, 'pickup', d.pickupId], [d.id, 'dropoff', d.dropoffId]]);
+  assert.equal(pickup.address, d.pickupAddress);
+  assert.equal(pickup.addressId, g.nodeById(d.pickupId).sourceId);
+  assert.equal(pickup.doneIn - pickup.arrivalIn, g.handoffTime(d).pickup);
+  assert.equal(result.pickupIn, pickup.doneIn);
+  assert.equal(dropoff.waitSeconds, d.deliverAfter - g.elapsed - dropoff.arrivalIn);
+  assert.ok(dropoff.waitSeconds > 40, 'The early parcel creates real idle time at the delivery door');
+  assert.equal(dropoff.doneIn, d.deliverAfter - g.elapsed + g.handoffTime(d).dropoff);
+  assert.equal(result.finishIn, dropoff.doneIn);
+  assert.equal(result.margin, d.deadlineAt - g.elapsed - dropoff.doneIn);
+  assert.equal(result.endurance.current, g.riderEndurance(c).current);
+  assert.ok(result.endurance.projected < result.endurance.current);
+  assert.deepEqual(result.itinerary.map(stop => [stop.loadBeforeKg, stop.loadAfterKg]), [[0, .5], [.5, 0]]);
+  assert.equal(result.baselineTourSeconds, 0);
+  assert.equal(result.addedTourSeconds, result.tourSeconds);
+});
+
+test('extra-job projections distinguish using delivery-window slack from delaying another commitment', () => {
+  const g = make(), c = g.couriers[0], early = g.deliveries[0];
+  early.deliverAfter = 70; early.deadlineAt = 125;
+  for (const other of g.couriers.slice(1)) other.radioOn = false;
+  g.dispatch({ type: 'radio', jobId: early.id, channel: 'open' }); g.claim(c, early);
+  advance(g, 2);
+  const extra = add(g, { weightKg: 1 }), fitsWindow = g.offerConsequences(c, extra);
+  assert.equal(fitsWindow.mode, 'on the way');
+  assert.deepEqual(fitsWindow.load, { currentKg: .5, peakKg: 1.5, capacityKg: 5 });
+  assert.equal(fitsWindow.addedTourSeconds, 0, 'The same-route job uses an existing delivery-window wait');
+  assert.equal(fitsWindow.commitments[0].jobId, early.id);
+  assert.equal(fitsWindow.commitments[0].delaySeconds, 0);
+  assert.equal(fitsWindow.itinerary.at(-1).jobId, early.id);
+  assert.ok(fitsWindow.itinerary.at(-1).waitSeconds > 0);
+  assert.ok(fitsWindow.finishIn < fitsWindow.tourSeconds);
+
+  early.deliverAfter = g.elapsed;
+  const addsDelay = g.offerConsequences(c, extra);
+  assert.equal(addsDelay.feasible, true);
+  assert.ok(addsDelay.addedTourSeconds > 3);
+  assert.ok(addsDelay.commitments[0].delaySeconds > 3);
+  assert.equal(addsDelay.commitments[0].delaySeconds, addsDelay.commitments[0].finishIn - addsDelay.commitments[0].baselineFinishIn);
+  assert.ok(addsDelay.itinerary.every(stop => stop.waitSeconds === 0));
+});
+
+test('projection load and endurance respond to actual weight and refuse incompatible cargo', () => {
+  const g = make(), c = g.couriers[0], d = g.deliveries[0];
+  const light = g.offerConsequences(c, d);
+  d.weightKg = 4;
+  const heavy = g.offerConsequences(c, d);
+  assert.equal(heavy.load.peakKg, 4);
+  assert.ok(heavy.finishIn > light.finishIn);
+  assert.ok(heavy.endurance.projected < light.endurance.projected);
+  d.weightKg = 6;
+  const refused = g.offerConsequences(c, d);
+  assert.equal(refused.feasible, false);
+  assert.match(refused.reason, /6 kg exceeds 5 kg/);
+  assert.equal(refused.finishIn, null);
+  assert.equal(refused.endurance.projected, null);
+  assert.deepEqual(refused.itinerary, []);
+  assert.deepEqual(refused.appealReasons, []);
+  assert.equal(g.offerConsequences(null, d).feasible, false);
+  assert.equal(make({ ruleset: 'berlin-dispatch-v5' }).offerConsequences(c, d).feasible, false);
+});
+
+test('consequence previews and appeal explanations are pure and only cite active scoring advantages', () => {
+  const g = make(), c = g.couriers[0], d = g.deliveries[0];
+  const snapshot = () => JSON.stringify({ run: g.exportRun(), couriers: g.couriers, jobs: g.deliveries, rng: g.rng,
+    stats: g.runStats, log: g.dispatchLog, routeCache: [...g.routeCache], modifiers: g.modifiers, cash: g.cash, elapsed: g.elapsed, tick: g.tick });
+  const before = snapshot();
+  for (const rider of g.couriers) for (const channel of ['open', 'local', 'priority']) {
+    const probe = { ...d, channel }, result = g.offerConsequences(rider, probe);
+    const row = g.broadcastForecast(d, channel).rows.find(item => item.rider === rider);
+    assert.deepEqual(row.appealReasons, result.appealReasons);
+    result.itinerary.length = 0; result.endurance.current = 0; result.appealReasons.push('not a real preference');
+  }
+  assert.equal(snapshot(), before, 'Inspecting all channels and editing returned data cannot change the run');
+  const neutral = g.offerConsequences(c, d);
+  assert.ok(neutral.appealReasons.includes('Preferred cargo'));
+  assert.ok(!neutral.appealReasons.includes('Personal invitation'));
+  const invited = g.offerConsequences(c, { ...d, preferredRiderId: c.id, channel: 'priority', sweetened: true, bonusAppeal: 0 });
+  assert.ok(invited.appealReasons.includes('Personal invitation'));
+  assert.ok(invited.appealReasons.includes('Priority signal'));
+  assert.ok(!invited.appealReasons.includes('Courier bonus'), 'A cosmetic sweetened flag is not a scoring advantage');
+  assert.ok(g.offerConsequences(c, { ...d, sweetened: true, bonusAppeal: .4 }).appealReasons.includes('Courier bonus'));
+});
+
+test('remaining rider tours stay inspectable through pickup handoff, delivery-window waiting and completion', () => {
+  const g = make(), c = g.couriers[0], d = g.deliveries[0];
+  d.deliverAfter = 70; d.deadlineAt = 125;
+  g.dispatch({ type: 'radio', jobId: d.id, channel: 'open' }); g.claim(c, d);
+  advance(g, .5);
+  const snapshot = () => JSON.stringify({ run: g.exportRun(), couriers: g.couriers, jobs: g.deliveries, rng: g.rng, stats: g.runStats, routeCache: [...g.routeCache] });
+  const before = snapshot(), loading = g.riderTour(c);
+  assert.equal(c.phase, 'loading');
+  assert.equal(loading.feasible, true);
+  assert.equal(loading.itinerary[0].doneIn, c.handoffUntil - g.elapsed);
+  assert.equal(loading.load.currentKg, 0);
+  assert.equal(loading.load.peakKg, .5);
+  assert.equal(snapshot(), before);
+  loading.itinerary[0].jobId = 'not-the-actual-job';
+  assert.equal(c.stops[0].jobId, d.id, 'Returned annotations never expose mutable live stops');
+
+  advance(g, 20);
+  assert.equal(c.phase, 'waiting-window');
+  const waiting = g.riderTour(c);
+  assert.equal(waiting.itinerary.length, 1);
+  assert.equal(waiting.itinerary[0].kind, 'dropoff');
+  assert.equal(waiting.itinerary[0].waitSeconds, d.deliverAfter - g.elapsed);
+  assert.equal(waiting.tourSeconds, d.deliverAfter - g.elapsed + g.handoffTime(d).dropoff);
+  assert.equal(waiting.load.currentKg, .5);
+  assert.equal(waiting.endurance.current, waiting.endurance.projected, 'Standing at the door does not consume riding endurance');
+
+  advance(g, 60);
+  assert.equal(d.status, 'completed');
+  const empty = g.riderTour(c);
+  assert.equal(empty.feasible, true);
+  assert.equal(empty.tourSeconds, 0);
+  assert.deepEqual(empty.itinerary, []);
+  assert.deepEqual(empty.load, { currentKg: 0, peakKg: 0, capacityKg: 5 });
+  assert.equal(empty.endurance.projected, empty.endurance.current);
+  assert.equal(g.riderTour(null).feasible, false);
+});
+
 test('preference actions and autonomous multi-job journeys replay exactly', () => {
   const g = make();
   g.dispatch({ type: 'prefer', jobId: g.deliveries[0].id, riderId: g.couriers[0].id });
@@ -166,7 +293,11 @@ test('preference actions and autonomous multi-job journeys replay exactly', () =
   for (let tick = 0; tick < 11000 && !g.gameOver; tick++) {
     if (g.upgradePending) g.dispatch({ type: 'upgrade', id: 'legs' });
     if (tick % 60 === 0) for (const d of g.activeDeliveries().filter(d => d.status === 'waiting' && !d.called)) g.dispatch({ type: 'radio', jobId: d.id, channel: 'open' });
-    if (tick % 30 === 0) for (const d of g.activeDeliveries()) if (d.status === 'waiting') g.broadcastForecast(d, 'priority');
+    if (tick % 30 === 0) for (const d of g.activeDeliveries()) if (d.status === 'waiting') {
+      g.broadcastForecast(d, 'priority');
+      for (const c of g.couriers) g.offerConsequences(c, d);
+    }
+    if (tick % 30 === 0) for (const c of g.couriers) g.riderTour(c);
     g.update(FIXED_STEP);
   }
   assert.equal(g.outcome, 'success');

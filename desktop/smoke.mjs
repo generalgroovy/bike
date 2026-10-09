@@ -29,7 +29,13 @@ async function broadcast(channel='open'){
   await expect(page.locator('#broadcast-preview')).toBeVisible();
   await expect(page.locator('#forecast-rider')).not.toBeEmpty();
   await expect(page.locator('#forecast-detail')).not.toBeEmpty();
+  await expect(page.locator('#forecast-consequences')).toBeVisible();
+  const impact=await page.evaluate(async channel=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance,d=g.deliveryById(g.selectedDeliveryId);return g.offerConsequences(g.broadcastForecast(d,channel).rider,d);},channel);
+  await expect(page.locator('#forecast-consequences [data-impact=endurance]')).toHaveText(`${impact.endurance.current} → ${impact.endurance.projected} / ${impact.endurance.max}`);
+  await page.locator('#forecast-route > summary').click();
+  await expect(page.locator('#forecast-route .itinerary-stops li')).toHaveCount(impact.itinerary.length);
   assert.deepEqual(await dispatchState(),before,'first click must only preview the broadcast');
+  result.checks.push('bundled offer preview shows the same projected endurance and real stop order without changing play');
   await button.click();
 }
 try{

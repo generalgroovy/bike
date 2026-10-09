@@ -56,6 +56,33 @@ test('two parcels on one rider keep independent musical deadline pressure',()=>{
   assert.equal(score.listened.find(task=>task.id==='d1').division,'1/16');
 });
 
+test('window cues describe actual transitions once and never replay muted or saved history',()=>{
+  const {score,game}=fixture(),cues=[];
+  score.cue=(name,data)=>cues.push({name,...data});
+  const rider={id:'c0',name:'Mauro',phase:'dropoff',deliveryId:'d0'};
+  const scene={...game,couriers:[rider]};
+  score.observeField(scene,()=>.3,true);
+  rider.phase='waiting-window';score.observeField(scene,()=>.3,true);score.observeField(scene,()=>.3,true);
+  rider.phase='handover';score.observeField(scene,()=>.3,true);
+  assert.deepEqual(cues.map(c=>c.name),['window-wait','window-open']);
+  assert.ok(cues.every(c=>c.jobId==='d0'&&c.rider==='Mauro'&&c.pan===.3));
+  rider.phase='waiting-window';score.observeField(scene,()=>0,false);
+  rider.phase='handover';score.observeField(scene,()=>0,false);score.observeField(scene,()=>0,true);
+  assert.equal(cues.length,2);
+  score.observeField({...scene},()=>0,true);assert.equal(cues.length,2,'new run establishes a silent baseline');
+});
+
+test('a second accepted parcel answers the rider signature without hiding their identity',()=>{
+  for(const rider of ['Kira','Mauro','Brian']){
+    const normal=eventPhrase('claim',{rider});
+    const combined=eventPhrase('claim',{rider,mode:'on the way'});
+    assert.deepEqual(combined.slice(0,normal.length),normal);
+    assert.equal(combined.length,normal.length+2);
+  }
+  assert.notDeepEqual(eventPhrase('window-wait'),eventPhrase('window-open'));
+  assert.ok(['window-wait','window-open'].flatMap(name=>eventPhrase(name)).every(n=>[0,2,5,7,9].includes(n.midi%12)&&n.volume<=.1));
+});
+
 test('completion and failure stop their task and resolve on the same sixteenth grid',()=>{
   for(const name of ['complete','fail']){
     const {score,calls}=fixture();score.ctx.currentTime=.237;const stopped=[];score.stopTask=id=>stopped.push(id);

@@ -14,5 +14,6 @@ export function forecastBroadcast(game, job, channel) {
 
 export function previewKey(job, channel, forecast) {
   return JSON.stringify([job.id, channel, job.status, job.preferredRiderId ?? null,
-    job.reward, job.bonusPaid, job.deadlineAt, forecast.rider?.id ?? null]);
+    job.reward, job.bonusPaid, job.deadlineAt, forecast.rider?.id ?? null,
+    forecast.rider?.stops?.map(stop => [stop.jobId, stop.kind]) ?? []]);
 }

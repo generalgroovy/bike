@@ -31,7 +31,8 @@
   <main class="desk-layout">
     <section class="work-panel" aria-labelledby="work-title">
       <div class="panel-heading"><div><h1 id="work-title">Jobs <span id="work-count">1</span></h1></div></div>
-      <p class="queue-explainer" id="queue-summary">Select a job to see its route and make an offer.</p>
+      <p class="queue-explainer sr-only" id="queue-summary">Select a job to see its route and make an offer.</p>
+      <button id="desk-focus" class="desk-focus" aria-describedby="focus-detail" hidden><span class="focus-heading"><strong id="focus-title"></strong><span class="focus-arrow" aria-hidden="true">↗</span></span><span id="focus-detail"></span></button>
 
       <div id="work-list"></div>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
@@ -67,18 +68,19 @@
           <div id="parcel-requirements" class="parcel-requirements"><strong id="selected-weight"></strong><span id="delivery-window"></span></div>
           <div class="region-route"><span id="selected-regions"></span><button id="find-route">Find route ↗</button></div>
           <p id="selected-state" class="explanation"></p>
+          <details id="accepted-tour" class="route-trail accepted-tour" hidden><summary>Remaining tour <span class="stop-count"></span><small id="accepted-next-stop"></small></summary><ol class="itinerary-stops"></ol></details>
           <div id="job-actions"><div class="offer-heading"><p id="offer-instruction" class="action-heading">Offer</p><p id="radio-hint" class="radio-hint" role="status"></p></div>
           <label id="rider-preference-field" class="rider-preference-field">Personal invitation<select id="preferred-rider" aria-describedby="preference-effect"><option value="">No preference</option></select></label>
           <p id="preference-effect" class="fine-print"></p>
           <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
-          <div id="broadcast-preview" class="broadcast-preview" hidden role="status"><small>LIKELY VOLUNTEER</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><small id="forecast-confirm">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
+          <div id="broadcast-preview" class="broadcast-preview" hidden><small>LIKELY VOLUNTEER</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><div id="forecast-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details id="forecast-route" class="route-trail"><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div><small id="forecast-confirm" role="status">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
           <span id="radio-effect" class="radio-effect"></span>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
           <details id="offer-options" class="offer-options"><summary>Improve the offer <small>Bonus or more time</small></summary><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
           <div id="client-negotiation"><button id="client-call">Call client for more time</button><small id="client-call-detail" class="muted"></small></div>
           </details></div>
           <div id="job-outcome" hidden><button id="next-job" class="primary">Choose the next job</button></div>
-          <details id="decision-details" class="decision-details"><summary>Rider estimates</summary><p class="decision-disclaimer">A current estimate. Riders compare every live call and may choose another.</p><p id="timing-detail" class="fine-print"></p><div id="rider-outlook"></div><div id="channel-effects"></div></details>
+          <details id="decision-details" class="decision-details"><summary>Compare riders</summary><p class="decision-disclaimer">Inspect a route before shaping the offer. Estimates change as the city moves; each rider still chooses.</p><p id="timing-detail" class="fine-print"></p><div id="rider-outlook"></div><div id="rider-comparison" class="rider-comparison" hidden><strong id="comparison-rider"></strong><p id="comparison-reason"></p><div id="comparison-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details class="route-trail" open><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div></div><div id="channel-effects"></div></details>
           <details class="parcel-details"><summary>Parcel &amp; handling</summary><p id="selected-handling"></p></details>
         </div>
       </section>
@@ -121,7 +123,7 @@
     <label class="sound-check"><input id="task-rhythms" type="checkbox" checked> Hear task pressure</label>
     <p class="fine-print">Less time or a smaller delivery buffer makes a task repeat faster. The three most pressing jobs come forward; the lead is louder. A client extension can give its melody breathing room.</p>
     <div class="rhythm-previews" aria-label="Preview task rhythms"><button data-rhythm="0">½ · Plenty</button><button data-rhythm="1">¼ · Watch</button><button data-rhythm="2">⅛ · Tight</button><button data-rhythm="3">¹⁄₁₆ · Urgent</button></div>
-    <p class="fine-print">Light parcels pluck, delicate parcels chime, heavy parcels hum. A volunteer brings their own instrument. Left and right follow the current map view. Collection taps twice, handover holds a note, delivery resolves the rider's phrase; failure falls gently away. Pedal notes dip on a slowed street.</p>
+    <p class="fine-print">Light parcels pluck, delicate parcels chime, heavy parcels hum. A volunteer brings their own instrument; a second parcel adds an answering bass figure. Left and right follow the map. Collection taps twice. A closed delivery window suspends the phrase; opening it answers upward. Delivery resolves; failure falls gently away. Pedal notes dip on a slowed street.</p>
     <div class="sound-portraits"><button data-listen="Kira">Kira · bicycle bell</button><button data-listen="Mauro">Mauro · bass pluck</button><button data-listen="Brian">Brian · soft reed</button></div>
     <p id="sound-status" class="fine-print" role="status">Sound starts only when you enable it or preview a phrase. Gameplay is fully readable while muted.</p>
     <div class="review-actions"><button id="studio-toggle">Enable sound</button><button id="close-sound" class="primary">Back to the desk</button></div>

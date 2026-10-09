@@ -30,6 +30,8 @@ test('confirmation identity changes when the forecast, invitation or offer chang
   for(const [d,channel,f] of [
     [job,'local',forecast],[{...job,preferredRiderId:'c1'},'open',forecast],
     [{...job,deadlineAt:120},'open',forecast],[{...job,status:'claimed'},'open',forecast],
-    [job,'open',{rider:{id:'c1'}}],[job,'open',{rider:null}]
+    [job,'open',{rider:{id:'c1'}}],[job,'open',{rider:null}],
+    [job,'open',{rider:{id:'c0',stops:[{jobId:'d2',kind:'pickup'}]}}]
   ])assert.notEqual(previewKey(d,channel,f),original);
+  assert.equal(previewKey(job,'open',{rider:{id:'c0',x:50,fatigue:.1,stops:[]}}),original,'ordinary movement does not prevent confirmation');
 });

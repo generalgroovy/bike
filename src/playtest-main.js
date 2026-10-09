@@ -10,6 +10,7 @@ import { timingAdvice } from './playtest-advice.js';
 import { deskState, jobState } from './desk-state.js';
 import { createBikeIconElement, bikeVisual, riderEndurance, riderLoad } from './bike-display.js';
 import { forecastBroadcast, previewKey } from './broadcast-preview.js';
+import { deskFocus } from './desk-focus.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
@@ -22,7 +23,7 @@ const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#upgrade-dialog', '
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = 0;
 let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
-let broadcastDraft=null;
+let broadcastDraft=null, inspectedRiderId=null;
 const touches=new Map();let pinchDistance=0;
 audio.enabled = false;
 for(const control of document.querySelectorAll('button,select')) if(control.id!=='reload') control.disabled=true;
@@ -32,7 +33,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   renderer?.dispose();
   audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
   game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
-  broadcastDraft=null;
+  broadcastDraft=null;inspectedRiderId=null;$('#rider-comparison').hidden=true;
   $('#rider-preference-field').hidden=!game.logistics;
   $('#preference-effect').hidden=!game.logistics;
   $('#parcel-requirements').hidden=!game.logistics;
@@ -51,6 +52,9 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   $('#coach-panel').open = true;
   $('#offer-options').open = false;
   $('#decision-details').open = false;
+  $('#forecast-route').open = false;
+  $('#accepted-tour').open = false;
+  $('#rider-outlook').replaceChildren();
   $('#work-list').replaceChildren(); $('#team-list').replaceChildren();
   lastLog = restored?game.dispatchLog.length:0;accumulator = 0; lastTime = performance.now(); faulted = false;
   $('#client-negotiation').hidden=!game.refined;$('#refined-help').hidden=!game.refined;
@@ -138,6 +142,14 @@ function renderQueue() {
   }
   text('#work-count', jobs.length);
   text('#queue-summary', `${jobs.filter(d=>d.status==='waiting').length} waiting · ${jobs.filter(d=>d.status==='claimed').length} riding`);
+  const focus=deskFocus(game,feasibility),focusButton=$('#desk-focus');
+  focusButton.hidden=!focus;
+  if(focus){
+    focusButton.dataset.tone=focus.tone;focusButton.dataset.focus=focus.id;
+    focusButton.dataset.job=focus.jobId??'';focusButton.disabled=!focus.jobId;
+    text('#focus-title',focus.title);text('#focus-detail',focus.detail);
+    focusButton.setAttribute('aria-label',`${focus.title}. ${focus.detail}${focus.jobId?`. Inspect ${focus.jobId.toUpperCase()}`:''}`);
+  }
   $('#empty-queue').hidden = jobs.length > 0;
 }
 
@@ -193,9 +205,11 @@ function renderTeam() {
 
 function select(id) {
   if (game.selectedDeliveryId !== id) {
-    broadcastDraft=null;
+    broadcastDraft=null;inspectedRiderId=null;
     $('#offer-options').open = false;
     $('#decision-details').open = false;
+    $('#forecast-route').open = false;
+    $('#accepted-tour').open = false;
   }
   game.selectedDeliveryId = id;
   game.selectedCourierId = null;
@@ -258,9 +272,17 @@ function renderSelection() {
   text('#selected-state', advice ? `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} to finish` : ''}` : explanation);
   $('#selected-state').title = explanation;
   text('#timing-detail', explanation);
+  const tour=game.logistics&&d.status==='claimed'&&rider&&game.riderTour?game.riderTour(rider):null;
+  $('#accepted-tour').hidden=!tour?.feasible;
+  if(tour?.feasible){
+    renderItinerary($('#accepted-tour'),tour.itinerary,d);
+    const next=tour.itinerary[0];
+    text('#accepted-next-stop',next?`Next: ${next.kind==='pickup'?'pickup':'delivery'} ${next.jobId.toUpperCase()} · ~${time(next.doneIn)}`:'Tour complete');
+  }
   $('#selected-state').dataset.state = advice?.state ?? state.id;
   text('#offer-instruction', d.called ? 'On the radio' : 'Make an offer');
   text('#radio-effect', broadcastDraft?'':d.called?CHANNEL_EFFECTS[d.channel]:'Click once to preview · again to broadcast');
+  $('#radio-effect').hidden=Boolean(broadcastDraft);
   for (const button of document.querySelectorAll('[data-radio]')) {
     const channel = button.dataset.radio, cost = channel === 'priority' ? 2 : 1;
     button.disabled = game.gameOver || d.status !== 'waiting' || game.radioUsed() - game.radioCost(d) + cost > game.radioSlots;
@@ -295,8 +317,51 @@ function renderBroadcastPreview(d) {
   panel.style.setProperty('--courier',forecast.rider?.color??'#9e684a');
   text('#forecast-rider',forecast.rider?`${forecast.rider.name} · ${bikeVisual(forecast.rider).label}`:'No likely volunteer');
   const mode={'on the way':'Along the way',next:'After current work',ready:'Next pickup',direct:'Next pickup'}[row?.mode];
-  text('#forecast-detail',`${row?.reason??forecast.reason??'Riders compare all live offers.'}${Number.isFinite(row?.finishIn)?` · ~${time(row.finishIn)} to deliver`:''}${mode?` · ${mode}`:''}. ${broadcastDraft.channel==='priority'?'2 slots':'1 slot'} until a rider accepts.`);
-  text('#forecast-confirm',changed?'The outlook changed. Click again to review the new forecast.':'Click the same option again to broadcast. Prediction, not a reservation.');
+  const consequences=forecast.rider&&game.offerConsequences?game.offerConsequences(forecast.rider,d):null;
+  text('#forecast-detail',consequences?.feasible?`Estimated outcome · ${mode??'Next pickup'} · ~${time(consequences.finishIn)} to deliver. ${forecast.cost} ${forecast.cost===1?'slot':'slots'} until accepted.`:`${row?.reason??forecast.reason??'Riders compare all live offers.'}${Number.isFinite(row?.finishIn)?` · ~${time(row.finishIn)} to deliver`:''}. ${broadcastDraft.channel==='priority'?'2 slots':'1 slot'} until accepted.`);
+  renderConsequences($('#forecast-consequences'),consequences?{...consequences,appealReasons:row?.appealReasons??consequences.appealReasons}:null,d);
+  text('#forecast-confirm',changed?'The outlook changed. Click again to review it.':forecast.rider?'Click the same option again to broadcast. Riders still choose.':'Broadcasting will not make an unsuitable route fit.');
+}
+
+function renderConsequences(root,consequences,offeredJob) {
+  root.hidden=!consequences?.feasible;
+  if(root.hidden)return;
+  const c=consequences, rounded=n=>Number.isFinite(n)?String(Math.round(n*10)/10):'—', signed=n=>`${n<0?'−':'+'}${time(Math.abs(n))}`;
+  setWithin(root,'.appeal-reasons',(c.appealReasons??[]).join(' · '));
+  setWithin(root,'[data-impact="margin"]',`${time(Math.abs(c.margin))} ${c.margin>=0?'spare':'late'}`);
+  root.querySelector('[data-impact="margin"]').dataset.tight=String(c.margin<15);
+  setWithin(root,'[data-impact="endurance"]',`${Math.round(c.endurance.current)} → ${Math.round(c.endurance.projected)} / ${c.endurance.max}`);
+  setWithin(root,'[data-impact="load"]',`${rounded(c.load.currentKg)} → ${rounded(c.load.peakKg)} / ${rounded(c.load.capacityKg)} kg`);
+  setWithin(root,'[data-impact="tour"]',c.baselineTourSeconds>0?signed(c.addedTourSeconds):`${time(c.tourSeconds)} total`);
+  setWithin(root,'[data-impact-label="tour"]',c.baselineTourSeconds>0?'Tour time change':'New tour time');
+  const commitments=c.commitments??[], shifted=commitments.filter(item=>Math.abs(item.delaySeconds)>=.5);
+  setWithin(root,'.commitment-impact',shifted.length?`Existing work: ${shifted.map(item=>`${item.jobId.toUpperCase()} ${signed(item.delaySeconds)}`).join(' · ')}. All still fit.`:commitments.length?'Existing deliveries keep their timing.':'No other deliveries on this tour.');
+  root.querySelector('.commitment-impact').hidden=!commitments.length;
+  renderItinerary(root,c.itinerary,offeredJob);
+}
+
+function renderItinerary(root,itinerary,selectedJob) {
+  const list=root.querySelector('.itinerary-stops'),rounded=n=>Number.isFinite(n)?String(Math.round(n*10)/10):'—';
+  const steps=(itinerary??[]).map(stop=>{
+    const job=game.deliveryById(stop.jobId),pickup=stop.kind==='pickup';
+    return {...stop,label:pickup?'Pickup':'Delivery',address:stop.address??(pickup?job?.pickupAddress:job?.dropoffAddress)??'',arrival:time(stop.arrivalIn),wait:Math.ceil(stop.waitSeconds??0),done:time(stop.doneIn)};
+  });
+  setWithin(root,'.stop-count',`${steps.length} stops`);
+  const signature=JSON.stringify(steps);
+  if(list.dataset.signature!==signature){
+    list.dataset.signature=signature;list.replaceChildren();
+    for(const stop of steps){
+      const li=document.createElement('li');li.dataset.job=stop.jobId;li.dataset.kind=stop.kind;li.dataset.offered=String(stop.jobId===selectedJob.id);
+      const marker=document.createElement('span');marker.className='stop-marker';marker.textContent=stop.kind==='pickup'?'P':'D';marker.setAttribute('aria-hidden','true');
+      const info=document.createElement('span');info.className='stop-info';
+      const title=document.createElement('strong');title.textContent=`${stop.label} ${stop.jobId.toUpperCase()}`;
+      const address=document.createElement('small');address.textContent=stop.address;
+      info.append(title,address);
+      if(stop.wait>0){const wait=document.createElement('small');wait.className='stop-wait';wait.textContent=`Wait ${time(stop.wait)} for delivery window`;info.append(wait);}
+      const timing=document.createElement('span');timing.className='stop-time';timing.textContent=`~${stop.done}`;timing.title=`Arrive in ${stop.arrival} · finish stop in ${stop.done} · carry ${rounded(stop.loadAfterKg)} kg afterwards`;
+      li.append(marker,info,timing);list.append(li);
+    }
+  }
 }
 
 function previewOrBroadcast(channel) {
@@ -313,11 +378,25 @@ function renderDecisions(d) {
   if(game.logistics){
     const forecast=game.broadcastForecast(d,broadcastDraft?.channel??d.channel??'open');
     const outlook=$('#rider-outlook');
-    if(!outlook.children.length)for(const c of game.couriers){const row=document.createElement('div');row.className='outlook-row';row.innerHTML='<strong></strong><span></span><small></small>';row.style.setProperty('--courier',c.color);outlook.append(row);}
-    forecast.rows.forEach((row,i)=>{const el=outlook.children[i];el.style.setProperty('--courier',row.rider.color);el.dataset.state=row.eligible?'possible':'pass';setWithin(el,'strong',row.rider.name);setWithin(el,'span',row.reason);setWithin(el,'small',Number.isFinite(row.finishIn)?`~${time(row.finishIn)} to finish · ${row.margin>=0?`${time(row.margin)} buffer`:`${time(-row.margin)} late`}`:'Cannot fit this offer now');});
+    if(!outlook.children.length)for(const c of game.couriers){
+      const row=document.createElement('div');row.className='outlook-row';row.innerHTML='<strong></strong><span></span><small></small><button class="inspect-rider" type="button"></button>';row.style.setProperty('--courier',c.color);
+      row.querySelector('button').addEventListener('click',event=>{const id=event.currentTarget.dataset.rider;inspectedRiderId=inspectedRiderId===id?null:id;const selected=game.deliveryById(game.selectedDeliveryId);if(selected)renderDecisions(selected);if(inspectedRiderId)$('#rider-comparison').scrollIntoView({block:'nearest',behavior:'instant'});});outlook.append(row);
+    }
+    forecast.rows.forEach((row,i)=>{
+      const el=outlook.children[i];el.style.setProperty('--courier',row.rider.color);el.dataset.state=row.eligible?'possible':'pass';setWithin(el,'strong',row.rider.name);setWithin(el,'span',row.reason);setWithin(el,'small',Number.isFinite(row.finishIn)?`~${time(row.finishIn)} to finish · ${row.margin>=0?`${time(row.margin)} buffer`:`${time(-row.margin)} late`}`:'Cannot fit this offer now');
+      const button=el.querySelector('.inspect-rider');button.dataset.rider=row.rider.id;button.textContent=inspectedRiderId===row.rider.id?'Close route':'Inspect route';button.setAttribute('aria-pressed',String(inspectedRiderId===row.rider.id));button.setAttribute('aria-label',`${inspectedRiderId===row.rider.id?'Close':'Inspect'} ${row.rider.name}'s estimated route`);button.setAttribute('aria-controls','rider-comparison');
+    });
+    const inspected=game.courierById(inspectedRiderId),comparison=$('#rider-comparison');comparison.hidden=!inspected;
+    if(inspected){
+      const c=game.offerConsequences?.(inspected,d);comparison.style.setProperty('--courier',inspected.color);
+      text('#comparison-rider',`${inspected.name} · estimated outcome`);text('#comparison-reason',c?.feasible?'If this rider volunteers. Inspecting does not send an invitation.':c?.reason??'No feasible route now.');
+      const row=forecast.rows.find(item=>item.rider.id===inspected.id);
+      renderConsequences($('#comparison-consequences'),c?{...c,appealReasons:row?.appealReasons??c.appealReasons}:null,d);
+    }
     $('#channel-effects').replaceChildren();
     return;
   }
+  $('#rider-comparison').hidden=true;
   const brief=decisionBrief(game,d,feasibility.get(d.id));if(!brief)return;
   const outlook=$('#rider-outlook');
   if(!outlook.children.length)for(const c of game.couriers){const row=document.createElement('div');row.className='outlook-row';row.innerHTML='<strong></strong><span></span><small></small>';row.style.setProperty('--courier',c.color);outlook.append(row);}
@@ -326,6 +405,7 @@ function renderDecisions(d) {
   brief.channels.forEach((channel,i)=>{const el=effects.children[i];setWithin(el,'strong',`${channel.id.toUpperCase()} · ${channel.eligible} ready ${channel.eligible===1?'rider':'riders'} can consider`);setWithin(el,'span',channel.detail);});
 }
 $('#decision-details').addEventListener('toggle',()=>{if($('#decision-details').open){const d=game?.deliveryById(game.selectedDeliveryId);if(d?.status==='waiting')renderDecisions(d);}});
+$('#desk-focus').addEventListener('click',()=>{const id=$('#desk-focus').dataset.job;if(id&&game.deliveryById(id))select(id);});
 
 function showReview() {
   const review = game.shiftReview(), success = review.outcome === 'success';
@@ -414,7 +494,7 @@ function render() {
       const edge=event.action.startsWith('event-')&&game.visualEdges.find(e=>e.streetName===event.place);
       const point=rider??(job?game.nodeById(job.pickupId):edge?game.nodeById(edge.a):null);
       const name=['call','channel'].includes(event.action)?`call-${event.channel}`:({uncall:'call-off',sweeten:'bonus','shift-finish':'finish'})[event.action]??event.action;
-      audio.cue(name,{jobId:job?.id,rider:event.rider,cargo:job?.type,pan:soundPan(point),success:game.outcome==='success'});
+      audio.cue(name,{jobId:job?.id,rider:event.rider,cargo:job?.type,mode:event.mode,pan:soundPan(point),success:game.outcome==='success'});
     }
   }
   $('#delivery-receipt').hidden=performance.now()>receiptUntil;

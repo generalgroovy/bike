@@ -21,10 +21,16 @@ export function taskPulse(d,{ordinal=0,pan=0,volume=1,rider=null}={}){
   return[note(pitch,0,rider?(RIDER_PHRASES[rider]?.instrument??types[d.type]):types[d.type],.10,(d.called?.028:d.status==='claimed'?.025:.018)*volume,pan)];
 }
 const note=(midi,at=0,instrument='bell',duration=.24,volume=.13,pan=0)=>({midi,at:at*beat,instrument,duration,volume,pan});
-export function eventPhrase(name,{rider='Kira',cargo='document',success=true}={}) {
+export function eventPhrase(name,{rider='Kira',cargo='document',success=true,mode='ready'}={}) {
   const voice=RIDER_PHRASES[rider]??RIDER_PHRASES.Kira;
   const signature=voice.notes.map((n,i)=>note(n,voice.beats[i],voice.instrument,.25,.11,voice.pan));
+  if(name==='claim'&&['on the way','next'].includes(mode))return [...signature,
+    note(57,.25,'pluck',.16,.045,voice.pan),note(62,1,'pluck',.3,.055,voice.pan)];
   if(name==='rider'||name==='claim')return signature;
+  // The suspended fifth leaves a parcel hanging; the opening window answers
+  // it with the same rider's upward phrase, on the shared musical grid.
+  if(name==='window-wait')return [note(voice.notes[0],0,voice.instrument,.7,.045,voice.pan),note(69,.5,'reed',.8,.035,voice.pan)];
+  if(name==='window-open')return [note(voice.notes[0],0,voice.instrument,.18,.055,voice.pan),note(voice.notes[1],.25,voice.instrument,.26,.065,voice.pan),note(74,.75,'bell',.4,.045,voice.pan)];
   if(name==='prefer')return signature.slice(0,2).map(n=>({...n,volume:.055}));
   if(name==='pickup')return[...signature.slice(0,1),note(voice.notes[1],.5,voice.instrument,.18,.08,voice.pan)];
   if(name==='pickup-arrival')return[note(voice.notes[0],0,'pluck',.07,.08,voice.pan),note(voice.notes[0],.25,'pluck',.07,.05,voice.pan)];
@@ -78,7 +84,7 @@ export function connectScoreOutput(ctx,master){const limiter=ctx.createDynamicsC
 
 export class DeskScore {
   static lastInstance=null;
-  constructor(){this.ctx=null;this.master=null;this.enabled=false;this.volume=.35;this.mix='score';this.rhythms=true;this.voices=new Set();this.maxVoices=54;this.nextPulse=0;this.bar=0;this.lastCue=new Map();this.taskVoices=new Map();this.listened=[];this.duckUntil=0;this.stats={cues:0,bars:0,pulses:0,dropped:0};DeskScore.lastInstance=this;}
+  constructor(){this.ctx=null;this.master=null;this.enabled=false;this.volume=.35;this.mix='score';this.rhythms=true;this.voices=new Set();this.maxVoices=54;this.nextPulse=0;this.bar=0;this.lastCue=new Map();this.taskVoices=new Map();this.listened=[];this.duckUntil=0;this.fieldGame=null;this.fieldRiders=new Map();this.stats={cues:0,bars:0,pulses:0,dropped:0};DeskScore.lastInstance=this;}
   ensure(){
     if(!this.enabled)return null;
     try{if(!this.ctx){const Context=globalThis.AudioContext??globalThis.webkitAudioContext;if(!Context)return null;this.ctx=new Context();this.master=this.ctx.createGain();this.master.gain.value=this.volume;this.limiter=connectScoreOutput(this.ctx,this.master);}
@@ -110,7 +116,9 @@ export class DeskScore {
     this.stats.cues++;return this.play(notes,when);
   }
   update(game,{feasibility=new Map(),panFor=()=>0}={}){
-    if(!this.enabled||game.paused||game.gameOver||game.upgradePending||globalThis.document?.hidden)return;
+    const audible=this.enabled&&!game.paused&&!game.gameOver&&!game.upgradePending&&!globalThis.document?.hidden;
+    this.observeField(game,panFor,audible);
+    if(!audible)return;
     const ctx=this.ensure();if(!ctx)return;
     const active=game.activeDeliveries(),ids=new Set(active.map(d=>d.id));for(const id of this.taskVoices.keys())if(!ids.has(id))this.stopTask(id);
     const ranked=active.map(d=>{const rider=game.courierById(d.courierId),remaining=d.deadlineAt-game.elapsed;
@@ -134,6 +142,20 @@ export class DeskScore {
         this.play([note(voice.notes[0]-(edge?.eventMultiplier<1?12:0),0,voice.instrument,.085,.018*duck,panFor(rider))],at);
       }
       this.nextPulse+=tick;
+    }
+  }
+  observeField(game,panFor,audible){
+    // Baseline each game before listening, including while muted/paused. Opening
+    // an old save or re-enabling audio must not announce historical events.
+    if(this.fieldGame!==game){this.fieldGame=game;this.fieldRiders.clear();}
+    for(const rider of game.couriers){
+      const prior=this.fieldRiders.get(rider.id),jobId=rider.deliveryId;
+      if(audible&&prior){
+        const data={rider:rider.name,jobId,pan:panFor(rider)};
+        if(rider.phase==='waiting-window'&&(prior.phase!=='waiting-window'||prior.jobId!==jobId))this.cue('window-wait',data);
+        else if(prior.phase==='waiting-window'&&rider.phase==='handover'&&prior.jobId===jobId)this.cue('window-open',data);
+      }
+      this.fieldRiders.set(rider.id,{phase:rider.phase,jobId});
     }
   }
 }

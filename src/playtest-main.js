@@ -2,16 +2,16 @@ import { BerlinPlaytest, CARGO_FAMILIES, FIXED_STEP, SHIFT_MODES, replayRun } fr
 import { Renderer } from './render.js';
 import { createSeed } from './rng.js';
 import { createCargoIconElement } from './cargo-icons.js';
-import { createRiderPortraitElement } from './rider-identity.js';
 import { DeskScore } from './playtest-score.js';
-import { CHANNEL_EFFECTS, decisionBrief, riderActivity } from './playtest-decisions.js';
+import { CHANNEL_EFFECTS, decisionBrief } from './playtest-decisions.js';
 import { loadInnerRing, loadBerlinCity } from './inner-ring-city.js';
 import { timingAdvice } from './playtest-advice.js';
 import { deskState, jobState } from './desk-state.js';
-import { createBikeIconElement, bikeVisual, riderEndurance, riderLoad } from './bike-display.js';
+import { bikeVisual } from './bike-display.js';
 import { forecastBroadcast, previewKey } from './broadcast-preview.js';
 import { deskFocus } from './desk-focus.js';
 import { RadioDesk } from './radio-desk.js';
+import { renderRiderCards } from './rider-cards.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
@@ -27,7 +27,7 @@ let wellbeingWasPaused=true, wellbeingRiderId=null;
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = null;
 let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
-let broadcastDraft=null, inspectedRiderId=null;
+let broadcastDraft=null, inspectedRiderId=null, queueFilter='all';
 const touches=new Map();let pinchDistance=0;
 audio.enabled = false;
 for(const control of document.querySelectorAll('button,select')) if(control.id!=='reload') control.disabled=true;
@@ -38,7 +38,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
   game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
   radioDesk.reset();
-  broadcastDraft=null;inspectedRiderId=null;$('#rider-comparison').hidden=true;
+  broadcastDraft=null;inspectedRiderId=null;queueFilter='all';$('#rider-comparison').hidden=true;
   $('#rider-preference-field').hidden=!game.logistics;
   $('#preference-effect').hidden=!game.logistics;
   $('#parcel-requirements').hidden=!game.logistics;
@@ -127,6 +127,7 @@ function renderQueue() {
   for (const [id, card] of cards) if (!live.has(id)) { card.remove(); cards.delete(id); }
   for (const d of jobs) {
     const card = cards.get(d.id) ?? newCard(d), claimed = d.status === 'claimed';
+    card.hidden=queueFilter!=='all'&&d.status!==queueFilter;
     const state = jobState(game, d);
     card.dataset.selected = String(game.selectedDeliveryId === d.id);
     card.dataset.urgent = String(d.deadlineAt - game.elapsed < 25);
@@ -134,6 +135,7 @@ function renderQueue() {
     setWithin(card, '.job-family', `${d.id.toUpperCase()} · ${CARGO_FAMILIES[d.type].name}${game.logistics?` · ${d.weightKg} kg`:''}`);
     setWithin(card, '.job-fee', `€${d.reward}`);
     setWithin(card, '.job-pickup', d.pickupAddress); setWithin(card, '.job-drop', d.dropoffAddress);
+    card.querySelector('.job-pickup').title=d.pickupAddress;card.querySelector('.job-drop').title=d.dropoffAddress;
     setWithin(card, '.job-distance', `${(d.plannedDistance / 100).toFixed(1)} km`);
     setWithin(card, '.job-time', `${time(d.deadlineAt - game.elapsed)} left`);
     const rider = game.courierById(d.courierId);
@@ -141,93 +143,52 @@ function renderQueue() {
     const finish = claimed ? game.logistics?game.jobETA(rider,d):game.courierETA(rider) : advice?.finishIn;
     const timing = card.querySelector('.job-timing');
     timing.dataset.state = claimed ? 'riding' : advice.state;
-    setWithin(timing, 'strong', claimed ? state.label : advice.label);
+    setWithin(timing, 'strong', claimed ? 'Finish estimate' : advice.label);
     setWithin(timing, 'span', Number.isFinite(finish) ? `~${time(finish)} to finish` : 'Check the team');
-    setWithin(card, '.job-status', claimed ? `${rider?.name ?? 'Courier'} is on it${state.id==='queued'?' · next pickup':''}` : d.called ? `${state.label} · ${d.channel.toUpperCase()}` : state.label);
+    setWithin(card, '.job-status', claimed ? `${rider?.name ?? 'Courier'} · ${state.label}` : d.called ? `On air · ${d.channel.toUpperCase()}` : 'Ready to offer');
     card.querySelector('.job-select').setAttribute('aria-pressed', String(game.selectedDeliveryId === d.id));
     card.querySelector('.job-select').setAttribute('aria-label', `Inspect ${d.id.toUpperCase()}: ${d.pickupAddress} to ${d.dropoffAddress}, €${d.reward}, ${time(d.deadlineAt-game.elapsed)} left. ${timing.textContent}`);
   }
-  text('#work-count', jobs.length);
+  const counts={all:jobs.length,waiting:jobs.filter(d=>d.status==='waiting').length,claimed:jobs.filter(d=>d.status==='claimed').length};
+  for(const button of document.querySelectorAll('[data-queue-filter]')){
+    const filter=button.dataset.queueFilter;setWithin(button,'span',counts[filter]);
+    button.setAttribute('aria-pressed',String(queueFilter===filter));
+    button.setAttribute('aria-label',`${{all:'All current jobs',waiting:'Waiting for a rider',claimed:'Accepted by riders'}[filter]}: ${counts[filter]}`);
+  }
+  $('#queue-filter-empty').hidden=counts[queueFilter]>0||jobs.length===0;
+  text('#queue-filter-empty',queueFilter==='waiting'?'All current jobs are with the riders.':'No rider has accepted a job yet.');
   text('#queue-summary', `${jobs.filter(d=>d.status==='waiting').length} waiting · ${jobs.filter(d=>d.status==='claimed').length} riding`);
   const focus=deskFocus(game,feasibility),focusButton=$('#desk-focus');
-  focusButton.hidden=!focus;
+  const usefulFocus=focus&&(['watch','urgent'].includes(focus.tone)||['upgrade','closing'].includes(focus.id)||/^(pair|window):/.test(focus.id));
+  focusButton.hidden=!usefulFocus;
   if(focus){
     focusButton.dataset.tone=focus.tone;focusButton.dataset.focus=focus.id;
     focusButton.dataset.job=focus.jobId??'';focusButton.dataset.rider=focus.riderId??'';focusButton.disabled=!focus.jobId&&!focus.riderId;
     text('#focus-title',focus.title);text('#focus-detail',focus.detail);
+    focusButton.title=focus.detail;
     focusButton.setAttribute('aria-label',`${focus.title}. ${focus.detail}${focus.jobId?`. Inspect ${focus.jobId.toUpperCase()}`:focus.riderId?'. Inspect this rider’s patience and recovery':''}`);
   }
   $('#empty-queue').hidden = jobs.length > 0;
 }
 
+for(const button of document.querySelectorAll('[data-queue-filter]'))button.addEventListener('click',()=>{
+  queueFilter=button.dataset.queueFilter;renderQueue();
+});
+
+function locateRider(rider) {
+  game.selectedCourierId=rider.id;
+  renderer.focusRegionId=null;
+  const job=game.deliveryById(rider.deliveryId);
+  if(job){game.selectedDeliveryId=job.id;if(queueFilter!=='all'&&job.status!==queueFilter)queueFilter='all';focusContract(job);}else {game.selectedDeliveryId=null;renderer.focusBounds({x1:rider.x-85,y1:rider.y-85,x2:rider.x+85,y2:rider.y+85});$('#region-view').value='route';}
+  renderer.draw(true);render();
+  if(innerWidth<=850)scrollDeskTarget(canvas);
+}
+
 function renderTeam() {
-  for (const rider of game.couriers) {
-    let card = riderCards.get(rider.id);
-    if (!card) {
-      card = document.createElement('article'); card.className = 'rider';card.dataset.rider=rider.id;
-      const locate=document.createElement('button');locate.className='rider-locate';locate.setAttribute('aria-label',`Locate ${rider.name} on the map`);locate.title=`Locate ${rider.name}`;locate.append(rider.bikeType?createBikeIconElement(rider,{className:'bike-icon',title:bikeVisual(rider).label}):createRiderPortraitElement(rider));card.append(locate);
-      locate.addEventListener('click',()=>{
-        game.selectedCourierId=rider.id;
-        renderer.focusRegionId=null;
-        const job=game.deliveryById(rider.deliveryId);
-        if(job){game.selectedDeliveryId=job.id;focusContract(job);}else {game.selectedDeliveryId=null;renderer.focusBounds({x1:rider.x-85,y1:rider.y-85,x2:rider.x+85,y2:rider.y+85});$('#region-view').value='route';}
-        renderer.draw(true);render();
-        if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:'instant'});
-      });
-      const content = document.createElement('div');
-      content.className='rider-info';
-      content.innerHTML = '<div class="rider-head"><strong></strong><span></span></div><p class="rider-preferences"></p><p class="rider-accepts"></p><div class="rider-resources"><label><span class="rider-endurance"></span><meter class="endurance-meter" min="0" max="100"></meter></label><label class="load-resource"><span class="rider-capacity"></span><meter class="load-meter" min="0" max="100"></meter></label></div><div class="rider-wellbeing" hidden><button class="wellbeing-toggle" aria-haspopup="dialog"><span class="wellbeing-heading"><span class="rider-satisfaction"></span><strong class="rider-wellbeing-band"></strong></span><meter class="satisfaction-meter" min="0" max="100"></meter></button><p class="rider-waiting"></p><p class="rider-retention" hidden></p></div><p class="rider-activity"></p><div class="rider-jobs"></div>';
-      content.querySelector('.wellbeing-toggle').addEventListener('click',()=>openRiderWellbeing(rider));
-      card.append(content); $('#team-list').append(card); riderCards.set(rider.id, card);
-      card.style.setProperty('--courier',rider.color);
-    }
-    const job = game.deliveryById(rider.deliveryId);
-    setWithin(card, '.rider-head strong', rider.name);
-    const wellbeing=game.wellbeing?game.riderWellbeing(rider):null;
-    const activity=riderActivity(game,rider);
-    card.dataset.phase=rider.phase;
-    card.dataset.selected=String(game.selectedCourierId===rider.id);
-    setWithin(card, '.rider-head span', rider.bikeType?bikeVisual(rider).label:rider.personality.name);
-    const preference = { sprinter: 'Likes short, urgent jobs', earner: 'Likes a worthwhile fee', local: 'Likes work in their district' };
-    const profile=game.logistics?game.riderProfile(rider):null;
-    setWithin(card, '.rider-preferences', profile?.preferences??preference[rider.personality.id]);
-    const accepts=profile?.acceptedTypes??profile?.accepts??(rider.bikeType==='road'?['document']:['document','fragile','grocery']);
-    setWithin(card, '.rider-accepts', rider.bikeType?`${accepts.map(type=>CARGO_FAMILIES[type]?.name??type).join(' / ')} · up to ${rider.capacityKg} kg`:'');
-    const energy=riderEndurance(rider),load=riderLoad(game,rider);
-    setWithin(card, '.rider-endurance', `Endurance ${energy.current} / ${energy.max}`);
-    card.querySelector('.endurance-meter').value=energy.current;card.querySelector('.endurance-meter').max=energy.max;
-    card.querySelector('.endurance-meter').setAttribute('aria-label', `${rider.name}: endurance ${energy.current} of ${energy.max}`);
-    card.querySelector('.load-resource').hidden=!game.logistics;
-    setWithin(card, '.rider-capacity', `Load ${load.currentKg} / ${load.capacityKg} kg`);
-    card.querySelector('.load-meter').value=load.currentKg;card.querySelector('.load-meter').max=load.capacityKg||1;
-    card.querySelector('.load-meter').setAttribute('aria-label', `${rider.name}: carrying ${load.currentKg} of ${load.capacityKg} kg`);
-    setWithin(card, '.rider-activity', wellbeing?.offDuty?'Radio off · back next shift':rider.phase==='break'?`Resting · ${time(game.breakRemaining(rider))}`:activity?.detail??(job?`${job.id.toUpperCase()} · ${rider.phase==='pickup'?'To pickup':'To delivery'} · ~${time(game.logistics?game.jobETA(rider,job):game.courierETA(rider))}`:rider.deliberation?`Considering ${rider.deliberation.deliveryId.toUpperCase()}`:'Listening for work'));
-    card.title=`${rider.completed} delivered · ${rider.lastDecision}`;
-    const jobs=game.logistics?game.riderJobs(rider):job?[job]:[];
-    card.querySelector('.rider-wellbeing').hidden=!wellbeing;
-    card.dataset.wellbeing=wellbeing?.band??'legacy';
-    if(wellbeing){
-      const satisfaction=Math.floor(wellbeing.satisfaction);
-      setWithin(card,'.rider-satisfaction',`Satisfaction ${satisfaction} / ${wellbeing.max}`);
-      setWithin(card,'.rider-wellbeing-band',wellbeing.label);
-      const meter=card.querySelector('.satisfaction-meter');meter.value=wellbeing.satisfaction;meter.max=wellbeing.max;
-      meter.setAttribute('aria-label',`${rider.name}: satisfaction ${satisfaction} of ${wellbeing.max}, ${wellbeing.label}`);
-      const waiting=wellbeing.offDuty?'Finished for today':jobs.length?'On tour':wellbeing.lastTourAgo===null?`Waiting for first tour · ${time(wellbeing.idleSeconds)}`:`Last tour ${time(wellbeing.lastTourAgo)} ago`;
-      setWithin(card,'.rider-waiting',waiting);
-      const leaving=Number.isFinite(wellbeing.leaveIn);
-      const retention=card.querySelector('.rider-retention');retention.hidden=!leaving;
-      setWithin(card,'.rider-retention',leaving?`Leaves after ${time(wellbeing.leaveIn)} more waiting`:'');
-      const toggle=card.querySelector('.wellbeing-toggle');
-      toggle.setAttribute('aria-label',`${rider.name}: satisfaction ${satisfaction} of ${wellbeing.max}, ${wellbeing.label}. ${waiting}. ${leaving?`Leaves after ${time(wellbeing.leaveIn)} more waiting. `:''}Inspect patience, effects and recovery.`);
-      toggle.title=`${wellbeing.reason} ${wellbeing.effect} ${wellbeing.recovery}`;
-    }
+  renderRiderCards({game,container:$('#team-list'),cards:riderCards,onLocate:locateRider,onSelectJob:select,onWellbeing:openRiderWellbeing,time});
+  for(const rider of game.couriers){
     const invitation=Array.from($('#preferred-rider').options).find(option=>option.value===rider.id);
-    if(invitation){invitation.disabled=Boolean(wellbeing?.offDuty);invitation.dataset.offDuty=String(Boolean(wellbeing?.offDuty));invitation.textContent=`${rider.name} · ${wellbeing?.offDuty?'finished for today':bikeVisual(rider).label}`;}
-    const jobLinks=card.querySelector('.rider-jobs');
-    if(jobLinks.dataset.ids!==jobs.map(j=>j.id).join(',')){
-      jobLinks.dataset.ids=jobs.map(j=>j.id).join(',');jobLinks.replaceChildren();
-      for(const accepted of jobs){const b=document.createElement('button');b.textContent=accepted.id.toUpperCase();b.title=`Inspect ${accepted.id.toUpperCase()}`;b.addEventListener('click',()=>select(accepted.id));jobLinks.append(b);}
-    }
+    if(invitation){invitation.disabled=Boolean(rider.offDuty);invitation.dataset.offDuty=String(Boolean(rider.offDuty));invitation.textContent=`${rider.name} · ${rider.offDuty?'finished for today':bikeVisual(rider).label}`;}
   }
   renderRiderWellbeing();
 }
@@ -258,11 +219,13 @@ function select(id) {
   }
   game.selectedDeliveryId = id;
   game.selectedCourierId = null;
+  const selected=game.deliveryById(id);
+  if(selected&&queueFilter!=='all'&&selected.status!==queueFilter)queueFilter='all';
   render();
   const d = game.deliveryById(id);
   if (d) { focusContract(d); renderer.draw(true); }
   if (innerWidth<=850) {
-    $('#contract-title').scrollIntoView({block:'start',behavior:'instant'});
+    scrollDeskTarget($('#contract-title'));
     $('#contract-title').focus({preventScroll:true});
   }
 }
@@ -270,6 +233,7 @@ function select(id) {
 function renderSelection() {
   const d = game.deliveryById(game.selectedDeliveryId);
   $('#selection-empty').hidden = Boolean(d); $('#contract-detail').hidden = !d;
+  $('#find-route').hidden=!d;
   if (!d) {
     broadcastDraft=null;$('#broadcast-preview').hidden=true;
     const rider = game.courierById(game.selectedCourierId);
@@ -279,6 +243,7 @@ function renderSelection() {
     return;
   }
   const state = jobState(game, d), waiting = d.status === 'waiting';
+  $('.job-progress').hidden=waiting||state.terminal;
   if(!waiting || broadcastDraft?.jobId!==d.id)broadcastDraft=null;
   text('#contract-title', `Job ${d.id.toUpperCase()}`);
   text('#selected-stage', state.label); $('#selected-stage').dataset.state = state.id;
@@ -300,6 +265,8 @@ function renderSelection() {
   text('#selected-reward', `€${d.reward}`); text('#selected-pickup', d.pickupAddress); text('#selected-drop', d.dropoffAddress);
   text('#selected-time', state.terminal ? state.label : `${time(d.deadlineAt - game.elapsed)} until deadline`);
   text('#selected-distance', `${(d.plannedDistance / 100).toFixed(1)} km`);
+  $('#selected-weight').hidden=!game.logistics;
+  $('#parcel-requirements').hidden=!game.logistics||d.deliverAfter<=game.elapsed||state.terminal;
   if(game.logistics){
     text('#selected-weight',`${d.weightKg} kg`);
     text('#delivery-window',d.deliverAfter>game.elapsed?`Pickup now · delivery opens in ${time(d.deliverAfter-game.elapsed)}`:'Pickup & delivery open now');
@@ -310,11 +277,13 @@ function renderSelection() {
   const regionName=id=>game.districts.find(r=>r.id===id)?.name??id;
   text('#selected-regions',`${regionName(d.pickupDistrict)} → ${regionName(d.dropoffDistrict)}`);
   const handling=game.handoffTime(d);
-  text('#selected-handling', CARGO_FAMILIES[d.type].detail+(game.refined?` Stops: ${handling.pickup}s collection + ${handling.dropoff}s handover.`:''));
+  text('#selected-handling', CARGO_FAMILIES[d.type].detail+(game.refined?` Stops: ${handling.pickup}s collection + ${handling.dropoff}s handover.`:'')+(game.logistics?d.deliverAfter>game.elapsed?` Collect now; delivery opens in ${time(d.deliverAfter-game.elapsed)}.`:' Pickup and delivery are open.':''));
   const advice = estimates.get(d.id);
   const rider = game.courierById(d.courierId);
   let explanation = state.terminal ? state.detail : rider ? `${rider.name} volunteered · ~${time(game.logistics?game.jobETA(rider,d):game.courierETA(rider))} to finish. ${state.detail}` : state.detail;
   if (advice) explanation = `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} to finish` : ''}. ${advice.detail}`;
+  $('#selected-state').hidden=Boolean(broadcastDraft&&waiting);
+  $('#job-actions').dataset.preview=String(Boolean(broadcastDraft));
   text('#selected-state', advice ? `${advice.label}${Number.isFinite(advice.finishIn) ? ` · ~${time(advice.finishIn)} to finish` : ''}` : explanation);
   $('#selected-state').title = explanation;
   text('#timing-detail', explanation);
@@ -326,7 +295,7 @@ function renderSelection() {
     text('#accepted-next-stop',next?`Next: ${next.kind==='pickup'?'pickup':'delivery'} ${next.jobId.toUpperCase()} · ~${time(next.doneIn)}`:'Tour complete');
   }
   $('#selected-state').dataset.state = advice?.state ?? state.id;
-  text('#offer-instruction', d.called ? 'On the radio' : 'Make an offer');
+  text('#offer-instruction', d.called ? 'Change broadcast' : 'Broadcast');
   text('#radio-effect', broadcastDraft?'':d.called?CHANNEL_EFFECTS[d.channel]:'Click once to preview · again to broadcast');
   $('#radio-effect').hidden=Boolean(broadcastDraft);
   for (const button of document.querySelectorAll('[data-radio]')) {
@@ -345,6 +314,10 @@ function renderSelection() {
   $('#bonus').disabled = game.gameOver || d.status !== 'waiting' || d.sweetened || game.cash < 5;
   text('#bonus', d.sweetened ? '€5 courier bonus paid' : 'Offer €5 courier bonus');
   text('#bonus-explanation', d.sweetened ? `Paid once. The client fee stays €${d.reward}.` : game.cash < 5 ? `You need €5 cash; you have €${game.cash}.` : `Costs €5 now, even if delivery fails. The client fee stays €${d.reward}.`);
+  const invited=game.courierById(d.preferredRiderId);
+  const adjustments=[invited?`${invited.name}${invited.offDuty?' · finished for today':''}`:null,d.sweetened?'€5 bonus':null,d.extended?`+${Math.round(d.deadlineAdded??0)}s`:null].filter(Boolean);
+  text('#offer-adjustments',adjustments.length?adjustments.join(' · '):game.logistics?'Invite · bonus · time':game.refined?'Bonus · time':'Bonus');
+  $('#offer-options').dataset.adjusted=String(adjustments.length>0);
   const extension=game.extensionOffer(d);
   $('#client-call').disabled=!extension.available;
   text('#client-call',d.extended?'Client extension agreed':extension.available?`Ask for +${Math.round(extension.seconds)}s · fee −€${extension.fee}`:'Call client for more time');
@@ -417,7 +390,13 @@ function previewOrBroadcast(channel) {
   if(broadcastDraft?.key===key){act({type:'radio',jobId:d.id,channel});return;}
   broadcastDraft={jobId:d.id,channel,key};
   renderSelection();
-  $('#broadcast-preview').scrollIntoView({block:'nearest',behavior:'instant'});
+  const panel=$('#broadcast-preview');
+  if(innerWidth<=850){
+    // Keep the volunteer's identity below both sticky controls. A tall preview
+    // may need scrolling, but its first line must never open under the radio.
+    const inset=$('.desk-toolbar').getBoundingClientRect().height+$('.radio-choices').getBoundingClientRect().height+12;
+    window.scrollTo({top:Math.max(0,panel.getBoundingClientRect().top+window.scrollY-inset),behavior:'instant'});
+  }else panel.scrollIntoView({block:'nearest',behavior:'instant'});
 }
 
 function renderDecisions(d) {
@@ -490,6 +469,7 @@ function render() {
   $('.shift-context').title = status.detail;
   const demand=game.demandRegion();
   text('#demand-region',game.closing?'Finishing the queue':game.capacityDemand?'Work follows riders with room':`Demand favors ${demand.name}`);
+  $('.map-caption').hidden=Boolean(game.capacityDemand&&!game.closing);
   text('#flow-count',game.cleanChain>1?`${game.cleanChain} clean deliveries in a row`:'');
   text('#map-detail-status',renderer.buildingDetails?.status(renderer.scale)??'');
   text('#mobile-job-count',game.activeDeliveries().length);
@@ -676,8 +656,36 @@ $('#find-route').addEventListener('click',()=>{
   const d=game.deliveryById(game.selectedDeliveryId);if(!d)return;
   focusContract(d);
   renderer.draw(true);render();
-  if(innerWidth<=850)canvas.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  if(innerWidth<=850)scrollDeskTarget(canvas,matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth');
 });
+// The mobile shortcuts navigate the existing desk; they never change the run.
+const panelLinks=[...document.querySelectorAll('.mobile-desk-nav a')];
+let navFrame=0;
+function scrollDeskTarget(target,behavior='instant'){
+  // Scroll the document explicitly: scrollIntoView can lose the offset when
+  // the canvas lives inside its clipped map surface.
+  const top=target.getBoundingClientRect().top+window.scrollY-$('.desk-toolbar').getBoundingClientRect().height-16;
+  window.scrollTo({top:Math.max(0,top),behavior});
+}
+function syncPanelNavigation(){
+  navFrame=0;if(innerWidth>850)return;
+  const toolbar=$('.desk-toolbar').getBoundingClientRect();
+  // A section is current once its heading reaches the upper third of the
+  // usable view, including an offer preview that cannot align at the top.
+  const edge=toolbar.bottom+Math.min(160,(innerHeight-toolbar.height-60)*.3);
+  const atBottom=window.scrollY+innerHeight>=document.documentElement.scrollHeight-2;
+  let current=panelLinks[0],nearest=-Infinity;
+  for(const link of panelLinks){const top=$(link.getAttribute('href')).getBoundingClientRect().top;if((top<=edge||atBottom&&top<innerHeight-60)&&top>nearest){current=link;nearest=top;}}
+  for(const link of panelLinks){if(link===current)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');}
+}
+for(const link of panelLinks)link.addEventListener('click',event=>{
+  event.preventDefault();const target=$(link.getAttribute('href'));
+  scrollDeskTarget(target);
+  if(target.tagName!=='CANVAS'){target.tabIndex=-1;target.focus({preventScroll:true});}
+  syncPanelNavigation();
+});
+for(const type of ['scroll','resize'])window.addEventListener(type,()=>{if(!navFrame)navFrame=requestAnimationFrame(syncPanelNavigation);},{passive:true});
+syncPanelNavigation();
 canvas.addEventListener('wheel', event => { event.preventDefault(); const rect = canvas.getBoundingClientRect(); renderer.zoomAt(event.clientX - rect.left, event.clientY - rect.top, event.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
 canvas.addEventListener('pointerdown', event => {
   if(event.pointerType==='touch') {
@@ -713,6 +721,8 @@ canvas.addEventListener('pointerup', event => {
     else if (hit?.type === 'courier') {
       game.selectedCourierId = hit.id;
       game.selectedDeliveryId = game.courierById(hit.id)?.deliveryId ?? null;
+      const selected=game.deliveryById(game.selectedDeliveryId);
+      if(selected&&queueFilter!=='all'&&selected.status!==queueFilter)queueFilter='all';
       render();
     }
   }

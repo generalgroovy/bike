@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="playtest.css">
 </head>
 <body>
+  <div class="desk-toolbar">
   <header class="masthead">
     <div class="wordmark" aria-label="Send It Berlin desk"><span>↗</span> SEND IT</div>
     <div class="desk-stats" aria-label="Shift status">
@@ -28,13 +29,17 @@
     <div class="shift-target"><span id="delivery-target">0 / 5 delivered</span><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock" aria-label="Time until the shift ends">3:00</strong><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
   </div>
 
+  </div>
+
   <main class="desk-layout">
     <section class="work-panel" aria-labelledby="work-title">
-      <div class="panel-heading"><div><h1 id="work-title">Jobs <span id="work-count">1</span></h1></div></div>
+      <div class="panel-heading"><div><h1 id="work-title">Jobs</h1></div></div>
       <p class="queue-explainer sr-only" id="queue-summary">Select a job to see its route and make an offer.</p>
+      <div class="queue-filters" role="group" aria-label="Filter current jobs"><button data-queue-filter="all" aria-pressed="true">All <span>0</span></button><button data-queue-filter="waiting" aria-pressed="false">Waiting <span>0</span></button><button data-queue-filter="claimed" aria-pressed="false">Riding <span>0</span></button></div>
       <button id="desk-focus" class="desk-focus" aria-describedby="focus-detail" hidden><span class="focus-heading"><strong id="focus-title"></strong><span class="focus-arrow" aria-hidden="true">↗</span></span><span id="focus-detail"></span></button>
 
       <div id="work-list"></div>
+      <p id="queue-filter-empty" class="empty" hidden></p>
       <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
     </section>
 
@@ -58,31 +63,28 @@
     <aside class="details-panel">
 
       <section class="contract-section" aria-labelledby="contract-title">
-        <div class="panel-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div></div>
+        <div class="panel-heading selection-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div><button id="find-route" aria-label="Show selected route on the map" title="Show route on the map">↗</button></div>
         <p id="selection-empty" class="empty">Choose a job from the list or map. Its status, route and decisions appear here.</p>
         <div id="contract-detail" hidden>
           <div class="job-progress" aria-label="Delivery progress"><span data-step="0">Offer</span><span data-step="1">Pickup</span><span data-step="2">Delivery</span><span data-step="3">Done</span></div>
           <div class="selected-status"><strong id="selected-stage" class="state-badge"></strong><span id="selected-owner"></span></div>
-          <div class="contract-top"><span id="selected-cargo"></span><strong id="selected-reward"></strong></div>
+          <div class="contract-top"><span class="contract-cargo"><span id="selected-cargo"></span><strong id="selected-weight"></strong></span><strong id="selected-reward"></strong></div>
           <div class="addresses"><span>PICKUP</span><strong id="selected-pickup"></strong><span>DROP-OFF</span><strong id="selected-drop"></strong></div>
           <div class="contract-facts"><strong id="selected-time"></strong><span id="selected-distance"></span></div>
-          <div id="parcel-requirements" class="parcel-requirements"><strong id="selected-weight"></strong><span id="delivery-window"></span></div>
-          <div class="region-route"><span id="selected-regions"></span><button id="find-route">Find route ↗</button></div>
+          <div id="parcel-requirements" class="parcel-requirements" hidden><span id="delivery-window"></span></div>
           <p id="selected-state" class="explanation"></p>
           <details id="accepted-tour" class="route-trail accepted-tour" hidden><summary>Remaining tour <span class="stop-count"></span><small id="accepted-next-stop"></small></summary><ol class="itinerary-stops"></ol></details>
           <div id="job-actions"><div class="offer-heading"><p id="offer-instruction" class="action-heading">Offer</p><p id="radio-hint" class="radio-hint" role="status"></p></div>
-          <label id="rider-preference-field" class="rider-preference-field">Personal invitation<select id="preferred-rider" aria-describedby="preference-effect"><option value="">No preference</option></select></label>
-          <p id="preference-effect" class="fine-print"></p>
           <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
           <div id="broadcast-preview" class="broadcast-preview" hidden><small>LIKELY VOLUNTEER</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><div id="forecast-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details id="forecast-route" class="route-trail"><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div><small id="forecast-confirm" role="status">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
           <span id="radio-effect" class="radio-effect"></span>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
-          <details id="offer-options" class="offer-options"><summary>Improve the offer <small>Bonus or more time</small></summary><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
+          <details id="offer-options" class="offer-options"><summary><span>Tailor offer</span><small id="offer-adjustments">Invite · bonus · time</small></summary><label id="rider-preference-field" class="rider-preference-field">Personal invitation<select id="preferred-rider" aria-describedby="preference-effect"><option value="">No preference</option></select></label><p id="preference-effect" class="fine-print"></p><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
           <div id="client-negotiation"><button id="client-call">Call client for more time</button><small id="client-call-detail" class="muted"></small></div>
           </details></div>
           <div id="job-outcome" hidden><button id="next-job" class="primary">Choose the next job</button></div>
           <details id="decision-details" class="decision-details"><summary>Compare riders</summary><p class="decision-disclaimer">Inspect a route before shaping the offer. Estimates change as the city moves; each rider still chooses.</p><p id="timing-detail" class="fine-print"></p><div id="rider-outlook"></div><div id="rider-comparison" class="rider-comparison" hidden><strong id="comparison-rider"></strong><p id="comparison-reason"></p><div id="comparison-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details class="route-trail" open><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div></div><div id="channel-effects"></div></details>
-          <details class="parcel-details"><summary>Parcel &amp; handling</summary><p id="selected-handling"></p></details>
+          <details class="parcel-details"><summary>Parcel &amp; route details</summary><div class="region-route"><span id="selected-regions"></span></div><p id="selected-handling"></p></details>
         </div>
       </section>
     </aside>
@@ -108,7 +110,7 @@
     <p>Watch rider energy and the roadworks forecast. Estimates include travel to pickup, loaded riding and current slowdowns, but future traffic and rest can change them. In new full-city shifts, work follows riders with room, favoring useful combinations and nearby next stops. Older shifts retain their original demand pattern. Chain clean deliveries and choose one upgrade halfway through.</p>
     <p id="scope-help">The operating area covers Berlin's full official city boundary. Choose a locality before a shift, or start a citywide desk with couriers in Mitte, Spandau and Köpenick. Map views change the camera; they never move or assign couriers.</p>
     <p>Tap a rider's bike to locate them. Their card always shows preferences, compatible cargo, endurance and load. Distances are street-route kilometres; the shift clock and riding pace are compressed for play. Address access lines and traffic events are game approximations. An unfinished shift saves on this device; Resume saved shift restores it paused.</p>
-    <p id="logistics-help">A personal invitation increases one rider's interest without reserving the job. Light road bikes, versatile city bikes and roomy cargo bikes suit different parcels. Weight uses carrying capacity and drains endurance. A rider can choose a second job when both deadlines and their load fit, collecting along the way or after current work. A later delivery window allows collection now, but handover waits until the client opens.</p>
+    <p id="logistics-help">Open Tailor offer for personal invitations, bonuses and deadline negotiations. A personal invitation increases one rider's interest without reserving the job. Light road bikes, versatile city bikes and roomy cargo bikes suit different parcels. Weight uses carrying capacity and drains endurance. A rider can choose a second job when both deadlines and their load fit, collecting along the way or after current work. A later delivery window allows collection now, but handover waits until the client opens.</p>
     <p id="wellbeing-help">Riders also need worthwhile work. Their cards show satisfaction and time since their last tour. Long waits use up each rider's patience, then reduce satisfaction. Below 25 starts a departure warning, giving you time to offer suitable work before they finish for the day. Invitations and bonuses improve an offer; the rider must still choose it. Riding, delivery windows, rest breaks and pauses do not count as being left without work. Tap the satisfaction meter for exact ranges and recovery.</p>
     <p id="refined-help">In full Berlin, riders stop to collect and hand over cargo. Finish estimates include both stops. You can renegotiate an unclaimed job once: up to 20 seconds more, for a 20% fee concession (at least €3). This reduces the job's pay and cannot push past closing time.</p>
     <p><strong>Your objective:</strong> reach the delivery target with reputation remaining. Work left at the final closing time counts as missed.</p>

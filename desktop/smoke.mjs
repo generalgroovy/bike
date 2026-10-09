@@ -74,6 +74,22 @@ try{
     await expect(rider).toHaveAttribute('data-wellbeing',wellbeing.band);
   }
   result.checks.push('building detail, distinct bikes, rider preferences and current/max resources render offline');
+  const beforeFilters=await dispatchState();
+  await page.locator('[data-queue-filter=claimed]').click();
+  await expect(page.locator('.job-card:visible')).toHaveCount(0);
+  await expect(page.locator('#queue-filter-empty')).toBeVisible();
+  await page.locator('[data-queue-filter=all]').click();
+  await expect(page.locator('.job-card:visible')).toHaveCount(2);
+  assert.deepEqual(await dispatchState(),beforeFilters,'queue filters must not change offline play');
+  const deskGeometry=await page.evaluate(()=>{
+    const map=document.querySelector('.map-surface').getBoundingClientRect();
+    return {width:innerWidth,height:innerHeight,mapHeight:map.height,
+      resources:[...document.querySelectorAll('.rider-endurance,.rider-capacity,.rider-satisfaction')].map(el=>{
+        const box=el.getBoundingClientRect();return {left:box.left,right:box.right,bottom:box.bottom,clipped:el.scrollWidth>el.clientWidth+1};})};
+  });
+  assert.ok(deskGeometry.mapHeight>=300,'the native map must retain a usable height');
+  assert.ok(deskGeometry.resources.every(box=>box.left>=0&&box.right<=deskGeometry.width&&box.bottom<=deskGeometry.height&&!box.clipped),'rider resources must fit the native desk');
+  result.checks.push('compact native desk keeps all rider resources visible and filters current work without changing the run');
   const beforeWellbeing=await state();
   await page.locator('.wellbeing-toggle').first().click();
   await expect(page.locator('#rider-wellbeing-dialog')).toBeVisible();
@@ -93,7 +109,12 @@ try{
   assert.equal(await page.evaluate(async()=>{const {DeskScore}=await import('/src/playtest-score.js');return DeskScore.lastInstance.voices.size;}),0);
   await page.locator('#close-sound').click();assert.deepEqual(await state(),before);
   result.checks.push('three rider themes, four task rhythms and exact mute work without changing simulation');
-  await page.locator('.job-select').first().click();await page.locator('#offer-options summary').click();await page.locator('#client-call').click();
+  await page.locator('.job-select').first().click();
+  assert.equal(await page.locator('#offer-options').evaluate(el=>el.open),false);
+  await expect(page.locator('#preferred-rider')).toBeHidden();
+  await page.locator('#offer-options summary').click();
+  await expect(page.locator('#preferred-rider')).toBeVisible();
+  await page.locator('#client-call').click();
   await expect(page.locator('#client-call-detail')).toContainText('fee reduced');
   const preferenceBefore=await state();
   await page.locator('#preferred-rider').selectOption('c0');
@@ -103,7 +124,10 @@ try{
   assert.equal(await page.evaluate(async()=>{const {Game}=await import('/src/game.js');return Game.lastInstance.deliveries[0].courierId;}),null);
   result.checks.push('rider preference and read-only first-click forecast preserve autonomy until the clock runs');
   await page.locator('#pause').click();
-  await expect(page.locator('[data-job=d0] .job-status')).toContainText('is on it',{timeout:12000});
+  await expect(page.locator('.job-card[data-job=d0]')).toHaveAttribute('data-status','claimed',{timeout:12000});
+  const acceptedRider=await page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return g.courierById(g.deliveries[0].courierId)?.name;});
+  assert.ok(acceptedRider);
+  await expect(page.locator('[data-job=d0] .job-status')).toContainText(acceptedRider);
   await expect(page.locator('#delivery-receipt')).toBeVisible({timeout:45000});
   await page.locator('#pause').click();
   result.checks.push('client tradeoff, autonomous acceptance and real-time collection/delivery complete offline');

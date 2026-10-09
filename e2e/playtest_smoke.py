@@ -92,6 +92,13 @@ class PlaytestAcceptance(unittest.TestCase):
         expect(self.page.locator('#broadcast-preview')).to_be_visible()
         button.click()
 
+    def wait_rider_acceptance(self, job_id='d0', timeout=8000):
+        card = self.page.locator(f'.job-card[data-job="{job_id}"]')
+        expect(card).to_have_attribute('data-status', 'claimed', timeout=timeout)
+        rider = self.game(f"g.courierById(g.deliveryById('{job_id}').courierId)?.name")
+        self.assertTrue(rider, 'The visible acceptance must belong to an actual rider')
+        expect(card.locator('.job-status')).to_contain_text(rider)
+
     def dispatch_snapshot(self):
         # Include RNG and pending decisions: a preview must not secretly advance
         # the next autonomous choice, even while the simulation is paused.
@@ -121,7 +128,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.assertEqual(self.game('g.radioUsed()'), 1)
         self.assertTrue(self.game("g.couriers.every(c=>c.phase==='idle')"))
         self.page.locator('#pause').click()
-        expect(self.page.locator('.job-status').first).to_contain_text('is on it', timeout=8000)
+        self.wait_rider_acceptance()
         expect(self.page.locator('#coach')).to_contain_text('chose the job')
         expect(self.page.locator('#delivery-target')).to_have_text(f'1 / {self.training_target} delivered', timeout=45000 if self.city == 'berlin' else 25000)
         self.page.locator('#pause').click()
@@ -304,7 +311,7 @@ class PlaytestAcceptance(unittest.TestCase):
         }""")
         self.assertGreater(self.camera('r.zoom'), 1.4)
         self.assertTrue(self.game('g.paused'))
-        self.page.locator('.mobile-desk-nav a').nth(1).click()
+        self.page.locator('.mobile-desk-nav a[href="#work-title"]').click()
         self.assertTrue(self.page.locator('#work-title').evaluate('(el)=>el.getBoundingClientRect().top>=0&&el.getBoundingClientRect().top<innerHeight'))
 
     def test_map_load_failure_is_explicit_and_does_not_substitute_a_schematic(self):
@@ -407,7 +414,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.start('standard')
         self.assertEqual(self.game('g.mode'),'standard')
         self.page.set_viewport_size({'width':390,'height':844})
-        self.page.locator('.mobile-desk-nav a').nth(1).click()
+        self.page.locator('.mobile-desk-nav a[href="#work-title"]').click()
         self.page.locator('.job-select').first.click()
         self.assertEqual(self.page.locator('#contract-title').evaluate('(el)=>el===document.activeElement'),True)
         for selector in ['#pause','#clock','#contract-title']:

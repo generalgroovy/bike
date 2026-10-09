@@ -6,7 +6,7 @@
 
 **Play the current concept:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
-**Windows app:** the 0.20 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, bicycle markers and original score. It runs offline without Python, Node, a web server or a separate browser. Use the portable `.exe` or the per-user installer. [App setup, build and verification](docs/WINDOWS_APP.md).
+**Windows app:** the 0.21 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, bicycle markers and original score. It runs offline without Python, Node, a web server or a separate browser. Use the portable `.exe` or the per-user installer. [App setup, build and verification](docs/WINDOWS_APP.md).
 
 **Unified desk (0.16):** one setup action, one decision panel per job, a persistent clock and rider strip, and clear job progress. Queue cards select; all broadcasts, bonuses and negotiations live with the selected job. [Play and interface guide](docs/UNIFIED_DESK.md).
 
@@ -17,6 +17,8 @@ Current concept: **one geographic city and one radio desk**, full-city ruleset `
 **Radio & rhythm (0.19):** contextual speech bubbles give the dispatcher and each rider a distinct voice. Actual offers, voluntary acceptance, collections, delivery windows and outcomes drive the conversation; the latest 12 exchanges live in Menu → Radio log. Bikes pedal over steady street routes, with no burning trail. The score answers your wooden radio phrases with each rider's instrument. [What changed and how to test](docs/RADIO_AND_RHYTHM.md).
 
 **Rider wellbeing (0.20):** cards show satisfaction, personal patience, waiting time and time since the last finished tour. Riders warn before signing off for the day after prolonged waiting. Suitable voluntarily accepted work restores morale; active tours, delivery-window waits, breaks and pauses are protected. Click the satisfaction meter for exact ranges and effects. [Rules and testing guide](docs/RIDER_WELLBEING.md).
+
+**Compact desk (0.21):** a single command bar, compact job queue with waiting/riding filters, slimmer rider cards, and an offer panel that reveals adjustments only when needed. Urgent warnings and preview consequences stay visible. The simulation and saved-shift rules are unchanged. [Interface guide](docs/SMART_DESK.md).
 
 ## Berlin concept playtest
 

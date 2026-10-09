@@ -89,9 +89,9 @@ class CityAcceptance(desk.PlaytestAcceptance):
     def test_handoffs_are_visible_and_delivery_receipt_is_readable_while_muted(self):
         self.start()
         self.broadcast();self.page.locator('#pause').click()
-        expect(self.page.locator('.job-timing').first).to_contain_text('Collecting',timeout=25000)
+        expect(self.page.locator('[data-job=d0] .job-status')).to_contain_text('Collecting',timeout=25000)
         self.assertTrue(self.game("g.couriers.some(c=>c.phase==='loading')"))
-        expect(self.page.locator('.job-timing').first).to_contain_text('Handing over',timeout=45000)
+        expect(self.page.locator('[data-job=d0] .job-status')).to_contain_text('Handing over',timeout=45000)
         expect(self.page.locator('#delivery-receipt')).to_be_visible(timeout=10000)
         expect(self.page.locator('#receipt-result')).to_contain_text('+€')
         expect(self.page.locator('#radio-exchange')).to_have_attribute('data-action', 'complete')

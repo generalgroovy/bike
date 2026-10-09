@@ -67,7 +67,8 @@ try{
     assert.ok(preference);
     await expect(rider.locator('.rider-preferences')).toHaveText(preference);
     await expect(rider.locator('.rider-endurance')).toContainText(/\d+\s*\/\s*\d+/);
-    await expect(rider.locator('.rider-capacity')).toContainText(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*kg/);
+    await expect(rider.locator('.rider-capacity .metric-value')).toHaveText(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/);
+    await expect(rider.locator('.rider-capacity .metric-label')).toHaveText('Load · kg');
     const wellbeing=await page.evaluate(async index=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return g.riderWellbeing(g.couriers[index]);},i);
     await expect(rider.locator('.rider-satisfaction')).toContainText(`${wellbeing.satisfaction} / ${wellbeing.max}`);
     await expect(rider.locator('.rider-waiting')).toContainText('Waiting for first tour');

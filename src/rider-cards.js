@@ -22,7 +22,7 @@ function createCard(rider) {
     <p class="rider-preferences"></p><p class="rider-accepts"></p>
     <div class="rider-resources">
       <label class="endurance-resource">${metric('rider-endurance', 'Endurance', 'endurance-meter')}</label>
-      <label class="load-resource">${metric('rider-capacity', 'Load', 'load-meter')}</label>
+      <label class="load-resource">${metric('rider-capacity', 'Load · kg', 'load-meter')}</label>
       <button type="button" class="wellbeing-toggle rider-wellbeing" aria-haspopup="dialog" hidden>${metric('rider-satisfaction', 'Satisfaction', 'satisfaction-meter')}</button>
     </div>
     <div class="rider-status"><p class="rider-waiting" hidden></p><p class="rider-activity"></p><div class="rider-jobs" hidden></div></div>
@@ -115,7 +115,7 @@ export function renderRiderCards({ game, container, cards, onLocate, onSelectJob
     endurance.setAttribute('aria-label', `${rider.name}: endurance ${energy.current} of ${energy.max}`);
     card.querySelector('.endurance-resource').title = 'Current endurance / maximum. Riding and carrying weight use endurance; breaks restore it.';
     card.querySelector('.load-resource').hidden = !game.logistics;
-    setText(card, '.rider-capacity .metric-value', `${load.currentKg} / ${load.capacityKg} kg`);
+    setText(card, '.rider-capacity .metric-value', `${load.currentKg} / ${load.capacityKg}`);
     const capacity = card.querySelector('.load-meter');
     capacity.value = load.currentKg; capacity.max = load.capacityKg || 1;
     capacity.setAttribute('aria-label', `${rider.name}: carrying ${load.currentKg} of ${load.capacityKg} kg`);

@@ -98,7 +98,11 @@ class DeskUXAcceptance(unittest.TestCase):
             if(!d.pickedUp)throw Error('Cargo fixture did not reach the real pickup');return true;})()''')
         self.render_tick()
         cargo=self.page.locator('.rider[data-rider=c2]')
-        expect(cargo.locator('.rider-capacity')).to_contain_text('12.5 / 30 kg')
+        expect(cargo.locator('.rider-capacity .metric-value')).to_have_text('12.5 / 30')
+        expect(cargo.locator('.rider-capacity .metric-label')).to_have_text('Load · kg')
+        # Also exercise the longest normal current/max endurance and morale.
+        self.game('''(()=>{g.couriers[2].fatigue=0;g.couriers[2].wellbeing.satisfaction=100;return true;})()''')
+        self.render_tick()
         for width,height in [(1280,720),(1024,768)]:
             self.page.set_viewport_size({'width':width,'height':height});self.render_tick()
             cargo.evaluate("el=>el.scrollIntoView({block:'nearest',inline:'center',behavior:'instant'})")

@@ -200,7 +200,8 @@ class CityAcceptance(desk.PlaytestAcceptance):
                     expect(rider.locator('.rider-endurance')).to_be_visible()
                     expect(rider.locator('.rider-endurance')).to_contain_text(re.compile(r'\d+\s*/\s*\d+'))
                     expect(rider.locator('.rider-capacity')).to_be_visible()
-                    expect(rider.locator('.rider-capacity')).to_contain_text(re.compile(r'\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?\s*kg'))
+                    expect(rider.locator('.rider-capacity .metric-value')).to_have_text(re.compile(r'\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?'))
+                    expect(rider.locator('.rider-capacity .metric-label')).to_have_text('Load · kg')
                     expect(rider.locator('.rider-accepts')).to_be_visible()
         self.assertTrue(self.game('g.paused'))
 

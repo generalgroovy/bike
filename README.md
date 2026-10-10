@@ -2,9 +2,9 @@
 
 **Send It** is a browser-based real-time logistics game about coordinating autonomous bicycle couriers through a shared radio across Berlin.
 
-> **You control information, not riders.**
+Select a job, preview a broadcast, then confirm it. Riders decide whether to accept. Meet the delivery target before closing while keeping reputation above zero.
 
-**Play the current concept:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
+**Play:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
 **Windows app:** the 0.21 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, bicycle markers and original score. It runs offline without Python, Node, a web server or a separate browser. Use the portable `.exe` or the per-user installer. [App setup, build and verification](docs/WINDOWS_APP.md).
 
@@ -12,9 +12,9 @@
 
 **Decision desk (0.18):** inspect an offer's estimated deadline buffer, endurance at the end of the whole tour, peak load and effect on existing promises before sending. Open the stop trail to see where a delivery window creates waiting time. A single current-desk lead highlights combinations and tight calls; rider comparisons stay inside the selected offer. The score now distinguishes a second accepted parcel and a delivery window opening. [Decision guide and acceptance](docs/DECISION_DESK.md). These projections remain read-only; riders still decide which offers to accept.
 
-Current concept: **one geographic city and one radio desk**, full-city ruleset `berlin-dispatch-v8`. Three autonomous couriers ride road, city and cargo bikes, each with visible preferences, endurance and kilogram capacity. Riders can take two compatible jobs, combine stops and collect before a later delivery window. Preview a radio choice once and click again to broadcast; a personal invitation improves one rider's interest without assigning them. Capacity-aware arrivals create more fitting route combinations, with 6 / 26 delivery targets. Earlier saved shifts keep their original rules. The full Berlin map retains official building footprints and the original **Spokes & Postcards** score. Shifts save locally and restore paused; earlier rulesets remain replayable. See the [Berlin acceptance guide](docs/BERLIN_ACCEPTANCE.md) for the current implementation and player/mobile acceptance gate.
+The full-city ruleset is `berlin-dispatch-v8`. Three autonomous couriers ride road, city and cargo bikes, each with visible preferences, endurance and kilogram capacity. Riders can take two compatible jobs, combine stops and collect before a later delivery window. Preview a radio choice once and click again to broadcast; a personal invitation improves one rider's interest without assigning them. Capacity-aware arrivals create more fitting route combinations, with 6 / 26 delivery targets. Earlier saved shifts keep their original rules. The full Berlin map retains official building footprints and the original **Spokes & Postcards** score. Shifts save locally and restore paused; earlier rulesets remain replayable. See the [Berlin acceptance guide](docs/BERLIN_ACCEPTANCE.md) for the current implementation and player/mobile acceptance gate.
 
-**Radio & rhythm (0.19):** contextual speech bubbles give the dispatcher and each rider a distinct voice. Actual offers, voluntary acceptance, collections, delivery windows and outcomes drive the conversation; the latest 12 exchanges live in Menu → Radio log. Bikes pedal over steady street routes, with no burning trail. The score answers your wooden radio phrases with each rider's instrument. [What changed and how to test](docs/RADIO_AND_RHYTHM.md).
+**Radio & rhythm (0.19):** contextual speech bubbles give the dispatcher and each rider a distinct voice. Actual offers, voluntary acceptance, collections, delivery windows and outcomes drive the conversation; the latest 12 exchanges live in Menu → Radio log. Bikes pedal over steady street routes, with no burning trail. Audio uses a different instrument for each rider. [What changed and how to test](docs/RADIO_AND_RHYTHM.md).
 
 **Rider wellbeing (0.20):** cards show satisfaction, personal patience, waiting time and time since the last finished tour. Riders warn before signing off for the day after prolonged waiting. Suitable voluntarily accepted work restores morale; active tours, delivery-window waits, breaks and pauses are protected. Click the satisfaction meter for exact ranges and effects. [Rules and testing guide](docs/RIDER_WELLBEING.md).
 

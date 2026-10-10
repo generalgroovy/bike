@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#172a2d">
-  <meta name="description" content="A short shift on the Berlin courier desk. Shape the radio, read the city, and let your riders choose.">
+  <meta name="description" content="Dispatch bicycle courier jobs across Berlin. Preview offers, compare routes and meet the delivery target.">
   <title>Send It — The Berlin desk</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="playtest.css">
@@ -40,7 +40,7 @@
 
       <div id="work-list"></div>
       <p id="queue-filter-empty" class="empty" hidden></p>
-      <p id="empty-queue" class="empty" hidden>No waiting work. Watch the team ride.</p>
+      <p id="empty-queue" class="empty" hidden>No waiting jobs.</p>
     </section>
 
     <section class="city-panel" aria-label="Berlin dispatch map">
@@ -64,7 +64,7 @@
 
       <section class="contract-section" aria-labelledby="contract-title">
         <div class="panel-heading selection-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div><button id="find-route" aria-label="Show selected route on the map" title="Show route on the map">↗</button></div>
-        <p id="selection-empty" class="empty">Choose a job from the list or map. Its status, route and decisions appear here.</p>
+        <p id="selection-empty" class="empty">Select a job from the list or map to inspect its route and offer.</p>
         <div id="contract-detail" hidden>
           <div class="job-progress" aria-label="Delivery progress"><span data-step="0">Offer</span><span data-step="1">Pickup</span><span data-step="2">Delivery</span><span data-step="3">Done</span></div>
           <div class="selected-status"><strong id="selected-stage" class="state-badge"></strong><span id="selected-owner"></span></div>
@@ -119,10 +119,10 @@
     <button id="close-help" class="primary">Back to the desk</button>
   </dialog>
 
-  <dialog id="radio-log-dialog" class="radio-log-dialog"><span class="eyebrow">THIS SHIFT · RECENT MESSAGES</span><h2>Over to you.</h2><p id="radio-log-empty" class="fine-print">The radio is quiet. Confirm an offer to put it on air.</p><ol id="radio-history"></ol><button id="close-radio-log" class="primary">Back to the desk</button></dialog>
+  <dialog id="radio-log-dialog" class="radio-log-dialog"><h2>Radio log</h2><p id="radio-log-empty" class="fine-print">No broadcasts yet. Confirm an offer to send it.</p><ol id="radio-history"></ol><button id="close-radio-log" class="primary">Back to the desk</button></dialog>
 
   <dialog id="rider-wellbeing-dialog" class="wellbeing-dialog" aria-labelledby="wellbeing-rider">
-    <span class="eyebrow">THE PERSON BEHIND THE PEDALS</span><h2 id="wellbeing-rider"></h2>
+    <h2 id="wellbeing-rider"></h2>
     <p class="wellbeing-value">Satisfaction <strong id="wellbeing-value"></strong></p>
     <p id="wellbeing-reason"></p><p id="wellbeing-timing" class="fine-print"></p>
     <div class="wellbeing-detail"><p id="wellbeing-effect"></p><p id="wellbeing-recovery"></p></div>
@@ -132,24 +132,24 @@
   </dialog>
 
   <dialog id="sound-dialog">
-    <span class="eyebrow">THE SOUND OF THE DESK</span><h2>Spokes &amp; Postcards.</h2>
-    <p>Your warm wooden radio phrase calls; each rider answers in their own voice. Three courier signatures, little parcel melodies and a shared, gentle pulse.</p>
+    <h2>Sound &amp; music</h2>
+    <p>Audio identifies riders, cargo and delivery events. Music and event cues can be adjusted below.</p>
     <label class="sound-field">Mix <select id="sound-mix"><option value="score">City score + field cues</option><option value="events">Field cues only</option></select></label>
     <label class="sound-field">Volume <input id="sound-volume" type="range" min="0" max="100" value="35"></label>
     <label class="sound-check"><input id="task-rhythms" type="checkbox" checked> Hear task pressure</label>
-    <p class="fine-print">Less time or a smaller delivery buffer makes a task repeat faster. The three most pressing jobs come forward; the lead is louder. A client extension can give its melody breathing room.</p>
+    <p class="fine-print">Jobs repeat faster as deadlines or delivery buffers shrink. The three most urgent jobs are audible; the most urgent is loudest.</p>
     <div class="rhythm-previews" aria-label="Preview task rhythms"><button data-rhythm="0">½ · Plenty</button><button data-rhythm="1">¼ · Watch</button><button data-rhythm="2">⅛ · Tight</button><button data-rhythm="3">¹⁄₁₆ · Urgent</button></div>
-    <p class="fine-print">Light parcels pluck, delicate parcels chime, heavy parcels hum. A volunteer brings their own instrument; a second parcel adds an answering bass figure. Left and right follow the map. Collection taps twice. A closed delivery window suspends the phrase; opening it answers upward. Delivery resolves; failure falls gently away. Pedal notes dip on a slowed street.</p>
+    <details><summary>Audio cue reference</summary><p class="fine-print">Light parcels pluck, delicate parcels chime, heavy parcels hum. Each rider has an instrument; a second parcel adds a bass part. Stereo position follows the map. Collection sounds twice; closed delivery windows suspend the phrase. Window opening, delivery and failure have separate cues. Slowed streets lower pedal notes.</p><p class="fine-print">Original score: Spokes &amp; Postcards.</p></details>
     <div class="sound-portraits"><button data-listen="Kira">Kira · bicycle bell</button><button data-listen="Mauro">Mauro · bass pluck</button><button data-listen="Brian">Brian · soft reed</button></div>
     <p id="sound-status" class="fine-print" role="status">Sound starts only when you enable it or preview a phrase. Gameplay is fully readable while muted.</p>
     <div class="review-actions"><button id="studio-toggle">Enable sound</button><button id="close-sound" class="primary">Back to the desk</button></div>
   </dialog>
 
-  <dialog id="upgrade-dialog"><span class="eyebrow">HALFWAY THROUGH</span><h2>A little help for the team.</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>
+  <dialog id="upgrade-dialog"><h2>Choose a shift upgrade</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>
   <dialog id="review-dialog" class="review">
     <span class="eyebrow" id="result-label">SHIFT REVIEW</span><h2 id="result-title"></h2><p id="result-description"></p>
     <div class="review-stats" id="result-stats"></div><div class="review-note"><strong id="result-rider"></strong><p id="result-flow"></p><p id="result-lesson"></p></div>
-    <details><summary>What happened on the radio?</summary><ol id="result-timeline"></ol></details>
+    <details><summary>Shift timeline</summary><ol id="result-timeline"></ol></details>
     <div class="review-actions"><button id="retry" class="primary">Retry this shift</button><button id="next-shift">Try a new shift</button><button id="export-run">Download shift record</button></div>
     <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
   </dialog>

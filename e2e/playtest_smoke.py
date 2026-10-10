@@ -225,7 +225,7 @@ class PlaytestAcceptance(unittest.TestCase):
             }
         }""")
         expect(self.page.locator('#review-dialog')).to_be_visible()
-        expect(self.page.locator('#result-title')).to_have_text('You kept Berlin moving.')
+        expect(self.page.locator('#result-title')).to_have_text('Delivery target reached')
         self.assertEqual(self.game('g.activeDeliveries().length'), 0)
         with self.page.expect_download() as download:
             self.page.locator('#export-run').click()

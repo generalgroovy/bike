@@ -435,9 +435,9 @@ $('#desk-focus').addEventListener('click',()=>{const {job:id,rider:riderId}=$('#
 function showReview() {
   const review = game.shiftReview(), success = review.outcome === 'success', teamLeft=review.outcome==='team-left';
   $('#review-dialog').dataset.outcome=review.outcome;
-  text('#result-label', success ? 'A GOOD DAY ON THE DESK' : 'EVERY SHIFT TEACHES SOMETHING');
-  text('#result-title', success ? 'You kept Berlin moving.' : teamLeft?'The team called it a day.':review.outcome === 'collapse' ? 'The desk lost its rhythm.' : 'Close the desk. Try again.');
-  text('#result-description', `${review.completed} of ${review.target} target deliveries. ${success ? 'The team made it through with reputation to spare.' : teamLeft?`Every rider signed off after waiting too long without work. The shift ends here with ${review.unserved} ${review.unserved===1?'offer':'offers'} left unserved. A new shift brings the full team back.`:'A fresh attempt gives you the same opening and another chance to read the city.'}`);
+  text('#result-label', 'SHIFT REVIEW');
+  text('#result-title', success ? 'Delivery target reached' : teamLeft?'All riders left':review.outcome === 'collapse' ? 'Reputation exhausted' : 'Delivery target missed');
+  text('#result-description', `${review.completed} of ${review.target} target deliveries. ${success ? 'Reputation stayed above zero.' : teamLeft?`Every rider signed off after waiting too long without work. The shift ends here with ${review.unserved} ${review.unserved===1?'offer':'offers'} left unserved. A new shift brings the full team back.`:'Retry this shift repeats the same opening conditions.'}`);
   const stats = $('#result-stats'); stats.replaceChildren();
   const results=[[review.completed, 'Delivered'], [review.failed, 'Missed deadlines'], ...(teamLeft?[[review.unserved,'Unserved offers']]:[]), [`€${review.profit}`, 'Net earned']];
   for (const [value, label] of results) {

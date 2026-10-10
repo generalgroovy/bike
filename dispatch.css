@@ -126,3 +126,8 @@ html[data-basemap=google] .job-inspector{bottom:96px!important;max-height:calc(1
 .dispatch-coach{padding-right:58px}
 /* Old tablet rules left absolute-position offsets on the now-relative rail. */
 .team-dock{top:auto!important;right:auto!important;bottom:auto!important;left:auto!important}
+
+/* Flat desk chrome leaves route, queue and rider state in focus. */
+.view-options-panel{box-shadow:none;border-radius:4px}
+.job-inspector,.dispatch-coach{box-shadow:none!important;border-radius:4px!important}
+.help-core{border-left:2px solid #65e1be;background:transparent}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#151a20">
-<meta name="description" content="Send It — a fast, autonomous Berlin bicycle courier dispatch roguelike.">
+<meta name="description" content="Dispatch bicycle courier jobs across Berlin. Broadcast offers; riders choose their work.">
 <title>Send It // Berlin Dispatch</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="review.css">
@@ -72,7 +72,7 @@
         <button data-broadcast="open"><strong>OPEN · 1 slot</strong><small></small></button>
         <button data-broadcast="local"><strong>LOCAL · 1 slot</strong><small></small></button>
         <button data-broadcast="priority"><strong>PRIORITY · 2 slots</strong><small></small></button>
-        <small class="broadcast-caveat">Slots stay busy until a rider accepts. Estimates include other jobs; riders still decide.</small>
+        <small class="broadcast-caveat">Slots stay busy until acceptance. Estimates include competing jobs.</small>
         <button data-broadcast="off" hidden>Remove from radio</button>
       </div>
       <div id="inspect-advice" class="inspect-advice"></div>
@@ -92,7 +92,7 @@
   </section>
 
   <aside class="team-dock">
-    <div class="dock-head"><div><span class="eyebrow">TEAM</span><strong>Riders</strong></div><small>click / hover to inspect</small></div>
+    <div class="dock-head"><div><strong>Riders</strong></div><small>Select to inspect</small></div>
     <div id="couriers" class="rider-list"></div>
     <details class="goals-drawer">
       <summary><span>GOALS</span><b id="goal-count">0</b></summary>
@@ -105,8 +105,8 @@
 <div id="hover-tip" class="hover-tip" hidden></div>
 
 <aside id="help-panel" class="help-panel" hidden>
-  <div class="help-head"><div><span class="eyebrow">REFERENCE</span><h2>How to dispatch</h2></div><button id="help-close" aria-label="Close help">×</button></div>
-  <section class="help-core"><strong>YOU CONTROL INFORMATION, NOT RIDERS.</strong><p>Choose which jobs are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
+  <div class="help-head"><div><h2>How to dispatch</h2></div><button id="help-close" aria-label="Close help">×</button></div>
+  <section class="help-core"><strong>Riders choose their jobs.</strong><p>Choose which jobs are audible and how strongly they are signalled. Riders decide from distance, personality, urgency, payout, fatigue and current streets.</p></section>
   <div class="help-grid">
     <section><h3>Radio</h3><p><b>OPEN · 1</b> neutral broadcast<br><b>PRIORITY · 2</b> stronger pull<br><b>LOCAL · 1</b> favours nearby riders<br><b>OFF</b> hold the job back</p><p>Select a job to compare signals. “May choose this” counts free listeners who prefer this call over other live calls without random variation. Riders already considering another call are excluded. Estimates do not guarantee acceptance, reserve riders or promise an on-time finish. Removing a job from radio releases its slots; switching signals replaces the current cost. Broadcasting uses radio slots. Client calls, rebroadcasts and event responses spend focus.</p></section>
     <section><h3>Dispatch tools</h3><p><b>Bonus · €5</b> adds €9 to a job’s payout.<br><b>Client call · 1 focus</b> buys 20 seconds.<br><b>Rebroadcast · 1 focus</b> restarts attention.<br><b>Event response</b> offers distinct route/client or capacity/pay tradeoffs.</p></section>

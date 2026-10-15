@@ -189,6 +189,8 @@ class PlaytestAcceptance(unittest.TestCase):
         self.assertFalse(self.game('g.deliveries[0].called'))
 
     def test_keyed_cards_keep_focus_during_updates(self):
+        if self.city == 'berlin':
+            self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         self.page.locator('.job-select').first.focus()
         self.page.evaluate("window.testCard=document.querySelector('.job-card')")
@@ -281,6 +283,7 @@ class PlaytestAcceptance(unittest.TestCase):
         self.start('standard')
         self.assertEqual(self.game('g.nodes.length'), self.node_count)
         self.assertEqual(self.game('g.ruleset'), self.ruleset)
+        start_region = self.game('g.startRegion ?? null')
         before = self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])')
         self.page.locator('#region-view').select_option('kreuzberg')
         self.assertGreater(self.camera('r.zoom'), 1)
@@ -292,8 +295,10 @@ class PlaytestAcceptance(unittest.TestCase):
         self.page.locator('#fit-map').click()
         self.assertEqual(self.camera('r.zoom'), 1)
         self.assertEqual(self.page.locator('#region-view').input_value(), '')
-        self.page.goto(self.base + f'/index.html?mode=standard&seed=BERLIN-1&city={self.city}')
+        district = f'&district={start_region}' if start_region else ''
+        self.page.goto(self.base + f'/index.html?mode=standard&seed=BERLIN-1&city={self.city}{district}')
         expect(self.page.locator('#intro')).to_be_visible(timeout=30000)
+        self.assertEqual(self.game('g.startRegion ?? null'), start_region)
         self.assertEqual(self.game('g.deliveries.map(d=>[d.id,d.pickupId,d.dropoffId])'), before)
         self.assertEqual(self.game('g.cityData.metadata.crs'), 'EPSG:25833')
 
@@ -336,6 +341,8 @@ class PlaytestAcceptance(unittest.TestCase):
         self.assertEqual(self.camera('r.renderStats.mapRepaints'), paints)
 
     def test_timing_advice_and_full_radio_explain_the_next_decision(self):
+        if self.city == 'berlin':
+            self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         expect(self.page.locator('.job-timing').first).to_contain_text('to finish')
         for index in range(3):

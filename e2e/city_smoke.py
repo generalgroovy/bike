@@ -231,6 +231,7 @@ class CityAcceptance(desk.PlaytestAcceptance):
         self.assertTrue(self.game('g.paused'))
 
     def test_busier_shift_starts_with_actionable_work_for_the_actual_team(self):
+        self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         self.assertEqual(self.game('g.config.target'), 26)
         expect(self.page.locator('.job-select')).to_have_count(self.standard_opening)

@@ -135,6 +135,7 @@ class WellbeingAcceptance(unittest.TestCase):
         expect(card.locator('.rider-waiting')).to_contain_text('On tour')
 
     def test_unanswered_warning_leads_to_real_departure_while_other_riders_continue(self):
+        self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         self.waiting_warning()
         before = self.game('g.demandCapacity().riders.find(row=>row.rider.id==="c0").slots')

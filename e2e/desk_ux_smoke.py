@@ -45,6 +45,7 @@ class DeskUXAcceptance(unittest.TestCase):
             self.assertFalse(box['clipped'], box)
 
     def test_desktop_gives_map_space_and_four_jobs_without_hiding_rider_resources(self):
+        self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         # A quiet opening should not spend queue space repeating generic advice.
         self.game('''(()=>{for(const d of g.deliveries){d.deadlineAt=240;d.deliverAfter=0;}return true;})()''')
@@ -118,6 +119,7 @@ class DeskUXAcceptance(unittest.TestCase):
                     f'Resource text must not overlap its neighbour: {metric}')
 
     def test_queue_filters_are_pure_and_show_only_current_jobs(self):
+        self.page.locator('#start-region').select_option('citywide')
         self.start('standard')
         # Deliberately mixed current/completed work exercises visibility. It does
         # not pretend these fixture status edits are real deliveries or a replay.

@@ -221,7 +221,7 @@ class WellbeingAcceptance(unittest.TestCase):
         self.advance_fixture(21)
         expect(self.page.locator('#review-dialog')).to_be_visible()
         expect(self.page.locator('#review-dialog')).to_have_attribute('data-outcome', 'team-left')
-        expect(self.page.locator('#result-title')).to_have_text('The team called it a day.')
+        expect(self.page.locator('#result-title')).to_have_text('All riders left')
         expect(self.page.locator('#result-description')).to_contain_text(f"{before['waiting']} offers left unserved")
         expect(self.page.locator('#result-stats')).to_contain_text('Missed deadlines')
         expect(self.page.locator('#result-stats')).to_contain_text('Unserved offers')

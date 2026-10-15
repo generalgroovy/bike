@@ -41,9 +41,11 @@ test('broadcasts and invitations never manufacture a rider acceptance', () => {
     const exchange = conversationFor(game, event('call', { channel }));
     assert.ok(exchange.lines.every(line => line.speaker !== 'rider'));
     assert.equal(exchange.riderId, null);
+    assert.equal(exchange.riderIdentity, null);
     assert.match(words(exchange), /personally invited.*choice stays with each rider/);
   }
   const onAir = conversationFor(game, event('prefer', { rider: 'Mauro' }));
+  assert.equal(onAir.riderIdentity, null, 'An invitation is not a spoken reply');
   assert.match(words(onAir), /Your call if it fits/);
   game.deliveries[0].called = false;
   const draft = conversationFor(game, event('prefer', { rider: 'Mauro' }));
@@ -53,6 +55,67 @@ test('broadcasts and invitations never manufacture a rider acceptance', () => {
   assert.match(words(conversationFor(game, event('prefer', { rider: null }))), /no personal invitation/);
   game.deliveries[0].courierId = 'c1';
   assert.equal(conversationFor(game, event('call', { channel: 'open' })).riderId, null, 'An old offer is never attributed to its eventual volunteer');
+});
+
+test('actual speaking rider identity is detached, immutable and absent from dispatcher-only lines', () => {
+  const game = fixture({ status: 'claimed', courierId: 'c1' });
+  Object.assign(game.couriers[1], { color: '#5398ac', bikeType: 'city' });
+  const exchange = conversationFor(game, event('claim', { rider: 'Mauro' }));
+  assert.deepEqual(exchange.riderIdentity, { id: 'c1', name: 'Mauro', color: '#5398ac', bikeType: 'city' });
+  assert.ok(Object.isFrozen(exchange.riderIdentity));
+  Object.assign(game.couriers[1], { name: 'Later name', color: '#ffffff', bikeType: 'cargo' });
+  assert.deepEqual(exchange.riderIdentity, { id: 'c1', name: 'Mauro', color: '#5398ac', bikeType: 'city' });
+  assert.equal(conversationFor(game, event('fail', { kind: 'never-called' })).riderIdentity, null);
+  const legacy = conversationFor(game, event('claim', { rider: 'Kira' }));
+  assert.equal(legacy.riderIdentity.bikeType, null, 'No invented legacy bike type');
+  assert.equal(legacy.riderIdentity.color, null);
+  assert.equal(conversationFor(game, event('claim', { rider: 'Kira', preview: true })), null);
+});
+
+test('first-call acknowledgment requires the actual first broadcast and keeps channel meaning', () => {
+  for (const channel of ['open', 'local', 'priority']) {
+    const game = fixture({ called: true, channel, firstCalledAt: 20, callHistory: [{ at: 20, channel }] });
+    const before = JSON.stringify(game);
+    const exchange = conversationFor(deepFreeze(game), event('call', { channel }));
+    assert.match(words(exchange), /First call/);
+    assert.ok(exchange.lines.every(line => line.speaker !== 'rider'));
+    assert.equal(exchange.riderIdentity, null);
+    assert.equal(JSON.stringify(game), before);
+    assert.match(words(exchange), channel === 'open' ? /all riders/ : channel === 'local' ? /local/ : /priority/);
+  }
+  const game = fixture({ called: true, channel: 'open', firstCalledAt: 20, callHistory: [{ at: 20, channel: 'open' }] });
+  game.deliveries.push({ id: 'd1', status: 'failed', firstCalledAt: 2, callHistory: [{ at: 2, channel: 'open' }] });
+  game.dispatchLog = [event('call', { channel: 'open' })];
+  assert.doesNotMatch(words(conversationFor(game, game.dispatchLog[0])), /First call/, 'A truncated log cannot turn a later call into the first');
+  game.deliveries.pop();
+  assert.doesNotMatch(words(conversationFor(game, event('channel', { channel: 'priority' }))), /First call/);
+  game.deliveries[0].callHistory.push({ at: 20, channel: 'open' });
+  assert.doesNotMatch(words(conversationFor(game, event('call', { channel: 'open' }))), /First call/, 'Recalling the same offer is not the first call');
+  assert.doesNotMatch(words(conversationFor(fixture(), event('call', { channel: 'open' }))), /First call/, 'Missing model evidence keeps ordinary wording');
+});
+
+test('first delivery gets a personal acknowledgment while tight finishes and continuing tours stay explicit', () => {
+  const replies = new Set();
+  for (const [index, name] of ['Kira', 'Mauro', 'Brian'].entries()) {
+    const game = fixture({ status: 'completed', completedAt: 20, courierId: `c${index}` });
+    game.completed = 1;
+    const exchange = conversationFor(deepFreeze(game), event('complete', { rider: name }));
+    assert.match(exchange.lines[0].text, /first/i);
+    assert.match(words(exchange), /€18.*65s to spare/);
+    replies.add(exchange.lines[0].text);
+  }
+  assert.equal(replies.size, 3);
+  const game = fixture({ status: 'completed', completedAt: 20, courierId: 'c0' });
+  game.completed = 1;
+  game.deliveries[0].deadlineAt = 25;
+  assert.match(words(conversationFor(game, event('complete', { rider: 'Kira' }))), /breathing room/);
+  game.deliveries[0].deadlineAt = 85;
+  game.deliveries.push({ id: 'd3', status: 'claimed', courierId: 'c0' });
+  assert.match(words(conversationFor(game, event('complete', { rider: 'Kira' }))), /other stop stays on the tour/);
+  game.deliveries.pop(); game.completed = 2;
+  assert.doesNotMatch(words(conversationFor(game, event('complete', { rider: 'Kira' }))), /first/i);
+  game.completed = 1; game.deliveries[0].completedAt = 40;
+  assert.doesNotMatch(words(conversationFor(game, event('complete', { rider: 'Kira' }))), /first/i);
 });
 
 test('rider voices and accepted route modes are distinct and fact based', () => {

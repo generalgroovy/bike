@@ -18,6 +18,7 @@ function fixture() {
 test('the first invitation previews, reviews the same option, then starts the clock without choosing a rider', () => {
   const { game, job, options } = fixture();
   assert.equal(firstShiftCoach(game, options).action, 'preview');
+  assert.match(firstShiftCoach(game, options).detail, /Nothing is sent yet/);
   const draft = { jobId: job.id, channel: 'local', key: previewKey(job, 'local', options.forecast) };
   const review = firstShiftCoach(game, { ...options, draft });
   assert.equal(review.step, 'confirm'); assert.equal(review.action, 'confirm');
@@ -28,7 +29,7 @@ test('the first invitation previews, reviews the same option, then starts the cl
   game.paused = false;
   assert.equal(firstShiftCoach(game, options).step, 'choosing');
   assert.equal(firstShiftCoach(game, options).action, null);
-  assert.match(firstShiftCoach(game, options).detail, /invitation, not an assignment/);
+  assert.match(firstShiftCoach(game, options).detail, /decide for themselves/);
 });
 
 test('a changed forecast requests renewed review and no-volunteer previews cannot imply acceptance', () => {
@@ -41,7 +42,7 @@ test('a changed forecast requests renewed review and no-volunteer previews canno
   draft.key = previewKey(job, 'open', forecast);
   const noFit = firstShiftCoach(game, { ...options, draft, forecast });
   assert.equal(noFit.step, 'no-fit'); assert.equal(noFit.action, null);
-  assert.match(noFit.detail, /cannot fix route or cargo limits/);
+  assert.match(noFit.detail, /cannot fix cargo limits/);
 });
 
 test('a missing or unsuitable selection points to an available offer without trusting stale or departed candidates', () => {
@@ -77,7 +78,7 @@ test('real phases distinguish travelling, handling and scheduled delivery withou
   rider.deliveryId = 'other';
   assert.match(firstShiftCoach(game, options).detail, /after another stop/);
   job.pickedUp = true;
-  assert.match(firstShiftCoach(game, options).detail, /has it on board/);
+  assert.match(firstShiftCoach(game, options).detail, /has D0 on board/);
   game.paused = true; game.tick = 500;
   assert.equal(firstShiftCoach(game, options).action, 'start');
   assert.match(firstShiftCoach(game, options).detail, /Resume the clock/);
@@ -134,4 +135,71 @@ test('a real first delivery remains autonomous and has identical replay state wi
   }
   assert.equal(guided.completed, 1); assert.equal(firstShiftCoach(guided), null);
   assert.equal(snapshot(guided), snapshot(control));
+});
+
+test('a second inspected offer keeps its own preview while the first rider works', () => {
+  const { game, rider, job, options } = fixture();
+  job.status = 'claimed'; job.courierId = rider.id; rider.deliveryId = job.id; rider.phase = 'pickup';
+  const next = { id: 'd1', status: 'waiting', called: false, deadlineAt: 120, reward: 14 };
+  game.deliveries.push(next);
+  options.feasibility.set(next.id, { best: { rider, margin: 30, availableNow: true } });
+  const before = JSON.stringify(game);
+  for (const paused of [true, false]) {
+    const scene = { ...game, paused };
+    const preview = firstShiftCoach(scene, { ...options, selectedJob: next });
+    assert.equal(preview.jobId, next.id); assert.equal(preview.step, 'preview');
+    const draft = { jobId: next.id, channel: 'priority', key: previewKey(next, 'priority', options.forecast) };
+    const confirm = firstShiftCoach(scene, { ...options, selectedJob: next, draft });
+    assert.equal(confirm.step, 'confirm'); assert.equal(confirm.jobId, next.id);
+    assert.match(confirm.detail, /two radio slots/); assert.match(confirm.detail, /Kira still decides/);
+    assert.match(confirm.title, /only a preview/);
+  }
+  assert.equal(JSON.stringify(game), before);
+});
+
+test('a channel-change preview never claims an existing live call has gone off air', () => {
+  const { game, job, options } = fixture(); job.called = true; job.channel = 'open';
+  const draft = { jobId: job.id, channel: 'local', key: previewKey(job, 'local', options.forecast) };
+  const coach = firstShiftCoach(game, { ...options, draft });
+  assert.equal(coach.step, 'confirm'); assert.equal(coach.action, 'confirm');
+  assert.match(coach.title, /current call stays live/); assert.match(coach.detail, /change the call/);
+  assert.doesNotMatch(coach.detail, /off-air|nothing is sent/i);
+  job.reward++;
+  const changed = firstShiftCoach(game, { ...options, draft });
+  assert.equal(changed.step, 'review'); assert.match(changed.detail, /radio is unchanged/);
+});
+
+test('selected accepted work keeps the correct rider and explains a useful consequence at each stage', () => {
+  const { game, rider, job, options } = fixture();
+  job.status = 'claimed'; job.courierId = rider.id; rider.deliveryId = job.id; rider.phase = 'pickup';
+  const other = { id: 'c1', name: 'Mauro', phase: 'dropoff', deliveryId: 'd1' };
+  const second = { id: 'd1', status: 'claimed', courierId: other.id, pickedUp: true, deadlineAt: 150 };
+  game.couriers.push(other); game.deliveries.push(second); game.paused = false;
+  const selected = firstShiftCoach(game, { ...options, selectedJob: second });
+  assert.equal(selected.jobId, second.id); assert.match(selected.detail, /Mauro/); assert.doesNotMatch(selected.detail, /Kira/);
+  assert.match(selected.detail, /Adding a parcel can change/); assert.equal(selected.action, null);
+  const pickup = firstShiftCoach(game, { ...options, selectedJob: job });
+  assert.match(pickup.detail, /radio space is free/);
+  rider.phase = 'loading';
+  assert.match(firstShiftCoach(game, options).detail, /Handling counts toward the deadline/);
+  rider.phase = 'waiting-window'; job.deliverAfter = 20;
+  assert.match(firstShiftCoach(game, options).detail, /weight uses capacity until handover/);
+});
+
+test('no-volunteer guidance distinguishes bandwidth, competing offers, appeal and route limits', () => {
+  const { game, rider, job, options } = fixture();
+  const cases = [
+    [{ available: false, rows: [] }, /radio is full/i, /Withdraw another call/],
+    [{ available: true, rows: [{ rider, eligible: true, competingJob: 'd2' }] }, /Other calls/, /prefer other live offers/],
+    [{ available: true, rows: [{ rider, eligible: true }] }, /no taker yet/, /invitation or bonus/],
+    [{ available: true, rows: [{ rider, eligible: false }] }, /bike has limits/, /cannot fix cargo limits/],
+    [{ available: true, rows: [{ rider: { ...rider, offDuty: true }, eligible: true }] }, /bike has limits/, /No rider can fit/]
+  ];
+  for (const [facts, title, detail] of cases) {
+    const forecast = { ...facts, rider: null };
+    const draft = { jobId: job.id, channel: 'open', key: previewKey(job, 'open', forecast) };
+    const coach = firstShiftCoach(game, { ...options, draft, forecast });
+    assert.equal(coach.step, 'no-fit'); assert.equal(coach.action, null);
+    assert.match(coach.title, title); assert.match(coach.detail, detail);
+  }
 });

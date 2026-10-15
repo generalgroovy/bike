@@ -24,8 +24,13 @@ electronLanguages: [en-US, de]
 win:
   icon: desktop/icon.ico
   executableName: Send It
+  # ZIP is extracted once by the player; subsequent launches use the runtime directly.
+  # The installer and self-extracting EXE keep their explicit names below.
+  artifactName: Send-It-${version}-Windows-Portable-Folder.${ext}
   signExecutable: false
   target:
+    - target: zip
+      arch: [x64]
     - target: nsis
       arch: [x64]
     - target: portable

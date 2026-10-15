@@ -82,6 +82,7 @@ jobs:
           name: send-it-windows-app
           path: |
             dist/*.exe
+            dist/*.zip
             reports/desktop/
             desktop/build.json
           retention-days: 14

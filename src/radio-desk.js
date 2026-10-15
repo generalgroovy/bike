@@ -1,4 +1,11 @@
 import { conversationFor, appendConversation } from './radio-conversation.js';
+import { createBikeIconElement } from './bike-display.js';
+
+const EVENT_LABELS={call:'CALL SENT',channel:'CALL CHANGED',claim:'ACCEPTED',pickup:'COLLECTED',complete:'DELIVERED',fail:'DEADLINE MISSED',
+  prefer:'OFFER UPDATED',sweeten:'BONUS OFFERED','client-call':'TIME AGREED',uncall:'CALL WITHDRAWN','radio-denied':'RADIO FULL',
+  'window-wait':'WAITING AT THE DOOR','window-open':'HANDOVER',break:'TAKING A BREATHER','radio-on':'BACK ON AIR',
+  'rider-restless':'CHECKING IN','rider-warning':'NEEDS WORK','rider-recovered':'BACK IN THE RHYTHM','rider-left':'SIGNED OFF',
+  'event-start':'ROADWORKS','event-end':'ROAD CLEAR','event-forecast':'ROADWORKS AHEAD',spawn:'NEW PARCEL'};
 
 // A bounded presentation history. Nothing here dispatches, predicts or advances play.
 export class RadioDesk {
@@ -38,6 +45,12 @@ export class RadioDesk {
     return exchange.lines.map(line=>{
       const bubble=document.createElement('p');bubble.className='radio-bubble';bubble.dataset.speaker=line.speaker;bubble.dataset.tone=line.tone;
       const name=document.createElement('strong'),words=document.createElement('span');name.textContent=line.name;words.textContent=line.text;
+      const identity=line.speaker==='rider'?exchange.riderIdentity:null;
+      if(identity){
+        bubble.dataset.rider=identity.id;
+        if(identity.color)bubble.style.setProperty('--speaker-color',identity.color);
+        if(identity.bikeType)name.prepend(createBikeIconElement(identity));
+      }
       bubble.append(name,words);return bubble;
     });
   }
@@ -46,6 +59,7 @@ export class RadioDesk {
     panel.hidden=!this.current;
     if(this.current&&panel.dataset.exchange!==this.current.id){
       panel.dataset.exchange=this.current.id;panel.dataset.action=this.current.action;
+      const label=this.node('#radio-event-label');if(label)label.textContent=EVENT_LABELS[this.current.action]??'DESK RADIO';
       const rider=this.current.lines.find(line=>line.speaker==='rider');
       this.node('#radio-job').textContent=this.current.jobId?.toUpperCase()??rider?.name??'Team';
       this.node('#radio-job').title=this.current.jobId?'Show this job':this.current.riderId?'Show this rider':'Team radio';

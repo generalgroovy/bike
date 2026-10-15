@@ -4,7 +4,7 @@ The browser and Windows app share the same Berlin desk. A first shift and a full
 
 ## Play
 
-1. Choose a starting locality and shift length, then **Prepare shift**. The clock stays stopped while you read the opening offers.
+1. Choose a starting locality and shift length, then **Open the desk**. The clock stays stopped while you read the opening offers.
 2. Select a job in **Jobs** or on the map. Selection focuses its real route and opens its decisions. Selection does not broadcast, spend money, advance time or assign a rider.
 3. Use **All riders** (OPEN, one slot), **Nearby** (LOCAL, one slot), or **Priority** (two slots). The highlighted button shows the live channel. Capacity and consequences are explained beside these controls.
 4. Press **Start shift** in the fixed shift bar. Watch a rider volunteer, collect, ride and hand over. The rider strip stays visible beneath the map.
@@ -15,7 +15,7 @@ The browser and Windows app share the same Berlin desk. A first shift and a full
 
 The working desk keeps current cash, reputation, radio capacity, time, delivery target, jobs, demand, road events and rider activity in view. The desktop chrome is 104 px high (previously 148 px); at 1280 × 720 the map column is 760 px wide (previously 710 px). Narrower rails and a smaller rider strip increase the usable map area without reducing the decision controls to icons.
 
-Setup is only locality, duration and Prepare shift, with saved-shift recovery when available. Introductory slogans and permanent instructional paragraphs have been removed. Menu contains How to play, sound settings, New shift, save status and map detail metadata. The current guide, rules, alternate scenario and source details remain available there.
+Setup is only locality, duration and Open the desk, with saved-shift recovery when available. Introductory slogans and permanent instructional paragraphs have been removed. Menu contains How to play, sound settings, New shift, save status and map detail metadata. The current guide, rules, alternate scenario and source details remain available there.
 
 Timing advice shows the estimate and urgency first. Its full explanation is on hover and in the expandable Rider estimates section, so phone and keyboard users can read it too. Radio choices retain names, slot costs and accessible descriptions. Actual costs, deadline concessions, failures and roadworks stay visible where the player makes the decision.
 

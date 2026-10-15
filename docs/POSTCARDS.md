@@ -1,12 +1,16 @@
-# Send It 0.22 · first calls and shift postcards
+# Send It 0.23 · first calls and shift postcards
 
 This slice gives a shift a clearer opening, three visible goals and a result worth revisiting. It adds presentation and local keepsakes around the existing Berlin simulation. Street data, routing, job generation, balance and saved-shift rules remain unchanged. Riders still decide which offers to accept.
 
 ## First delivery
 
-The selected-offer panel now guides a training shift through selecting a job, previewing a broadcast, reviewing the same option, starting the clock and following the rider. Its button selects an offer or focuses the actual control; it never broadcasts, confirms or starts the clock for the player.
+The selected-offer panel now guides a training shift through selecting a job, previewing a broadcast, reviewing the same option, starting the clock and following the rider. The guide highlights the actual radio or clock control; its only extra button selects a relevant offer when necessary. It never broadcasts, confirms or starts the clock for the player. **PREVIEW · NOT SENT** is a quiet blue dashed card. **Send call** on the same radio option confirms it; **On air** marks a live broadcast. If circumstances change, **Refresh** updates the preview before another click can send it.
 
-The guide distinguishes pickup, collection, travel, delivery-window waiting and handover. It disappears after the first completed delivery and yields to urgent deadline or departure warnings, upgrades and the shift review. A changed forecast requires renewed review through the existing two-click broadcast flow. Help remains available from Menu.
+The guide distinguishes pickup, collection, travel, delivery-window waiting and handover. It disappears after the first completed delivery and yields to urgent deadline or departure warnings, upgrades and the shift review. A changed forecast requires renewed review through the existing two-click broadcast flow. Help remains available from Menu. Inspecting a second offer keeps its own preview guidance even while another rider works. Accepted work names the actual rider and explains the current phase: radio space freed, handling time, weight on board or the final handover.
+
+Radio replies show the actual speaker’s bicycle and map color. The first confirmed call gets a dispatcher opening; the first delivery gets a rider-specific acknowledgment when there is no more pressing deadline or continuing-tour detail. Forecasts never generate a rider reply.
+
+Setup opens a paused desk. Opening it with unchanged settings retains the already-prepared game and map; choosing another duration or locality still prepares the requested run. Saved-shift restoration and exact retry keep their original rules.
 
 ## Three stamps
 

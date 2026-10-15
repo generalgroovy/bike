@@ -36,6 +36,6 @@ In a three-seed simulation with an open broadcast every five seconds and the sam
 
 ## Run and verification
 
-Browser: https://generalgroovy.github.io/bike/ . After an online update, Menu → Update offline copy refreshes a previously downloaded offline game. Windows: double-click `Send-It-0.19.0-Windows-Portable.exe`, or use the per-user Setup executable. Source: `python -m http.server 8080`, then open `http://localhost:8080/`.
+Browser: https://generalgroovy.github.io/bike/ . After an online update, Menu → Update offline copy refreshes a previously downloaded offline game. Windows: extract the current Windows folder ZIP once and open `Send It.exe`, or use the per-user Setup executable. See [Windows setup](WINDOWS_APP.md). Source: `python -m http.server 8080`, then open `http://localhost:8080/`.
 
 The release evidence records the exact commit, automated checks and downloaded executable hashes. Human enjoyment, listening comfort and physical-phone acceptance still require playtesting. The installer can be built without proving install/uninstall behavior on every device.

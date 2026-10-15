@@ -41,6 +41,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   renderer?.dispose();
   audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
   game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion, ruleset });
+  performance.mark('send-it:game-created');
   preparingFresh=false;
   postcards.reset(game);
   radioDesk.reset();
@@ -56,7 +57,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   $('#shift-length').value = mode;
   $('#prepare-shift').dataset.start = mode;
   updateSetupBrief();
-  if (restored && game.fullCity) $('#start-region').value = game.startRegion;
+  if (game.fullCity) $('#start-region').value = game.startRegion;
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
   $('#region-view').value = '';
   cards.clear(); riderCards.clear();
@@ -238,7 +239,9 @@ function select(id) {
 
 function renderSelection() {
   const d = game.deliveryById(game.selectedDeliveryId);
-  renderFirstCall(d);
+  if(d?.status!=='waiting'||broadcastDraft?.jobId!==d?.id)broadcastDraft=null;
+  const forecast=broadcastDraft?forecastBroadcast(game,d,broadcastDraft.channel):null;
+  renderFirstCall(d,forecast);
   $('#selection-empty').hidden = Boolean(d); $('#contract-detail').hidden = !d;
   $('#find-route').hidden=!d;
   if (!d) {
@@ -251,7 +254,6 @@ function renderSelection() {
   }
   const state = jobState(game, d), waiting = d.status === 'waiting';
   $('.job-progress').hidden=waiting||state.terminal;
-  if(!waiting || broadcastDraft?.jobId!==d.id)broadcastDraft=null;
   text('#contract-title', `Job ${d.id.toUpperCase()}`);
   text('#selected-stage', state.label); $('#selected-stage').dataset.state = state.id;
   text('#selected-owner', game.courierById(d.courierId)?.name ?? '');
@@ -305,18 +307,20 @@ function renderSelection() {
   text('#offer-instruction', d.called ? 'Change broadcast' : 'Broadcast');
   text('#radio-effect', broadcastDraft?'':d.called?CHANNEL_EFFECTS[d.channel]:'Click once to preview · again to broadcast');
   $('#radio-effect').hidden=Boolean(broadcastDraft);
+  const previewChanged=renderBroadcastPreview(d,forecast);
   for (const button of document.querySelectorAll('[data-radio]')) {
     const channel = button.dataset.radio, cost = channel === 'priority' ? 2 : 1;
     button.disabled = game.gameOver || d.status !== 'waiting' || game.radioUsed() - game.radioCost(d) + cost > game.radioSlots;
     button.title = button.disabled && d.status === 'waiting' ? `${channel.toUpperCase()} needs ${cost} ${cost === 1 ? 'slot' : 'slots'}. Withdraw another call to make room.` : CHANNEL_EFFECTS[channel];
     button.setAttribute('aria-pressed', String(d.called && d.channel === channel));
     const previewing=broadcastDraft?.channel===channel;
+    const changed=previewing&&previewChanged;
     button.dataset.preview=String(previewing);
-    setWithin(button,'strong',previewing?'Confirm ↗':{open:'All riders',local:'Nearby',priority:'Priority'}[channel]);
+    setWithin(button,'strong',previewing?(changed?'Refresh ↻':'Send call ↗'):{open:'All riders',local:'Nearby',priority:'Priority'}[channel]);
+    setWithin(button,'small',`${d.called&&d.channel===channel?'On air · ':''}${cost} ${cost===1?'slot':'slots'}`);
     const name = {open:'Broadcast OPEN to all riders',local:'Broadcast LOCAL to nearby riders',priority:'Broadcast PRIORITY for more attention'}[channel];
-    button.setAttribute('aria-label', `${previewing?'Confirm: ': 'Preview: '}${name} · ${cost} ${cost===1?'slot':'slots'}${d.called&&d.channel===channel?' · on air':''}`);
+    button.setAttribute('aria-label', `${previewing?(changed?'Refresh preview: ':'Send call: '): 'Preview: '}${name} · ${cost} ${cost===1?'slot':'slots'}${d.called&&d.channel===channel?' · on air':''}`);
   }
-  renderBroadcastPreview(d);
   $('#withdraw').hidden = !d.called || d.status !== 'waiting';
   $('#bonus').disabled = game.gameOver || d.status !== 'waiting' || d.sweetened || game.cash < 5;
   text('#bonus', d.sweetened ? '€5 courier bonus paid' : 'Offer €5 courier bonus');
@@ -333,42 +337,38 @@ function renderSelection() {
   if($('#decision-details').open&&d.status==='waiting')renderDecisions(d);
 }
 
-function renderFirstCall(job) {
-  coachPrompt=firstShiftCoach(game,{draft:broadcastDraft,selectedJob:job,feasibility,
-    forecast:broadcastDraft&&job?.id===broadcastDraft.jobId?forecastBroadcast(game,job,broadcastDraft.channel):null});
+function renderFirstCall(job,forecast) {
+  coachPrompt=firstShiftCoach(game,{draft:broadcastDraft,selectedJob:job,feasibility,forecast});
   $('#first-call-coach').hidden=!coachPrompt;
   for(const el of document.querySelectorAll('.coach-target'))el.classList.remove('coach-target');
   if(!coachPrompt)return;
   $('#first-call-coach').dataset.step=coachPrompt.step;
+  text('#first-call-eyebrow',coachPrompt.step==='riding'?'ON THE ROAD':'FIRST CALL');
   text('#first-call-title',coachPrompt.title);text('#first-call-detail',coachPrompt.detail);
-  const button=$('#first-call-action');button.hidden=!coachPrompt.action;
-  const labels={select:'Open this offer ↗',preview:'Show the radio ↗',confirm:'Review this call ↗',start:'Show the clock ↗'};
-  button.textContent=labels[coachPrompt.action]??'';
+  const button=$('#first-call-action');button.hidden=coachPrompt.action!=='select';
+  button.textContent='Open this offer ↗';
   const target=coachPrompt.action==='start'?$('#pause'):coachPrompt.action==='preview'?$('[data-radio="open"]'):coachPrompt.action==='confirm'?$(`[data-radio="${broadcastDraft?.channel??'open'}"]`):null;
   target?.classList.add('coach-target');
   if(innerWidth<=850&&['select','preview','confirm'].includes(coachPrompt.action))$('.mobile-desk-nav a[href="#contract-title"]')?.classList.add('coach-target');
 }
 $('#first-call-action').addEventListener('click',()=>{
-  if(!coachPrompt?.action)return;
-  if(coachPrompt.action==='select'){select(coachPrompt.jobId);return;}
-  const target=coachPrompt.action==='start'?$('#pause'):coachPrompt.action==='confirm'?$(`[data-radio="${broadcastDraft?.channel??'open'}"]`):$('[data-radio="open"]');
-  target.focus();target.scrollIntoView({block:'nearest',behavior:'instant'});
+  if(coachPrompt?.action==='select')select(coachPrompt.jobId);
 });
 
-function renderBroadcastPreview(d) {
+function renderBroadcastPreview(d,forecast) {
   const panel=$('#broadcast-preview');panel.hidden=!broadcastDraft;
   if(!broadcastDraft)return;
-  const forecast=forecastBroadcast(game,d,broadcastDraft.channel);
   const row=forecast.rows.find(item=>item.rider.id===forecast.rider?.id);
   const changed=previewKey(d,broadcastDraft.channel,forecast)!==broadcastDraft.key;
   panel.dataset.changed=String(changed);
-  panel.style.setProperty('--courier',forecast.rider?.color??'#9e684a');
+  text('#forecast-state',d.called?'PREVIEW · CHANGE NOT SENT':'PREVIEW · NOT SENT');
   text('#forecast-rider',forecast.rider?`${forecast.rider.name} · ${bikeVisual(forecast.rider).label}`:'No likely volunteer');
   const mode={'on the way':'Along the way',next:'After current work',ready:'Next pickup',direct:'Next pickup'}[row?.mode];
   const consequences=forecast.rider&&game.offerConsequences?game.offerConsequences(forecast.rider,d):null;
   text('#forecast-detail',consequences?.feasible?`Estimated outcome · ${mode??'Next pickup'} · ~${time(consequences.finishIn)} to deliver. ${forecast.cost} ${forecast.cost===1?'slot':'slots'} until accepted.`:`${row?.reason??forecast.reason??'Riders compare all live offers.'}${Number.isFinite(row?.finishIn)?` · ~${time(row.finishIn)} to deliver`:''}. ${broadcastDraft.channel==='priority'?'2 slots':'1 slot'} until accepted.`);
   renderConsequences($('#forecast-consequences'),consequences?{...consequences,appealReasons:row?.appealReasons??consequences.appealReasons}:null,d);
   text('#forecast-confirm',changed?'The outlook changed. Click again to review it.':forecast.rider?'Click the same option again to broadcast. Riders still choose.':'Broadcasting will not make an unsuitable route fit.');
+  return changed;
 }
 
 function renderConsequences(root,consequences,offeredJob) {
@@ -524,7 +524,7 @@ function render() {
   $('#coach-panel').hidden = game.mode !== 'training' || game.completed >= 3;
   if (game.mode === 'training') {
     const first = game.deliveries[0];
-    text('#coach', game.completed > 0 ? 'First delivery done. Select another job. Nearby favors close pickups; Priority uses two radio slots for attention.' : first.status === 'failed' ? 'The first deadline passed. Select another job and compare its finish estimate before broadcasting.' : first.status === 'claimed' ? `${game.courierById(first.courierId).name} chose the job. Watch the pickup, then the delivery. You shape the call; the rider chooses.` : first.called ? 'Your call is on air. Start or resume the clock at the top, and watch a courier volunteer.' : 'Click All riders to preview a volunteer, then click Confirm to broadcast. Start shift at the top.');
+    text('#coach', game.completed > 0 ? 'First delivery done. Select another job. Nearby favors close pickups; Priority uses two radio slots for attention.' : first.status === 'failed' ? 'The first deadline passed. Select another job and compare its finish estimate before broadcasting.' : first.status === 'claimed' ? `${game.courierById(first.courierId).name} chose the job. Watch the pickup, then the delivery. You shape the call; the rider chooses.` : first.called ? 'Your call is on air. Start or resume the clock at the top, and watch a courier volunteer.' : 'Click All riders to preview a volunteer, then click Send call to broadcast. Start shift at the top.');
   }
   estimates.clear();feasibility.clear();
   for (const d of game.activeDeliveries()) if (d.status === 'waiting') {const value=game.deliveryFeasibility(d);feasibility.set(d.id,value);estimates.set(d.id,timingAdvice(value));}
@@ -633,15 +633,24 @@ function updateSetupBrief() {
   $('#shift-length').options[0].textContent=`3 minutes · ${targets[0]} deliveries`;
   $('#shift-length').options[1].textContent=`9 minutes · ${targets[1]} deliveries`;
   const mode=$('#shift-length').value;$('#prepare-shift').dataset.start=mode;
+  text('#prepare-shift',`Open the ${mode==='training'?'3':'9'}-minute desk ↗`);
   renderSetupStamps(mode,targets[mode==='training'?0:1]);
 }
 $('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true });preparingFresh=true;updateSetupBrief(); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
 $('#continue-shift').addEventListener('click', () => $('#intro').close());
 $('#shift-length').addEventListener('change', updateSetupBrief);
 $('#prepare-shift').addEventListener('click', () => {
-  saveEnabled=true;
   const preserve=game.tick===0&&!preparingFresh;
-  const seed = preserve ? game.seed : createSeed(); begin($('#shift-length').value, seed,undefined,null,preserve?game.ruleset:undefined);
+  // The unopened desk is already prepared. Reuse it when setup is unchanged;
+  // changing locality, duration or explicitly choosing a new shift still rebuilds.
+  const reuse=!saveEnabled&&preserve&&game.paused&&game.mode===$('#shift-length').value
+    &&(!game.fullCity||game.startRegion===$('#start-region').value);
+  saveEnabled=true;
+  if(reuse){$('#intro').close();accumulator=0;lastTime=performance.now();}
+  else {
+    const seed=preserve?game.seed:createSeed();
+    begin($('#shift-length').value,seed,undefined,null,preserve?game.ruleset:undefined);
+  }
   saveShift();
   if (sound) {audio.ensure();audio.cue('start');}
 });
@@ -792,6 +801,7 @@ try {
   const inner=params.get('city')==='inner-ring';
   text('#loading-detail',inner?'Loading the Inner Ring street map.':'Loading Berlin’s complete street map. The first visit may take a moment.');
   city=await (inner?loadInnerRing:loadBerlinCity)({signal:AbortSignal.timeout(120000)});
+  performance.mark('send-it:city-loaded');
   text('#scope-name',inner?'⌁ BERLIN · INNER RING':'⌁ BERLIN · FULL CITY');
   text('#scope-eyebrow',inner?'BERLIN / INNER RING':'BERLIN / FULL CITY');
   text('#map-credits',inner?'© OpenStreetMap · Berlin Open Data':'Berlin Open Data');
@@ -813,7 +823,7 @@ try {
   const ruleset=(inner?['berlin-dispatch-v2',GEOGRAPHIC_RULESET]:FULL_CITY_RULESETS).includes(requestedRuleset)?requestedRuleset:undefined;
   begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed(),undefined,null,ruleset);
   try {const record=JSON.parse(localStorage.getItem(`send-it:shift:${city.metadata.id}`));if(record?.city===city.metadata.id&&record.ticks>0&&!record.review?.outcome){savedRecord=record;$('#resume-saved').hidden=false;text('#resume-saved',`Resume saved ${record.mode==='training'?'first shift':'Berlin shift'} · paused`);}}catch{}
-  $('#map-loading').hidden=true;$('#intro').showModal();requestAnimationFrame(frame);
+  $('#map-loading').hidden=true;$('#intro').showModal();performance.mark('send-it:desk-ready');requestAnimationFrame(frame);
 } catch(error) {
   console.error('Berlin map startup failed',error);
   $('#map-loading').hidden=true;

@@ -27,13 +27,29 @@ const weight = d => finite(d?.weightKg) ? `${d.weightKg} kg` : parcel(d);
 const fee = d => finite(d?.reward) ? `€${d.reward}` : 'the posted fee';
 const voiceLine = (voice, name, text, tone = voice === 'dispatcher' ? 'desk' : 'neutral') => ({ speaker: voice, name, text, tone });
 
+// Milestones require positive model evidence, never the first surviving entry
+// in the bounded radio log. Missing legacy facts keep the ordinary wording.
+function firstCall(jobs, job, event, at) {
+  if (event.action !== 'call' || job?.firstCalledAt !== at || job.callHistory?.length !== 1) return false;
+  const call = job.callHistory[0];
+  return call.at === at && call.channel === (event.channel ?? job.channel) &&
+    jobs.every(other => other === job || other.firstCalledAt == null && !other.callHistory?.length);
+}
+
+function firstDelivery(game, jobs, job, at) {
+  return game.completed === 1 && job?.status === 'completed' && job.completedAt === at &&
+    jobs.filter(other => other.status === 'completed').length === 1;
+}
+
 /**
  * Convert one actual dispatchLog entry to a short, immutable-in-practice view.
  * Window events may be supplied by presentation code watching rider phases;
  * preview:true is deliberately silent. Call this when the event occurs, then
  * keep the returned text as its snapshot instead of regenerating old events.
  *
- * Returns null or {id, action, at, jobId, riderId, priority, tone, lines, cue}.
+ * Returns null or {id, action, at, jobId, riderId, riderIdentity, priority,
+ * tone, lines, cue}. riderIdentity is a frozen scalar snapshot only when a
+ * rider actually speaks; invitations and forecasts do not create a speaker.
  * Each of the one or two lines is {speaker, name, text, tone}. Text is plain
  * text, never HTML. No game methods are called, including forecast/route APIs.
  */
@@ -77,7 +93,12 @@ export function conversationFor(game, event) {
       local: [`Anyone near ${pickup}? ${job}, ${weight(d)}, ${fee(d)}.`, `Keeping this local: ${job} at ${pickup}. Who's close?`, `${job} on the nearby channel. A good one if you're around ${pickup}.`],
       priority: [`Priority call: ${job}, ${pickup}. Only take it if the timing works.`, `${job} needs attention. ${weight(d)}, ${fee(d)}. Who can fit it?`, `Clear call for ${job}. Clock's running; nobody needs to be a hero.`]
     };
-    lines = [desk(pick(offers[channel] ?? offers.open)), radio(invitation
+    const opening = {
+      open: `First call, all riders: ${job}, ${weight(d)}, ${fee(d)}. Any takers?`,
+      local: `First call, keeping it local: ${job} at ${pickup}. Who's close?`,
+      priority: `First call, priority: ${job} at ${pickup}. Take it only if it fits.`
+    };
+    lines = [desk(firstCall(jobs, d, event, at) ? opening[channel] ?? opening.open : pick(offers[channel] ?? offers.open)), radio(invitation
       ? `${invitation.name} is personally invited. The choice stays with each rider.`
       : `${channel === 'priority' ? 'Priority · two slots' : channel === 'local' ? 'Nearby · one slot' : 'All riders · one slot'}. Waiting for a volunteer.`)];
     tone = channel === 'priority' ? 'urgent' : 'offer';
@@ -171,6 +192,10 @@ export function conversationFor(game, event) {
       Kira: [`${job} done. Next stop's already on the bike's mind.`, `${job} delivered. One down; keeping the tour moving.`],
       Mauro: [`${job} delivered. Next parcel, same charming courier.`, `${job} done. This tour still has another chapter.`],
       Brian: [`${job} delivered. Carrying on with the rest of the tour.`, `${job} safely delivered. Still another person waiting for me.`]
+    } : firstDelivery(game, jobs, d, at) ? {
+      Kira: [`${job} delivered. First one in. Keep the calls clear.`, `First delivery, desk. ${job} is done.`],
+      Mauro: [`${job} delivered. First fee on the board. A promising development.`, `${job} is in. First delivery done; the ledger approves.`],
+      Brian: [`${job} delivered. First doorstep taken care of.`, `First one delivered, desk. ${job} is safely with them.`]
     } : {
       Kira: [`${job} delivered. Clean finish.`, `${job} at ${dropoff}. Done and dusted.`],
       Mauro: [`${job} delivered. One less parcel, one better ledger.`, `${job} is with them. A small triumph for two wheels.`],
@@ -256,7 +281,11 @@ export function conversationFor(game, event) {
     tone = action === 'event-end' ? 'relief' : 'traffic';
   }
   if (!lines?.length) return null;
-  return { id, action, at, jobId, riderId: c?.id ?? null, priority: PRIORITY[action], tone, lines,
+  const riderIdentity = c && lines.some(line => line.speaker === 'rider') ? Object.freeze({
+    id: c.id, name: riderName, color: typeof c.color === 'string' ? c.color : null,
+    bikeType: typeof c.bikeType === 'string' ? c.bikeType : null
+  }) : null;
+  return { id, action, at, jobId, riderId: c?.id ?? null, riderIdentity, priority: PRIORITY[action], tone, lines,
     cue: { rider: c?.name ?? null, attitude: riderVoice?.tone ?? 'desk' } };
 }
 

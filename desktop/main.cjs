@@ -30,8 +30,10 @@ function showSources(){
   protect(info);info.loadURL(ORIGIN+'/map-data.html');
 }
 function openDesk(){
-  desk=new BrowserWindow({title:'Send It · Berlin',width:1440,height:940,minWidth:850,minHeight:650,backgroundColor:'#f6f3e9',icon,show:false,webPreferences:safePreferences});
-  protect(desk);desk.once('ready-to-show',()=>desk.show());
+  // Show a native window immediately, then let the bundled loading screen explain
+  // map preparation. Waiting for a renderer paint can look like an ignored launch.
+  desk=new BrowserWindow({title:'Send It · Opening Berlin…',width:1440,height:940,minWidth:850,minHeight:650,backgroundColor:'#f6f3e9',icon,show:true,webPreferences:safePreferences});
+  protect(desk);
   desk.on('blur',()=>pauseAndSave().catch(()=>{}));desk.on('minimize',()=>pauseAndSave().catch(()=>{}));
   desk.on('close',event=>{
     if(closing)return;event.preventDefault();

@@ -6,7 +6,7 @@ Select a job, preview a broadcast, then confirm it. Riders decide whether to acc
 
 **Play:** [Full Berlin](https://generalgroovy.github.io/bike/preview/berlin/?city=berlin) · [Original Inner Ring](https://generalgroovy.github.io/bike/preview/berlin/?city=inner-ring).
 
-**Windows app:** the 0.22 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, bicycle markers and original score. It runs offline without Python, Node, a web server or a separate browser. Use the portable `.exe` or the per-user installer. [App setup, build and verification](docs/WINDOWS_APP.md).
+**Windows app:** the 0.23 desktop package bundles the game, Chromium, the full Berlin and Inner Ring maps, all building-detail files, bicycle markers and original score. It runs offline without Python, Node, a web server or a separate browser. For fast startup, extract the Windows folder `.zip` once and open `Send It.exe`, or use the per-user installer. The optional single-file `.exe` extracts again on every launch. [App setup, build and verification](docs/WINDOWS_APP.md).
 
 **Unified desk (0.16):** one setup action, one decision panel per job, a persistent clock and rider strip, and clear job progress. Queue cards select; all broadcasts, bonuses and negotiations live with the selected job. [Play and interface guide](docs/UNIFIED_DESK.md).
 
@@ -21,6 +21,8 @@ The full-city ruleset is `berlin-dispatch-v8`. Three autonomous couriers ride ro
 **Compact desk (0.21):** a single command bar, compact job queue with waiting/riding filters, slimmer rider cards, and an offer panel that reveals adjustments only when needed. Urgent warnings and preview consequences stay visible. The simulation and saved-shift rules are unchanged. [Interface guide](docs/SMART_DESK.md).
 
 **Postcards from the Berlin desk (0.22):** learn the radio through your first real delivery, then earn three optional stamps: hit the delivery target, build a clean streak, and keep the whole crew delivering. Every finished shift creates an original postcard from Berlin street geometry and completed stops, signed by the riders. Save it as a standalone SVG, retry the exact seed and rules, or copy a challenge link. The bounded album stays on your device; achievements never change rider choice or provide upgrades. [Play guide and human acceptance checks](docs/POSTCARDS.md).
+
+**First-shift refinement (0.23):** unsent previews, live calls and actual rider acceptance have distinct labels and visual treatment. A compact guide follows the parcel you inspect and explains the next meaningful consequence. Actual rider replies carry their bicycle and map color; first calls and first deliveries have contextual acknowledgments. Opening an unchanged setup reuses the prepared desk. [First-shift guide](docs/POSTCARDS.md) · [Windows startup and formats](docs/WINDOWS_APP.md).
 
 ## Berlin concept playtest
 

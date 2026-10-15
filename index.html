@@ -55,7 +55,7 @@
       <div id="event-banner" hidden><span class="eyebrow" id="event-state">ROADWORKS AHEAD</span><strong id="event-place"></strong><span id="event-time"></span></div>
       <div id="delivery-receipt" class="delivery-receipt" role="status" hidden><span class="receipt-stamp">DELIVERED ✓</span><strong id="receipt-title"></strong><span id="receipt-address"></span><small id="receipt-result"></small></div>
 
-      <section id="radio-exchange" class="radio-exchange" aria-label="Radio conversation" hidden><div class="radio-heading"><span><i aria-hidden="true"></i> DESK RADIO</span><button id="radio-job" title="Show this job"></button><button id="dismiss-radio" aria-label="Dismiss radio conversation">×</button></div><div id="radio-lines" aria-live="polite" aria-atomic="true"></div></section>
+      <section id="radio-exchange" class="radio-exchange" aria-label="Radio conversation" hidden><div class="radio-heading"><span><i aria-hidden="true"></i> <span id="radio-event-label">DESK RADIO</span></span><button id="radio-job" title="Show this job"></button><button id="dismiss-radio" aria-label="Dismiss radio conversation">×</button></div><div id="radio-lines" aria-live="polite" aria-atomic="true"></div></section>
       <div class="map-bottom"><span id="notice" role="status"></span></div>
       </div>
       <section class="team-section" aria-labelledby="team-title"><div class="panel-heading"><h2 id="team-title">Riders</h2></div><div id="team-list"></div></section>
@@ -64,7 +64,7 @@
     <aside class="details-panel">
 
       <section class="contract-section" aria-labelledby="contract-title">
-        <div id="first-call-coach" class="first-call-coach" hidden><span class="eyebrow">YOUR FIRST DELIVERY</span><strong id="first-call-title"></strong><p id="first-call-detail"></p><button id="first-call-action" class="text-button"></button></div>
+        <div id="first-call-coach" class="first-call-coach" hidden><span id="first-call-eyebrow" class="eyebrow">FIRST CALL</span><strong id="first-call-title"></strong><p id="first-call-detail"></p><button id="first-call-action" class="text-button"></button></div>
         <div class="panel-heading selection-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div><button id="find-route" aria-label="Show selected route on the map" title="Show route on the map">↗</button></div>
         <p id="selection-empty" class="empty">Select a job from the list or map to inspect its route and offer.</p>
         <div id="contract-detail" hidden>
@@ -78,7 +78,7 @@
           <details id="accepted-tour" class="route-trail accepted-tour" hidden><summary>Remaining tour <span class="stop-count"></span><small id="accepted-next-stop"></small></summary><ol class="itinerary-stops"></ol></details>
           <div id="job-actions"><div class="offer-heading"><p id="offer-instruction" class="action-heading">Offer</p><p id="radio-hint" class="radio-hint" role="status"></p></div>
           <div class="radio-choices" aria-label="Selected contract radio"><button data-radio="open" aria-describedby="radio-effect"><strong>All riders</strong><small>1 slot</small></button><button data-radio="local" aria-describedby="radio-effect"><strong>Nearby</strong><small>1 slot</small></button><button data-radio="priority" aria-describedby="radio-effect"><strong>Priority</strong><small>2 slots</small></button></div>
-          <div id="broadcast-preview" class="broadcast-preview" hidden><small>LIKELY VOLUNTEER</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><div id="forecast-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details id="forecast-route" class="route-trail"><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div><small id="forecast-confirm" role="status">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
+          <div id="broadcast-preview" class="broadcast-preview" hidden><small id="forecast-state">PREVIEW · NOT SENT</small><strong id="forecast-rider"></strong><span id="forecast-detail"></span><div id="forecast-consequences" class="decision-receipt" hidden><p class="appeal-reasons"></p><dl class="consequence-metrics"><div><dt>Deadline buffer</dt><dd data-impact="margin"></dd></div><div><dt>Endurance · now → tour end</dt><dd data-impact="endurance"></dd></div><div><dt>Load · now → peak</dt><dd data-impact="load"></dd></div><div><dt data-impact-label="tour">Tour time change</dt><dd data-impact="tour"></dd></div></dl><p class="commitment-impact"></p><details id="forecast-route" class="route-trail"><summary>Estimated stop order <span class="stop-count"></span></summary><ol class="itinerary-stops"></ol></details></div><small id="forecast-confirm" role="status">Click the same option again to broadcast.</small><button id="cancel-preview" class="text-button">Cancel preview</button></div>
           <span id="radio-effect" class="radio-effect"></span>
           <button id="withdraw" class="text-button" hidden>Withdraw this call</button>
           <details id="offer-options" class="offer-options"><summary><span>Tailor offer</span><small id="offer-adjustments">Invite · bonus · time</small></summary><label id="rider-preference-field" class="rider-preference-field">Personal invitation<select id="preferred-rider" aria-describedby="preference-effect"><option value="">No preference</option></select></label><p id="preference-effect" class="fine-print"></p><button id="bonus">Offer €5 courier bonus</button><small id="bonus-explanation" class="muted">Paid from your cash. The client fee stays the same.</small>
@@ -94,13 +94,12 @@
 
   <dialog id="intro" class="welcome">
     <span class="eyebrow">POSTCARDS FROM THE BERLIN DESK</span><h2>Choose your shift</h2>
-    <p class="intro-hook">Preview offers. Riders choose. Deliver before closing.</p>
+    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 6 deliveries</option><option value="standard">9 minutes · 26 deliveries</option></select></label>
     <label id="start-region-field" class="start-region-field">Starting locality<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select></label>
     <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
-    <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 6 deliveries</option><option value="standard">9 minutes · 26 deliveries</option></select></label>
     <div id="setup-stamps" class="setup-stamps" aria-label="Optional shift achievements"></div>
-    <p class="fine-print setup-note">Three stamps to earn. Every rider still chooses.</p>
-    <button id="prepare-shift" class="primary" data-start="training">Prepare shift ↗</button>
+    <p class="fine-print setup-note">Clock stays paused until you press Start shift.</p>
+    <button id="prepare-shift" class="primary" data-start="training">Open the 3-minute desk ↗</button>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
   </dialog>
 

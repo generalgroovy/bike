@@ -126,7 +126,7 @@ Serve the feature checkout over HTTP:
 python -m http.server 8080
 ```
 
-Open `http://localhost:8080/`. Choose a locality or the citywide starting bases, then a guided or standard shift. Click All riders to preview the first offer, then Confirm to broadcast. Start shift advances time. Inspect a job to compare implications, tap a bike to locate a rider and zoom further for footprints.
+Open `http://localhost:8080/`. Choose a locality or the citywide starting bases, then a guided or standard shift. Click All riders to preview the first offer, then Send call to broadcast. Start shift advances time. Inspect a job to compare implications, tap a bike to locate a rider and zoom further for footprints.
 
 ```sh
 npm test

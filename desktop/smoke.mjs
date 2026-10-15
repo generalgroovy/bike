@@ -11,15 +11,19 @@ const root=fileURLToPath(new URL('../',import.meta.url)),exe=process.argv[2]&&pa
 const folder=path.join(root,'reports/desktop',exe?'packaged':'development');await mkdir(folder,{recursive:true});
 const profile=await mkdtemp(path.join(tmpdir(),'send-it-app-test-'));
 const env={...process.env,SEND_IT_DATA_DIR:profile};delete env.ELECTRON_RUN_AS_NODE;
-const result={platform:process.platform,executable:exe??'development',checks:[],pageErrors:[],externalRequests:[],failedResources:[]};
+const result={platform:process.platform,executable:exe??'development',launches:[],checks:[],pageErrors:[],externalRequests:[],failedResources:[]};
 let app,page;
 async function launch(){
+  const started=performance.now();
   app=await electron.launch({...(exe?{executablePath:exe}:{}),args:[...(exe?[]:[root]),'--host-resolver-rules=MAP * ~NOTFOUND'],cwd:root,env,timeout:60000});
   page=await app.firstWindow();page.setDefaultTimeout(30000);
+  const firstWindowMs=Math.round(performance.now()-started);
+  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible()),true,'native window must be visible while Berlin prepares');
   page.on('pageerror',e=>result.pageErrors.push(String(e)));
   page.on('request',r=>{if(/^https?:/.test(r.url()))result.externalRequests.push(r.url());});
   page.on('response',r=>{if(r.status()>=400)result.failedResources.push(r.url());});
   await expect(page.locator('#intro')).toBeVisible({timeout:60000});
+  result.launches.push({firstWindowMs,playableSetupMs:Math.round(performance.now()-started),marks:await page.evaluate(()=>performance.getEntriesByType('mark').filter(entry=>entry.name.startsWith('send-it:')).map(entry=>({name:entry.name,at:entry.startTime})))});
 }
 const state=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,seed:g.seed,cash:g.cash,completed:g.completed,positions:g.couriers.map(c=>[c.x,c.y,c.deliveryId]),jobs:g.deliveries.map(d=>[d.id,d.status]),wellbeing:g.couriers.map(c=>({state:c.wellbeing,offDuty:c.offDuty,view:g.riderWellbeing(c)}))};});
 const dispatchState=()=>page.evaluate(async()=>{const {Game}=await import('/src/game.js');const g=Game.lastInstance;return {tick:g.tick,rng:g.rng,cash:g.cash,radio:g.radioUsed(),record:g.exportRun(),riders:g.couriers.map(c=>({x:c.x,y:c.y,phase:c.phase,fatigue:c.fatigue,deliveryId:c.deliveryId,deliberation:c.deliberation})),jobs:g.deliveries.map(d=>({id:d.id,status:d.status,called:d.called,channel:d.channel,courierId:d.courierId}))};});

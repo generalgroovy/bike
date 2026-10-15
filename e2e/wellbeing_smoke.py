@@ -241,7 +241,12 @@ class WellbeingAcceptance(unittest.TestCase):
         self.assertEqual(self.snapshot(), frozen, 'A closed desk must stay closed')
         self.page.screenshot(path=str(desk.REPORTS / 'whole-team-review.png'), full_page=True)
         self.page.locator('#next-shift').click()
+        expect(self.page.locator('#intro')).to_be_visible()
+        self.render_tick()
         expect(self.page.locator('#review-dialog')).to_be_hidden()
+        self.assertEqual(self.snapshot(), frozen, 'Choosing the next shift must preserve the finished run until Prepare')
+        self.page.locator('#prepare-shift').click()
+        expect(self.page.locator('#intro')).to_be_hidden()
         self.assertTrue(self.game('g.wellbeing&&!g.gameOver&&g.paused&&g.tick===0'))
         self.assertTrue(self.game('''g.couriers.every(c=>!c.offDuty&&c.radioOn&&
             c.wellbeing.satisfaction===72&&c.wellbeing.idleSeconds===0&&

@@ -1,4 +1,4 @@
-import { BerlinPlaytest, CARGO_FAMILIES, FIXED_STEP, SHIFT_MODES, replayRun } from './game-berlin-playtest.js';
+import { BerlinPlaytest, CARGO_FAMILIES, FIXED_STEP, SHIFT_MODES, FULL_CITY_RULESETS, GEOGRAPHIC_RULESET, replayRun } from './game-berlin-playtest.js';
 import { Renderer } from './render.js';
 import { createSeed } from './rng.js';
 import { createCargoIconElement } from './cargo-icons.js';
@@ -12,6 +12,8 @@ import { forecastBroadcast, previewKey } from './broadcast-preview.js';
 import { deskFocus } from './desk-focus.js';
 import { RadioDesk } from './radio-desk.js';
 import { renderRiderCards } from './rider-cards.js';
+import { PostcardDesk, renderSetupStamps } from './postcard-desk.js';
+import { firstShiftCoach } from './first-shift-coach.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('#game-canvas');
@@ -21,22 +23,26 @@ const audio = new DeskScore();
 const radioDesk = new RadioDesk();
 const time = seconds => { const n = Math.max(0, Math.ceil(seconds)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; };
 const text = (selector, value) => { const el = $(selector), next = String(value); if (el.textContent !== next) el.textContent = next; };
-const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#radio-log-dialog', '#rider-wellbeing-dialog', '#upgrade-dialog', '#review-dialog'];
+const dialogs = ['#intro', '#help-dialog', '#sound-dialog', '#radio-log-dialog', '#rider-wellbeing-dialog', '#upgrade-dialog', '#review-dialog', '#postcard-dialog'];
 let radioWasPaused=true;
 let wellbeingWasPaused=true, wellbeingRiderId=null;
 let game, renderer, city, lastTime = performance.now(), accumulator = 0, lastUI = 0, lastLog = null;
 let sound = false, faulted = false, helpWasPaused = true, soundWasPaused=true, pointer = null, receiptUntil=0;
 let savedRecord=null, saveEnabled=false, lastSave=0;
-let broadcastDraft=null, inspectedRiderId=null, queueFilter='all';
+let broadcastDraft=null, inspectedRiderId=null, queueFilter='all', preparingFresh=false;
 const touches=new Map();let pinchDistance=0;
+const postcards=new PostcardDesk({onCue:()=>{if(sound&&!document.hidden)audio.cue('stamp');},onOpen:()=>audio.cancel(),onClose:()=>{accumulator=0;lastTime=performance.now();}});
+let coachPrompt=null;
 audio.enabled = false;
 for(const control of document.querySelectorAll('button,select')) if(control.id!=='reload') control.disabled=true;
 
-function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, restored=null) {
+function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, restored=null, ruleset=undefined) {
   dialogs.forEach(id => { if ($(id).open) $(id).close(); });
   renderer?.dispose();
   audio.cancel();receiptUntil=0;$('#delivery-receipt').hidden=true;
-  game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion });
+  game = restored ?? new BerlinPlaytest({ seed, mode, city, startRegion, ruleset });
+  preparingFresh=false;
+  postcards.reset(game);
   radioDesk.reset();
   broadcastDraft=null;inspectedRiderId=null;queueFilter='all';$('#rider-comparison').hidden=true;
   $('#rider-preference-field').hidden=!game.logistics;
@@ -46,11 +52,10 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   $('#wellbeing-help').hidden=!game.wellbeing;
   wellbeingRiderId=null;
   $('#preferred-rider').replaceChildren(new Option('No preference', ''), ...game.couriers.map(c=>new Option(`${c.name} · ${bikeVisual(c).label}`,c.id)));
-  $('#shift-length').options[0].textContent=`3 minutes · ${game.fullCity?6:5} deliveries`;
-  $('#shift-length').options[1].textContent=`9 minutes · ${game.fullCity?26:24} deliveries`;
   if (!restored) game.selectedDeliveryId = game.activeDeliveries()[0]?.id ?? null;
   $('#shift-length').value = mode;
   $('#prepare-shift').dataset.start = mode;
+  updateSetupBrief();
   if (restored && game.fullCity) $('#start-region').value = game.startRegion;
   renderer = new Renderer(canvas, game, { nativeMap: false, minimumMapBand: 'district' });
   $('#region-view').value = '';
@@ -68,6 +73,7 @@ function begin(mode, seed = createSeed(), startRegion=$('#start-region').value, 
   const url = new URL(location.href);
   url.searchParams.set('seed', seed); url.searchParams.set('mode', mode);
   url.searchParams.set('city',game.fullCity?'berlin':'inner-ring');
+  url.searchParams.set('ruleset',game.ruleset);
   if(game.fullCity)url.searchParams.set('district',game.startRegion);else url.searchParams.delete('district');
   history.replaceState({}, '', url);
   if (mode === 'training'&&!restored) focusContract(game.deliveries[0]);
@@ -232,6 +238,7 @@ function select(id) {
 
 function renderSelection() {
   const d = game.deliveryById(game.selectedDeliveryId);
+  renderFirstCall(d);
   $('#selection-empty').hidden = Boolean(d); $('#contract-detail').hidden = !d;
   $('#find-route').hidden=!d;
   if (!d) {
@@ -325,6 +332,28 @@ function renderSelection() {
   $('#decision-details').hidden=d.status!=='waiting';
   if($('#decision-details').open&&d.status==='waiting')renderDecisions(d);
 }
+
+function renderFirstCall(job) {
+  coachPrompt=firstShiftCoach(game,{draft:broadcastDraft,selectedJob:job,feasibility,
+    forecast:broadcastDraft&&job?.id===broadcastDraft.jobId?forecastBroadcast(game,job,broadcastDraft.channel):null});
+  $('#first-call-coach').hidden=!coachPrompt;
+  for(const el of document.querySelectorAll('.coach-target'))el.classList.remove('coach-target');
+  if(!coachPrompt)return;
+  $('#first-call-coach').dataset.step=coachPrompt.step;
+  text('#first-call-title',coachPrompt.title);text('#first-call-detail',coachPrompt.detail);
+  const button=$('#first-call-action');button.hidden=!coachPrompt.action;
+  const labels={select:'Open this offer ↗',preview:'Show the radio ↗',confirm:'Review this call ↗',start:'Show the clock ↗'};
+  button.textContent=labels[coachPrompt.action]??'';
+  const target=coachPrompt.action==='start'?$('#pause'):coachPrompt.action==='preview'?$('[data-radio="open"]'):coachPrompt.action==='confirm'?$(`[data-radio="${broadcastDraft?.channel??'open'}"]`):null;
+  target?.classList.add('coach-target');
+  if(innerWidth<=850&&['select','preview','confirm'].includes(coachPrompt.action))$('.mobile-desk-nav a[href="#contract-title"]')?.classList.add('coach-target');
+}
+$('#first-call-action').addEventListener('click',()=>{
+  if(!coachPrompt?.action)return;
+  if(coachPrompt.action==='select'){select(coachPrompt.jobId);return;}
+  const target=coachPrompt.action==='start'?$('#pause'):coachPrompt.action==='confirm'?$(`[data-radio="${broadcastDraft?.channel??'open'}"]`):$('[data-radio="open"]');
+  target.focus();target.scrollIntoView({block:'nearest',behavior:'instant'});
+});
 
 function renderBroadcastPreview(d) {
   const panel=$('#broadcast-preview');panel.hidden=!broadcastDraft;
@@ -448,6 +477,7 @@ function showReview() {
   text('#result-flow', `Best flow: ${game.bestChain} deliveries in a row without a miss.`+(game.refined?` ${review.clientExtensions} client extensions · €${review.feesConceded} in fee concessions · €${review.bonusesPaid} in bonuses.`:''));
   text('#result-lesson', teamLeft?'Watch who is between tours. Offer suitable work across the team, and consider a personal invitation before a waiting rider loses patience. Only actual acceptance cancels a departure warning.':review.lesson);
   const timeline = $('#result-timeline'); timeline.replaceChildren();
+  postcards.review(game);
   for (const entry of game.dispatchLog.filter(e => ['claim', 'complete', 'fail', 'event-start', 'event-end', 'upgrade', 'rider-restless', 'rider-warning', 'rider-recovered', 'rider-left'].includes(e.action)).slice(-12)) {
     const li = document.createElement('li');
     const descriptions = { claim: `${entry.rider} took ${entry.deliveryId?.toUpperCase()}`, complete: `${entry.rider} delivered ${entry.deliveryId?.toUpperCase()}`, fail: `${entry.deliveryId?.toUpperCase()} missed · ${entry.kind?.replaceAll('-', ' ')}`, 'event-start': `Roadworks on ${entry.place}`, 'event-end': `${entry.place} cleared`, upgrade: entry.upgrade, 'rider-restless':`${entry.rider} grew restless`, 'rider-warning':`${entry.rider} warned they would leave after ${Math.ceil(entry.leaveIn??20)} more seconds waiting`, 'rider-recovered':`${entry.rider} recovered satisfaction through ${entry.reason==='completed'?'delivery':'accepted work'}`, 'rider-left':`${entry.rider} finished for today` };
@@ -499,6 +529,7 @@ function render() {
   estimates.clear();feasibility.clear();
   for (const d of game.activeDeliveries()) if (d.status === 'waiting') {const value=game.deliveryFeasibility(d);feasibility.set(d.id,value);estimates.set(d.id,timingAdvice(value));}
   renderQueue(); renderTeam(); renderSelection();
+  postcards.update(game);
   if (game.upgradePending && !dialogs.some(id => $(id).open)) {
     audio.cancel();
     const list = $('#upgrade-list'); list.replaceChildren();
@@ -509,7 +540,7 @@ function render() {
     }
     $('#upgrade-dialog').showModal();
   }
-  if (game.gameOver && !$('#review-dialog').open) { if ($('#upgrade-dialog').open) $('#upgrade-dialog').close(); showReview(); }
+  if (game.gameOver && !$('#review-dialog').open && !$('#intro').open && !$('#postcard-dialog').open) { if ($('#upgrade-dialog').open) $('#upgrade-dialog').close(); showReview(); }
   // The simulation caps its log at 300 entries; an array-length cursor stalls
   // when old entries roll off. Object identity keeps presentation on new events.
   const events = game.dispatchLog.slice(lastLog?game.dispatchLog.indexOf(lastLog)+1:0);
@@ -538,7 +569,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   try {
     const delta = Math.min(.25, (now - lastTime) / 1000); lastTime = now;
-    if (!document.hidden) {
+    if (!document.hidden && !$('#postcard-dialog').open) {
       accumulator += delta;
       while (accumulator >= FIXED_STEP) { game.update(FIXED_STEP); accumulator -= FIXED_STEP; }
       renderer.draw();
@@ -597,12 +628,20 @@ document.addEventListener('keydown', event => {
     event.stopPropagation();
   }
 });
-$('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true }); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
+function updateSetupBrief() {
+  const targets=preparingFresh?(game.fullCity?[6,26]:[5,24]):game.capacityDemand?[6,26]:game.logistics?[4,18]:[5,24];
+  $('#shift-length').options[0].textContent=`3 minutes · ${targets[0]} deliveries`;
+  $('#shift-length').options[1].textContent=`9 minutes · ${targets[1]} deliveries`;
+  const mode=$('#shift-length').value;$('#prepare-shift').dataset.start=mode;
+  renderSetupStamps(mode,targets[mode==='training'?0:1]);
+}
+$('#new-shift').addEventListener('click', () => { act({ type: 'pause', paused: true });preparingFresh=true;updateSetupBrief(); $('#continue-shift').hidden = false; $('#resume-saved').hidden=true; $('#intro').showModal(); });
 $('#continue-shift').addEventListener('click', () => $('#intro').close());
-$('#shift-length').addEventListener('change', () => { $('#prepare-shift').dataset.start = $('#shift-length').value; });
+$('#shift-length').addEventListener('change', updateSetupBrief);
 $('#prepare-shift').addEventListener('click', () => {
   saveEnabled=true;
-  const seed = game.tick === 0 ? game.seed : createSeed(); begin($('#shift-length').value, seed);
+  const preserve=game.tick===0&&!preparingFresh;
+  const seed = preserve ? game.seed : createSeed(); begin($('#shift-length').value, seed,undefined,null,preserve?game.ruleset:undefined);
   saveShift();
   if (sound) {audio.ensure();audio.cue('start');}
 });
@@ -611,8 +650,8 @@ function closeHelp() { $('#help-dialog').close(); act({ type: 'pause', paused: h
 $('#close-help').addEventListener('click', closeHelp);
 $('#help-dialog').addEventListener('cancel', event => { event.preventDefault(); closeHelp(); });
 ['#intro', '#upgrade-dialog', '#review-dialog'].forEach(id => $(id).addEventListener('cancel', event => event.preventDefault()));
-$('#retry').addEventListener('click', () => {begin(game.mode,game.seed,game.startRegion);saveShift();});
-$('#next-shift').addEventListener('click', () => {begin(game.mode === 'training' ? 'standard' : game.mode);saveShift();});
+$('#retry').addEventListener('click', () => {begin(game.mode,game.seed,game.startRegion,null,game.ruleset);saveShift();});
+$('#next-shift').addEventListener('click', () => {$('#review-dialog').close();preparingFresh=true;updateSetupBrief();$('#continue-shift').hidden=true;$('#resume-saved').hidden=true;$('#intro').showModal();});
 $('#resume-saved').addEventListener('click',()=>{
   if(!savedRecord)return;
   try {
@@ -770,7 +809,9 @@ try {
   for(const control of document.querySelectorAll('button,select')) control.disabled=false;
   $('#shift-length').value = Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training';
   $('#prepare-shift').dataset.start = $('#shift-length').value;
-  begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed());
+  const requestedRuleset=params.get('ruleset');
+  const ruleset=(inner?['berlin-dispatch-v2',GEOGRAPHIC_RULESET]:FULL_CITY_RULESETS).includes(requestedRuleset)?requestedRuleset:undefined;
+  begin(Object.hasOwn(SHIFT_MODES, params.get('mode')) ? params.get('mode') : 'training', params.get('seed') || createSeed(),undefined,null,ruleset);
   try {const record=JSON.parse(localStorage.getItem(`send-it:shift:${city.metadata.id}`));if(record?.city===city.metadata.id&&record.ticks>0&&!record.review?.outcome){savedRecord=record;$('#resume-saved').hidden=false;text('#resume-saved',`Resume saved ${record.mode==='training'?'first shift':'Berlin shift'} · paused`);}}catch{}
   $('#map-loading').hidden=true;$('#intro').showModal();requestAnimationFrame(frame);
 } catch(error) {

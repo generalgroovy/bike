@@ -48,6 +48,8 @@ jobs:
         run: python e2e/wellbeing_smoke.py
       - name: Compact desk, pure filters and mobile navigation acceptance
         run: python e2e/desk_ux_smoke.py
+      - name: First call, postcard, exact retry and local collection acceptance
+        run: python e2e/postcard_smoke.py
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4

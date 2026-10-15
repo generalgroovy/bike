@@ -8,6 +8,7 @@
   <title>Send It — The Berlin desk</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="playtest.css">
+  <link rel="stylesheet" href="src/postcard-desk.css">
 </head>
 <body>
   <div class="desk-toolbar">
@@ -19,14 +20,14 @@
       <div><small>RADIO</small><strong id="radio-count">0 / 3</strong></div>
     </div>
     <nav aria-label="Desk controls"><button id="sound" aria-pressed="false">Sound off</button><details id="desk-menu" class="desk-menu"><summary>Menu</summary><div class="menu-sheet">
-      <button id="help">How to play</button><button id="open-radio-log">Radio log</button><button id="open-sound-studio">Sound &amp; music</button><button id="new-shift">New shift</button>
+      <button id="help">How to play</button><button id="open-postcards">Stamps &amp; postcards</button><button id="open-radio-log">Radio log</button><button id="open-sound-studio">Sound &amp; music</button><button id="new-shift">New shift</button>
       <div class="session-meta"><strong id="scope-name"></strong><small id="seed-label"></small><small id="phase-name"></small><span id="flow-count"></span><small id="listening-now"></small><span id="save-state" role="status"></span><span id="map-detail-status"></span></div>
     </div></details></nav>
   </header>
 
   <div class="shift-bar">
     <div class="shift-context"><span id="desk-state" class="state-badge" data-state="ready">Ready</span><span id="phase-detail" class="sr-only"></span></div>
-    <div class="shift-target"><span id="delivery-target">0 / 5 delivered</span><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock" aria-label="Time until the shift ends">3:00</strong><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
+    <div class="shift-target"><button id="postcard-progress" aria-label="View this shift’s stamps"><span id="delivery-target">0 / 5 delivered</span><span class="stamp-marks" aria-hidden="true"><i></i><i></i><i></i></span></button><progress id="shift-progress" max="180" value="0" aria-label="Shift time"></progress><strong id="clock" aria-label="Time until the shift ends">3:00</strong><div class="time-controls"><button id="pause" class="primary">Start shift</button><button id="speed" aria-label="Change simulation speed">1×</button></div></div>
   </div>
 
   </div>
@@ -63,6 +64,7 @@
     <aside class="details-panel">
 
       <section class="contract-section" aria-labelledby="contract-title">
+        <div id="first-call-coach" class="first-call-coach" hidden><span class="eyebrow">YOUR FIRST DELIVERY</span><strong id="first-call-title"></strong><p id="first-call-detail"></p><button id="first-call-action" class="text-button"></button></div>
         <div class="panel-heading selection-heading"><div><h2 id="contract-title" tabindex="-1">Choose a job</h2></div><button id="find-route" aria-label="Show selected route on the map" title="Show route on the map">↗</button></div>
         <p id="selection-empty" class="empty">Choose a job from the list or map. Its status, route and decisions appear here.</p>
         <div id="contract-detail" hidden>
@@ -91,10 +93,13 @@
   </main>
 
   <dialog id="intro" class="welcome">
-    <h2>New shift</h2>
+    <span class="eyebrow">POSTCARDS FROM THE BERLIN DESK</span><h2>Your city. Their call.</h2>
+    <p class="intro-hook">Make an offer worth riding for.</p>
     <label id="start-region-field" class="start-region-field">Starting locality<select id="start-region"><option value="citywide">Across Berlin · Mitte / Spandau / Köpenick</option></select></label>
     <button id="resume-saved" class="resume-saved" hidden>Resume saved shift</button><p id="resume-note" class="fine-print" role="status" hidden></p>
     <label class="start-region-field">Shift length<select id="shift-length"><option value="training">3 minutes · 6 deliveries</option><option value="standard">9 minutes · 26 deliveries</option></select></label>
+    <div id="setup-stamps" class="setup-stamps" aria-label="Optional shift achievements"></div>
+    <p class="fine-print setup-note">Three stamps to earn. Every rider still chooses.</p>
     <button id="prepare-shift" class="primary" data-start="training">Prepare shift ↗</button>
     <button id="continue-shift" class="text-button" hidden>Back to my current shift</button>
   </dialog>
@@ -147,11 +152,20 @@
 
   <dialog id="upgrade-dialog"><span class="eyebrow">HALFWAY THROUGH</span><h2>A little help for the team.</h2><p>The shift is paused. Choose one advantage for the remaining work.</p><div id="upgrade-list" class="upgrade-list"></div></dialog>
   <dialog id="review-dialog" class="review">
-    <span class="eyebrow" id="result-label">SHIFT REVIEW</span><h2 id="result-title"></h2><p id="result-description"></p>
-    <div class="review-stats" id="result-stats"></div><div class="review-note"><strong id="result-rider"></strong><p id="result-flow"></p><p id="result-lesson"></p></div>
+    <span class="eyebrow" id="result-label">SHIFT REVIEW</span><h2 id="result-title" class="sr-only"></h2><p id="result-description"></p>
+    <div id="review-postcard"></div><p id="postcard-save-status" class="fine-print" role="status"></p>
+    <details id="review-notes"><summary>Desk notes &amp; numbers</summary><div class="review-stats" id="result-stats"></div><div class="review-note"><strong id="result-rider"></strong><p id="result-flow"></p><p id="result-lesson"></p></div></details>
     <details><summary>What happened on the radio?</summary><ol id="result-timeline"></ol></details>
-    <div class="review-actions"><button id="retry" class="primary">Retry this shift</button><button id="next-shift">Try a new shift</button><button id="export-run">Download shift record</button></div>
+    <div class="review-actions"><button id="retry" class="primary">Retry this exact shift</button><button id="next-shift">Choose another shift</button><button id="download-postcard">Save postcard</button><button id="copy-challenge">Copy challenge link</button><button id="export-run">Download shift record</button></div>
+    <p id="challenge-status" class="fine-print" role="status"></p><input id="challenge-link" aria-label="Challenge link to copy" readonly hidden>
     <small class="muted">The record contains the seed, ruleset, your actions and outcomes. Nothing is uploaded.</small>
+  </dialog>
+  <dialog id="postcard-dialog" class="postcard-dialog" aria-labelledby="postcard-title">
+    <span class="eyebrow">THIS SHIFT · CLOCK HELD WHILE OPEN</span><h2 id="postcard-title">Three good reasons to ride.</h2>
+    <p id="postcard-place" class="fine-print"></p><div id="postcard-stamps" class="postcard-stamps"></div>
+    <p id="postcard-next" class="fine-print"></p>
+    <details id="postcard-album"><summary>Postcards on this device <span id="postcard-count"></span></summary><p class="fine-print">Your best finished attempt for each shift. Up to 24 cards; no account or unlocks.</p><ol id="postcard-collection"></ol></details>
+    <button id="close-postcards" class="primary">Back to the desk</button>
   </dialog>
   <nav class="mobile-desk-nav" aria-label="Jump to desk panel"><a href="#game-canvas">Map</a><a href="#team-title">Riders</a><a href="#work-title">Jobs <span id="mobile-job-count">1</span></a><a href="#contract-title">Offer</a></nav>
   <div id="map-loading" role="status"><span>↗ SEND IT</span><strong>Opening the Berlin desk…</strong><small id="loading-detail">Loading Berlin's full street map.</small></div>

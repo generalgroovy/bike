@@ -53,6 +53,9 @@ export function eventPhrase(name,{rider='Kira',cargo='document',success=true,mod
   if(name==='pickup-arrival')return[note(voice.notes[0],0,'pluck',.07,.08,voice.pan),note(voice.notes[0],.25,'pluck',.07,.05,voice.pan)];
   if(name==='dropoff-arrival')return[note(voice.notes[1],0,'reed',.7,.07,voice.pan)];
   if(name==='complete')return[...signature,...deskAnswer(1.5),note(50,2,'pluck',.55,.065)];
+  // A small ink-stamp flourish for an earned postcard. It yields to rider
+  // replies and urgent outcomes; it never adds another repeating signal.
+  if(name==='stamp')return[deskNote(50,0,.12,.06),note(74,.25,'bell',.22,.045,-.18),note(81,.5,'bell',.28,.04,.18),note(77,.75,'pluck',.2,.035),note(74,1,'bell',.5,.04)];
   if(name==='fail'){const notes=({document:[74,69,62],fragile:[77,72,65],grocery:[57,55,50]})[cargo]??[74,69,62];return notes.map((n,i)=>note(n,i*.5,'reed',.5,.075));}
   if(name==='break')return[...signature.slice(-2).map((n,i)=>({...n,at:i*.5*beat,volume:.06})),note(50,1.5,'pluck',.4,.045)];
   if(name==='radio-on')return signature.slice(0,2);
@@ -102,7 +105,7 @@ export function connectScoreOutput(ctx,master){const limiter=ctx.createDynamicsC
 const cuePriority=name=>name==='finish'?100:name==='rider-left'?95:name==='fail'?90:name==='rider-warning'?85:name==='complete'?80:['claim','rider-recovered'].includes(name)?70:name==='rider-restless'?60
   :['window-wait','window-open'].includes(name)?65:['break','radio-on'].includes(name)?60
   :name.startsWith('call-')||['prefer','bonus','client-call','start','pause','upgrade'].includes(name)?50
-    :name.startsWith('event-')?40:name==='rider'?35:name==='pickup'?30:name==='spawn'?20:10;
+    :name==='stamp'?45:name.startsWith('event-')?40:name==='rider'?35:name==='pickup'?30:name==='spawn'?20:10;
 
 export class DeskScore {
   static lastInstance=null;

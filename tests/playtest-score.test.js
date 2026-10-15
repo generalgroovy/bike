@@ -181,7 +181,7 @@ test('the wooden dispatcher voice uses two filtered tonal oscillators and preser
 });
 
 test('all composed notes have finite, bounded synth parameters and distinct rider phrases',()=>{
-  const names=['rider','claim','pickup','pickup-arrival','dropoff-arrival','complete','spawn','call-open','call-local','call-priority','call-off','bonus','client-call','fail','event-forecast','event-start','event-end','break','radio-on','upgrade','start','pause','finish'];
+  const names=['rider','claim','pickup','pickup-arrival','dropoff-arrival','complete','stamp','spawn','call-open','call-local','call-priority','call-off','bonus','client-call','fail','event-forecast','event-start','event-end','break','radio-on','upgrade','start','pause','finish'];
   const notes=names.flatMap(name=>eventPhrase(name)).concat(...['opening','build','recovery','push'].flatMap(phase=>[0,1,2,3].map(i=>scoreBar(phase,i,{riding:3,roadworks:true}))),...['document','fragile','grocery'].map(type=>taskPulse({id:'d0',type})));
   assert.ok(notes.length>100);assert.ok(notes.every(n=>[n.midi,n.at,n.duration,n.volume,n.pan].every(Number.isFinite)&&n.duration>0&&n.volume>=0&&n.volume<=.2&&Math.abs(n.pan)<=1));
   assert.equal(new Set(['Kira','Mauro','Brian'].map(rider=>JSON.stringify(eventPhrase('rider',{rider})))).size,3);
@@ -210,4 +210,24 @@ test('wellbeing motifs remain distinct, quiet and tied to each rider on the musi
   assert.deepEqual([...score.eventCues.values()].map(c=>c.name).sort(),['rider-left','rider-warning']);
   assert.ok(calls.at(-2).notes.every(n=>n.pan===(n.source==='dispatcher'?0:.7)));
   assert.equal(score.cue('spawn',{jobId:'d3'}),false);
+});
+
+test('an earned stamp is a short pentatonic flourish that yields to rider outcomes',()=>{
+  const phrase=eventPhrase('stamp');
+  assert.equal(phrase[0].source,'dispatcher');
+  assert.ok(phrase.every(n=>n.volume<=.06&&[0,2,5,7,9].includes(n.midi%12)));
+  assert.ok(phrase.every(n=>Math.abs(n.at/tick-Math.round(n.at/tick))<1e-8));
+  assert.ok(Math.max(...phrase.map(n=>n.at+n.duration))<1.2);
+  assert.notDeepEqual(phrase,eventPhrase('complete'),'a collection flourish is distinct from a rider delivering');
+  const {score,calls}=fixture();
+  assert.ok(score.cue('stamp',{jobId:'card1'}));
+  assert.equal(calls.length,1);
+  assert.ok(score.cue('complete',{jobId:'delivery',rider:'Brian'}));
+  assert.equal(score.cue('stamp',{jobId:'card2'}),false,'postcard celebration must not bury the rider reply');
+  score.ctx.currentTime=5;
+  assert.ok(score.cue('stamp',{jobId:'card3'}));
+  assert.equal(calls.length,3);
+  score.enabled=false;
+  assert.equal(score.cue('stamp',{jobId:'card4'}),false);
+  assert.equal(calls.length,3);
 });
